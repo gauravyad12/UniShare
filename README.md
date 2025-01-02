@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/images/logo-512x512.webp" width=100 alt="logo">
+  <img src="assets/images/logo-512x512.png" width=100 alt="logo">
   
   ## UniShare
   A modern all-in-one student dashboard
