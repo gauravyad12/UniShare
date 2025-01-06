@@ -2,7 +2,8 @@
   <img src="assets/images/logo-512x512.png" width=100 alt="logo">
   
   ## UniShare
-  A modern all-in-one student dashboard
+  A modern all-in-one student dashboard<br><br>
+  https://unishare.app
   
   [![kiprasvitas - UniShare](https://img.shields.io/static/v1?label=kiprasvitas&message=UniShare&color=teal&logo=github&style=for-the-badge)](https://github.com/kiprasvitas/UniShare "Go to GitHub repo")
   [![stars - UniShare](https://img.shields.io/github/stars/kiprasvitas/UniShare?style=for-the-badge)](https://github.com/kiprasvitas/UniShare)
