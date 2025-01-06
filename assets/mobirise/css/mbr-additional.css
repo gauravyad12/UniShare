@@ -1,6 +1,6 @@
 @charset "UTF-8";
 section {
-  background-color: black;
+  background-color: #070707;
 }
 
 body {
@@ -9,7 +9,7 @@ body {
   font-weight: 400;
   color: #232323;
   position: relative;
-    background-color:black;
+    background-color:#070707;
 }
 
 button {
@@ -1057,7 +1057,11 @@ body {
 .btn {
   padding: 1.25rem 2rem;
   border-radius: 4px;
-  padding: 0.75rem 1.5rem;
+}
+@media (max-width: 767px) {
+  .btn {
+    padding: 0.75rem 1.5rem;
+  }
 }
 .btn-sm {
   padding: 0.6rem 1.2rem;
@@ -1705,6 +1709,7 @@ a {
   padding: 8px 16px;
   border-radius: 50px !important;
   font-weight: 400 !important;
+  padding: 16px 32px;
 }
 .mbr-section-btn .btn .mbr-iconfont,
 .mbr-section-btn-main .btn .mbr-iconfont {
@@ -2397,7 +2402,7 @@ img,
 .cid-ufFCEXcy3N {
   padding-top: 5rem;
   padding-bottom: 5rem;
-  background-image: url("../../../assets/images/dark-background-xixdblcr6wbtgm0d-1920x1234.jpg");
+  background-image: url("../../../assets/images/starbackground-2000x1333.jpg");
 }
 .cid-ufFCEXcy3N .mbr-overlay {
   background: #060606;
@@ -2645,11 +2650,11 @@ img,
 .cid-uxW1bsXZB4 {
   padding-top: 0px;
   padding-bottom: 0px;
-  background-color: #000000;
+  background-color: #060606;
 }
 .cid-uxW1bsXZB4 .stats-item {
   padding: 80px 10px;
-  background-color: #000000;
+  background-color: #060606;
   display: flex;
   -webkit-box-pack: center;
   justify-content: center;
@@ -2932,9 +2937,9 @@ img,
   text-align: center;
 }
 .cid-uxWPdQCoZd {
-  padding-top: 0rem;
-  padding-bottom: 0rem;
-  background-color: #060606;
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+  background-color: #000000;
 }
 .cid-uxWPdQCoZd .mbr-fallback-image.disabled {
   display: none;
@@ -2973,12 +2978,12 @@ img,
   }
 }
 .cid-uxWPdQCoZd .image-wrapper img {
-  height: 480px;
-  object-fit: cover;
+  height: 200px;
+  object-fit: contain;
 }
-@media (max-width: 992px) {
+@media (max-width: 200px) {
   .cid-uxWPdQCoZd .image-wrapper img {
-    height: 350px;
+    height: 200px;
   }
 }
 .cid-uxWPdQCoZd .mbr-section-title {
@@ -3137,7 +3142,7 @@ img,
 }
 @charset "UTF-8";
 section {
-  background-color: black;
+  background-color: #070707;
 }
 
 body {
@@ -3146,7 +3151,7 @@ body {
   font-weight: 400;
   color: #232323;
   position: relative;
-    background-color:black;
+    background-color:#070707;
 }
 
 button {
@@ -4119,7 +4124,7 @@ blockquote {
 }
 #floater .logofloater {
   display: block;
-  padding-top: 5px;
+  padding-top: 10px;
   border-radius: 25px;
   border-style: solid;
   border-color: white;
@@ -4140,7 +4145,7 @@ blockquote {
   padding-top: 12rem;
   padding-bottom: 12rem;
   overflow: hidden;
-  background-image: url("../../../assets/images/dark-background-xixdblcr6wbtgm0d-1920x1234.jpg");
+  background-image: url("../../../assets/images/starbackground-2000x1333.jpg");
 }
 .cid-uxZu1EknV8 .mbr-fallback-image.disabled {
   display: none;
