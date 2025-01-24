@@ -64,7 +64,7 @@
       "themeColor": "#060606"
     },
     "favicon": false,
-    "mbrsiteDomain": "uzjamkhbeq",
+    "mbrsiteDomain": "5lakfpknf5",
     "pwa-switcher": true,
     "mcSmartCart": {
       "currency": "USD"
@@ -74,21 +74,8 @@
     "versionPublish": "5.9.18",
     "screenshot": "screenshot.png",
     "publishChangesOnly": true,
-    "cookiesAlert": {
-      "customDialogSelector": false,
-      "colorText": "#f7f7f7",
-      "colorBg": "#060606",
-      "colorButton": "#0844ff",
-      "rejectColor": "#ffffff",
-      "colorLink": "#ffffff",
-      "underlineLink": true,
-      "opacityOverlay": "0",
-      "bgOpacity": "86",
-      "text": "We use cookies to give you the best experience. Read our <a href='privacy.html'>cookie policy</a>.",
-      "textButton": "GOT IT",
-      "rejectText": "REJECT"
-    },
-    "google-analytics": "<script async src=\"https://www.googletagmanager.com/gtag/js?id=G-CLMKB13E1K\"></script>\n<script>\n  window.dataLayer = window.dataLayer || [];\n  function gtag(){dataLayer.push(arguments);}\n  gtag('js', new Date());\n\n  gtag('config', 'G-CLMKB13E1K');\n</script>"
+    "google-analytics": "<script async src=\"https://www.googletagmanager.com/gtag/js?id=G-CLMKB13E1K\"></script>\n<script>\n  window.dataLayer = window.dataLayer || [];\n  function gtag(){dataLayer.push(arguments);}\n  gtag('js', new Date());\n\n  gtag('config', 'G-CLMKB13E1K');\n</script>",
+    "cookiesAlert": false
   },
   "pages": {
     "index.html": {
