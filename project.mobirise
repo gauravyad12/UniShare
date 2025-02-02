@@ -64,7 +64,7 @@
       "themeColor": "#060606"
     },
     "favicon": false,
-    "mbrsiteDomain": "5lakfpknf5",
+    "mbrsiteDomain": "tfrapirkwd",
     "pwa-switcher": true,
     "mcSmartCart": {
       "currency": "USD"
@@ -85,7 +85,8 @@
         "meta_descr": "A place where growing students work and connect with one another.",
         "header_custom": "",
         "footer_custom": "",
-        "html_before": ""
+        "html_before": "",
+        "meta_image": "@PROJECT_PATH@/assets/images/og_image-1200x630.png"
       },
       "components": [
         {
