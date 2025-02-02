@@ -64,7 +64,7 @@
       "themeColor": "#060606"
     },
     "favicon": false,
-    "mbrsiteDomain": "tfrapirkwd",
+    "mbrsiteDomain": "vdwjx97sqg",
     "pwa-switcher": true,
     "mcSmartCart": {
       "currency": "USD"
@@ -83,7 +83,7 @@
         "main": true,
         "title": "UniShare | Work, Share, Create",
         "meta_descr": "A place where growing students work and connect with one another.",
-        "header_custom": "<!-- Facebook Meta Tags -->\n<meta property=\"og:url\" content=\"https://unishare.app\">\n<meta property=\"og:type\" content=\"website\">\n<meta property=\"og:title\" content=\"UniShare | Work, Share, Create\">\n<meta property=\"og:description\" content=\"A place where growing students work and connect with one another.\">\n<meta property=\"og:image\" content=\"assets/images/index-meta.png\">\n\n<!-- Twitter Meta Tags -->\n<meta name=\"twitter:card\" content=\"summary_large_image\">\n<meta property=\"twitter:domain\" content=\"unishare.app\">\n<meta property=\"twitter:url\" content=\"https://unishare.app\">\n<meta name=\"twitter:title\" content=\"UniShare | Work, Share, Create\">\n<meta name=\"twitter:description\" content=\"A place where growing students work and connect with one another.\">\n<meta name=\"twitter:image\" content=\"assets/images/index-meta.png\">",
+        "header_custom": "<!-- Facebook Meta Tags -->\n<meta property=\"og:url\" content=\"https://unishare.app\">\n<meta property=\"og:type\" content=\"website\">\n<meta property=\"og:title\" content=\"UniShare | Work, Share, Create\">\n<meta property=\"og:description\" content=\"A place where growing students work and connect with one another.\">\n<meta property=\"og:image\" content=\"https://unishare.app/assets/images/index-meta.png\">\n\n<!-- Twitter Meta Tags -->\n<meta name=\"twitter:card\" content=\"summary_large_image\">\n<meta property=\"twitter:domain\" content=\"unishare.app\">\n<meta property=\"twitter:url\" content=\"https://unishare.app\">\n<meta name=\"twitter:title\" content=\"UniShare | Work, Share, Create\">\n<meta name=\"twitter:description\" content=\"A place where growing students work and connect with one another.\">\n<meta name=\"twitter:image\" content=\"https://unishare.app/assets/images/index-meta.png\">",
         "footer_custom": "",
         "html_before": "",
         "meta_image": "@PROJECT_PATH@/assets/images/og_image-1200x630.png"
