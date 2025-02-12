@@ -5,9 +5,9 @@
   A modern all-in-one student dashboard<br><br>
   https://unishare.app
   
-  [![kiprasvitas - UniShare](https://img.shields.io/static/v1?label=kiprasvitas&message=UniShare&color=teal&logo=github&style=for-the-badge)](https://github.com/kiprasvitas/UniShare "Go to GitHub repo")
-  [![stars - UniShare](https://img.shields.io/github/stars/kiprasvitas/UniShare?style=for-the-badge)](https://github.com/kiprasvitas/UniShare)
-  [![forks - UniShare](https://img.shields.io/github/forks/kiprasvitas/UniShare?style=for-the-badge)](https://github.com/kiprasvitas/UniShare)
+  [![kiprasvitas - UniShare](https://img.shields.io/static/v1?label=kiprasvitas&message=UniShare&color=teal&logo=github&style=for-the-badge)](https://github.com/UniShareTeam/UniShare "Go to GitHub repo")
+  [![stars - UniShare](https://img.shields.io/github/stars/UniShareTeam/UniShare?style=for-the-badge)](https://github.com/UniShareTeam/UniShare)
+  [![forks - UniShare](https://img.shields.io/github/forks/UniShareTeam/UniShare?style=for-the-badge)](https://github.com/UniShareTeam/UniShare)
   
   ----
 </div>
