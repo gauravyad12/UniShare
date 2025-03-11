@@ -2647,8 +2647,8 @@ img,
   padding: 80px 10px;
   background-color: #060606;
   display: flex;
-  -webkit-box-pack: center;
-  justify-content: center;
+  -webkit-box-pack: center !important;
+  justify-content: center !important;
 }
 .cid-uxW1bsXZB4 .stats-item:first-child {
   border-radius: 10px 0 0 10px;
@@ -2697,8 +2697,6 @@ img,
 }
 @media (max-width: 768px) {
   .cid-uxW1bsXZB4 .stats-item {
-    -webkit-box-pack: start;
-    justify-content: flex-start;
     padding: 30px 25px;
   }
   .cid-uxW1bsXZB4 .stats-item:first-child {
