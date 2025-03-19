@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/images/logo-512x512.png" width=100 alt="logo">
+  <img src="https://images.vexels.com/media/users/3/140908/isolated/preview/bdc30bbe3c022a11e2d7fd0e642c61ae-open-book-icon.png" width=100 alt="logo">
   
   ## UniShare
   A modern all-in-one student dashboard<br><br>
