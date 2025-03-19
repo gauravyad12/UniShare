@@ -3,14 +3,12 @@
 import Hero from "@/components/hero";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
-// Client component doesn't need server imports
 import {
   ArrowUpRight,
   BookOpen,
   FileText,
   Search,
   Users,
-  Calendar,
   Shield,
   GraduationCap,
   School,
@@ -18,6 +16,7 @@ import {
   File,
 } from "lucide-react";
 import { useEffect } from "react";
+import Link from "next/link";
 
 export default function Home() {
   // Add smooth scrolling behavior
@@ -188,13 +187,13 @@ export default function Home() {
             Get access to course materials, study groups, and a community of
             students from your university.
           </p>
-          <a
-            href="/sign-up"
+          <Link
+            href="/verify-invite"
             className="inline-flex items-center px-6 py-3 text-primary-foreground bg-primary rounded-lg hover:bg-primary/90 transition-colors"
           >
-            Sign Up With Invite Code
+            Join With Invite Code
             <ArrowUpRight className="ml-2 w-4 h-4" />
-          </a>
+          </Link>
         </div>
       </section>
 

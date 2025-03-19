@@ -2,7 +2,7 @@
 
 import { createClient } from "../../supabase/server";
 import { encodedRedirect } from "@/utils/utils";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 export const signUpAction = async (formData: FormData) => {
@@ -11,7 +11,9 @@ export const signUpAction = async (formData: FormData) => {
   const confirmPassword = formData.get("confirm_password")?.toString();
   const fullName = formData.get("full_name")?.toString() || "";
   const username = formData.get("username")?.toString();
-  const inviteCode = formData.get("invite_code")?.toString();
+  // Get invite code from cookie instead of form data
+  const cookiesStore = cookies();
+  const inviteCode = cookiesStore.get("verified_invite_code")?.value;
   const supabase = await createClient();
 
   if (!email || !password || !confirmPassword) {

@@ -7,11 +7,28 @@ import Link from "next/link";
 import { signUpAction } from "@/app/actions";
 import Navbar from "@/components/navbar";
 import { GraduationCap } from "lucide-react";
+import { redirect } from "next/navigation";
+import { cookies, headers } from "next/headers";
 
 export default async function Signup(props: {
   searchParams: Promise<Message>;
 }) {
   const searchParams = await props.searchParams;
+
+  // Check if invite code exists in cookies (server-side)
+  const cookiesStore = cookies();
+  const hasInviteCode = cookiesStore.has("verified_invite_code");
+
+  // Redirect if no invite code is found, but only if this isn't a redirect from verify-invite
+  // Check if we're coming from verify-invite to prevent redirect loops
+  const headersList = headers();
+  const referer = headersList.get("referer") || "";
+  const isFromVerifyInvite = referer.includes("/verify-invite");
+
+  if (!hasInviteCode && !isFromVerifyInvite) {
+    return redirect("/verify-invite");
+  }
+
   if ("message" in searchParams) {
     return (
       <div className="flex h-screen w-full flex-1 items-center justify-center p-4 sm:max-w-md">
@@ -75,23 +92,6 @@ export default async function Signup(props: {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="invite_code" className="text-sm font-medium">
-                  Invite Code
-                </Label>
-                <Input
-                  id="invite_code"
-                  name="invite_code"
-                  type="text"
-                  placeholder="Enter your invite code"
-                  required
-                  className="w-full"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Required to join your university's hub
-                </p>
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="username" className="text-sm font-medium">
                   Username
                 </Label>
@@ -144,6 +144,8 @@ export default async function Signup(props: {
                   className="w-full"
                 />
               </div>
+
+              {/* No need for hidden invite code field as we're using cookies now */}
             </div>
 
             <div className="text-xs text-muted-foreground text-center mb-4">
