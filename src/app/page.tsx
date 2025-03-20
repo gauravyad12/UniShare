@@ -1,7 +1,7 @@
 "use client";
 
 import Hero from "@/components/hero";
-import Navbar from "@/components/navbar";
+import ClientNavbar from "@/components/client-navbar";
 import Footer from "@/components/footer";
 import {
   ArrowUpRight,
@@ -47,7 +47,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/95">
-      <Navbar />
+      <ClientNavbar />
       <Hero />
 
       {/* Features Section */}

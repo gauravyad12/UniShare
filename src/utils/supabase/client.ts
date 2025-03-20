@@ -2,7 +2,7 @@ import { createBrowserClient } from "@supabase/ssr";
 
 let supabaseClient: ReturnType<typeof createBrowserClient> | null = null;
 
-export const createClient = () => {
+export function createClient() {
   if (supabaseClient) {
     return supabaseClient;
   }
@@ -18,4 +18,4 @@ export const createClient = () => {
   );
 
   return supabaseClient;
-};
+}

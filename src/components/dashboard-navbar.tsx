@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { createClient } from "../../supabase/client";
+import { createClient } from "@/utils/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,13 +9,26 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { Button } from "./ui/button";
-import { UserCircle, Home, GraduationCap } from "lucide-react";
+import {
+  UserCircle,
+  Home,
+  GraduationCap,
+  BookOpen,
+  Users,
+  Settings,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "./theme-toggle";
+import { signOutAction } from "@/app/actions";
 
 export default function DashboardNavbar() {
-  const supabase = createClient();
   const router = useRouter();
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/sign-in");
+  };
 
   return (
     <nav className="w-full border-b border-border bg-background py-4">
@@ -25,6 +38,30 @@ export default function DashboardNavbar() {
             <GraduationCap className="h-8 w-8 text-primary" />
             <span className="text-xl font-bold">UniShare</span>
           </Link>
+
+          <div className="hidden md:flex items-center gap-4 ml-6">
+            <Link
+              href="/dashboard"
+              className="text-sm font-medium flex items-center gap-1 hover:text-primary transition-colors"
+            >
+              <Home className="h-4 w-4" />
+              Dashboard
+            </Link>
+            <Link
+              href="/dashboard/resources"
+              className="text-sm font-medium flex items-center gap-1 hover:text-primary transition-colors"
+            >
+              <BookOpen className="h-4 w-4" />
+              Resources
+            </Link>
+            <Link
+              href="/dashboard/study-groups"
+              className="text-sm font-medium flex items-center gap-1 hover:text-primary transition-colors"
+            >
+              <Users className="h-4 w-4" />
+              Study Groups
+            </Link>
+          </div>
         </div>
         <div className="flex gap-4 items-center">
           <ThemeToggle />
@@ -35,12 +72,13 @@ export default function DashboardNavbar() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={async () => {
-                  await supabase.auth.signOut();
-                  router.push("/");
-                }}
-              >
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/profile">Profile</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/settings">Settings</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSignOut}>
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>

@@ -1,8 +1,62 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowUpRight, Check, BookOpen, Users, Calendar } from "lucide-react";
 import ParticlesBackground from "./particles-background";
+import { createClient } from "../../supabase/client";
+import { useEffect, useState } from "react";
 
 export default function Hero() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    // Check if user is logged in without using async/await directly in the effect
+    const checkUser = () => {
+      // Get the session first instead of trying to refresh it
+      supabase.auth
+        .getSession()
+        .then(({ data: sessionData }) => {
+          // Only try to refresh if we have a session
+          if (sessionData.session) {
+            supabase.auth.refreshSession().catch(() => {
+              // Silent error handling
+            });
+          }
+
+          // Get the user regardless of refresh result
+          supabase.auth
+            .getUser()
+            .then(({ data, error }) => {
+              if (error) {
+                setUser(null);
+              } else {
+                setUser(data.user);
+              }
+            })
+            .catch(() => {
+              setUser(null);
+            });
+        })
+        .catch(() => {
+          setUser(null);
+        });
+    };
+
+    // Also subscribe to auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+    });
+
+    checkUser();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
   return (
     <div
       className="relative overflow-hidden bg-background"
@@ -42,13 +96,23 @@ export default function Hero() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link
-                href="/verify-invite"
-                className="inline-flex items-center px-8 py-4 text-primary-foreground bg-primary rounded-lg hover:bg-primary/90 transition-colors text-lg font-medium"
-              >
-                Join With Invite Code
-                <ArrowUpRight className="ml-2 w-5 h-5" />
-              </Link>
+              {user ? (
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center px-8 py-4 text-primary-foreground bg-primary rounded-lg hover:bg-primary/90 transition-colors text-lg font-medium"
+                >
+                  Go to Dashboard
+                  <ArrowUpRight className="ml-2 w-5 h-5" />
+                </Link>
+              ) : (
+                <Link
+                  href="/verify-invite"
+                  className="inline-flex items-center px-8 py-4 text-primary-foreground bg-primary rounded-lg hover:bg-primary/90 transition-colors text-lg font-medium"
+                >
+                  Join With Invite Code
+                  <ArrowUpRight className="ml-2 w-5 h-5" />
+                </Link>
+              )}
 
               <Link
                 href="/#how-it-works"

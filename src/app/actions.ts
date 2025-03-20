@@ -1,21 +1,29 @@
 "use server";
 
-import { createClient } from "../../supabase/server";
-import { encodedRedirect } from "@/utils/utils";
-import { headers, cookies } from "next/headers";
+import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
-export const signUpAction = async (formData: FormData) => {
+// Helper function to encode redirect with message
+function encodedRedirect(
+  type: "error" | "success",
+  path: string,
+  message: string,
+) {
+  const params = new URLSearchParams();
+  params.set(type, message);
+  return redirect(`${path}?${params.toString()}`);
+}
+
+export async function signUpAction(formData: FormData) {
   const email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
   const confirmPassword = formData.get("confirm_password")?.toString();
   const fullName = formData.get("full_name")?.toString() || "";
   const username = formData.get("username")?.toString();
-  // Get invite code from cookie instead of form data
-  const cookiesStore = cookies();
-  const inviteCode = cookiesStore.get("verified_invite_code")?.value;
-  const supabase = await createClient();
 
+  const supabase = createClient();
+
+  // Basic validation
   if (!email || !password || !confirmPassword) {
     return encodedRedirect(
       "error",
@@ -24,39 +32,20 @@ export const signUpAction = async (formData: FormData) => {
     );
   }
 
-  // Password validation
   if (password !== confirmPassword) {
     return encodedRedirect("error", "/sign-up", "Passwords do not match");
   }
 
-  // Check password strength
-  if (password.length < 8 || password.length > 50) {
-    return encodedRedirect(
-      "error",
-      "/sign-up",
-      "Password must be between 8 and 50 characters",
-    );
-  }
-
-  const hasUpperCase = /[A-Z]/.test(password);
-  const hasLowerCase = /[a-z]/.test(password);
-  const hasNumber = /[0-9]/.test(password);
-  const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
-
-  if (!hasUpperCase || !hasLowerCase || !hasNumber || !hasSpecialChar) {
-    return encodedRedirect(
-      "error",
-      "/sign-up",
-      "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
-    );
-  }
-
-  if (!username) {
-    return encodedRedirect("error", "/sign-up", "Username is required");
-  }
+  // Get invite code from cookie
+  const cookieStore = await supabase.cookies.get("verified_invite_code");
+  const inviteCode = cookieStore?.value;
 
   if (!inviteCode) {
-    return encodedRedirect("error", "/sign-up", "Invite code is required");
+    return encodedRedirect(
+      "error",
+      "/verify-invite",
+      "Invite code is required",
+    );
   }
 
   // Check if email domain is from a supported university
@@ -91,85 +80,12 @@ export const signUpAction = async (formData: FormData) => {
   if (inviteError || !inviteData) {
     return encodedRedirect(
       "error",
-      "/sign-up",
+      "/verify-invite?clear_cookie=true",
       "Invalid or expired invite code",
     );
   }
 
-  // Check if invite code has reached max uses
-  if (inviteData.max_uses && inviteData.current_uses >= inviteData.max_uses) {
-    return encodedRedirect(
-      "error",
-      "/sign-up",
-      "This invite code has reached its maximum number of uses",
-    );
-  }
-
-  // Check if invite code has expired
-  if (inviteData.expires_at && new Date(inviteData.expires_at) < new Date()) {
-    return encodedRedirect("error", "/sign-up", "This invite code has expired");
-  }
-
-  // Check if the invite code's university matches the email domain
-  const inviteUniversity = inviteData.universities;
-  if (inviteUniversity && inviteUniversity.domain !== emailDomain) {
-    return encodedRedirect(
-      "error",
-      "/sign-up",
-      `This invite code is for ${inviteUniversity.domain} email addresses only`,
-    );
-  }
-
-  // Check if username is already taken
-  const { data: existingUsername, error: usernameError } = await supabase
-    .from("user_profiles")
-    .select("username")
-    .eq("username", username)
-    .single();
-
-  if (existingUsername) {
-    return encodedRedirect(
-      "error",
-      "/sign-up",
-      "This username is already taken. Please choose another one.",
-    );
-  }
-
-  // Check if username contains bad words
-  const { data: badWords, error: badWordsError } = await supabase
-    .from("bad_words")
-    .select("word");
-
-  if (badWords) {
-    // Check if any bad word is contained within the username (case insensitive)
-    const containsBadWord = badWords.some((badWordObj) => {
-      const badWord = badWordObj.word.toLowerCase();
-      return username.toLowerCase().includes(badWord);
-    });
-
-    if (containsBadWord) {
-      return encodedRedirect(
-        "error",
-        "/sign-up",
-        "This username contains prohibited words. Please choose another one.",
-      );
-    }
-  }
-
-  // Check if user with this email already exists
-  const { data: existingUser, error: existingUserError } =
-    await supabase.auth.admin
-      .listUsers({ filter: `email.eq.${email}` })
-      .catch(() => ({ data: { users: [] }, error: null }));
-
-  if (existingUser && existingUser.users && existingUser.users.length > 0) {
-    return encodedRedirect(
-      "error",
-      "/sign-up",
-      "An account with this email already exists. Please sign in instead.",
-    );
-  }
-
+  // Sign up the user
   const {
     data: { user },
     error,
@@ -192,53 +108,49 @@ export const signUpAction = async (formData: FormData) => {
   if (user) {
     try {
       // Update invite code usage count
-      const { error: inviteUpdateError } = await supabase
+      await supabase
         .from("invite_codes")
         .update({ current_uses: (inviteData.current_uses || 0) + 1 })
         .eq("id", inviteData.id);
 
-      const { error: updateError } = await supabase.from("users").insert({
+      // Create user profile with university info from invite code
+      await supabase.from("user_profiles").insert({
         id: user.id,
-        user_id: user.id,
-        name: fullName,
-        email: email,
-        token_identifier: user.id,
+        full_name: fullName,
+        username: username,
+        university_id: inviteData.university_id,
+        invite_code_id: inviteData.id,
         created_at: new Date().toISOString(),
       });
-
-      // Create user profile with university info from invite code
-      const { error: profileError } = await supabase
-        .from("user_profiles")
-        .insert({
-          id: user.id,
-          full_name: fullName,
-          username: username,
-          university_id: inviteData.university_id,
-          invite_code_id: inviteData.id,
-          created_at: new Date().toISOString(),
-        });
-
-      if (updateError || profileError || inviteUpdateError) {
-        // Error handling without console.error
-      }
     } catch (err) {
-      // Error handling without console.error
+      // Silent error handling
     }
   }
+
+  // Clear the invite code cookie
+  await supabase.cookies.remove("verified_invite_code", { path: "/" });
 
   return encodedRedirect(
     "success",
     "/sign-up",
     "Thanks for signing up! Please check your email for a verification link.",
   );
-};
+}
 
-export const signInAction = async (formData: FormData) => {
+export async function signInAction(formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
-  const supabase = await createClient();
+  const supabase = createClient();
 
-  const { error } = await supabase.auth.signInWithPassword({
+  if (!email || !password) {
+    return encodedRedirect(
+      "error",
+      "/sign-in",
+      "Email and password are required",
+    );
+  }
+
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
@@ -248,12 +160,11 @@ export const signInAction = async (formData: FormData) => {
   }
 
   return redirect("/dashboard");
-};
+}
 
-export const forgotPasswordAction = async (formData: FormData) => {
+export async function forgotPasswordAction(formData: FormData) {
   const email = formData.get("email")?.toString();
-  const supabase = await createClient();
-  const callbackUrl = formData.get("callbackUrl")?.toString();
+  const supabase = createClient();
 
   if (!email) {
     return encodedRedirect("error", "/forgot-password", "Email is required");
@@ -269,33 +180,29 @@ export const forgotPasswordAction = async (formData: FormData) => {
     );
   }
 
-  if (callbackUrl) {
-    return redirect(callbackUrl);
-  }
-
   return encodedRedirect(
     "success",
     "/forgot-password",
     "Check your email for a link to reset your password.",
   );
-};
+}
 
-export const resetPasswordAction = async (formData: FormData) => {
-  const supabase = await createClient();
+export async function resetPasswordAction(formData: FormData) {
+  const supabase = createClient();
 
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
 
   if (!password || !confirmPassword) {
-    encodedRedirect(
+    return encodedRedirect(
       "error",
-      "/protected/reset-password",
+      "/dashboard/reset-password",
       "Password and confirm password are required",
     );
   }
 
   if (password !== confirmPassword) {
-    encodedRedirect(
+    return encodedRedirect(
       "error",
       "/dashboard/reset-password",
       "Passwords do not match",
@@ -307,35 +214,22 @@ export const resetPasswordAction = async (formData: FormData) => {
   });
 
   if (error) {
-    encodedRedirect(
+    return encodedRedirect(
       "error",
       "/dashboard/reset-password",
       "Password update failed",
     );
   }
 
-  encodedRedirect("success", "/protected/reset-password", "Password updated");
-};
+  return encodedRedirect(
+    "success",
+    "/dashboard",
+    "Password updated successfully",
+  );
+}
 
-export const signOutAction = async () => {
-  const supabase = await createClient();
+export async function signOutAction() {
+  const supabase = createClient();
   await supabase.auth.signOut();
-  return redirect("/sign-in");
-};
-
-export const checkUserSubscription = async (userId: string) => {
-  const supabase = await createClient();
-
-  const { data: subscription, error } = await supabase
-    .from("subscriptions")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("status", "active")
-    .single();
-
-  if (error) {
-    return false;
-  }
-
-  return !!subscription;
-};
+  return redirect("/");
+}

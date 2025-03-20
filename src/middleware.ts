@@ -1,52 +1,55 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { createClient } from "./utils/supabase/middleware";
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
+  const { supabase, response } = createClient(req);
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return req.cookies.getAll().map(({ name, value }) => ({
-            name,
-            value,
-          }))
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            req.cookies.set(name, value)
-            res.cookies.set(name, value, options)
-          })
-        },
-      },
-    }
-  )
+  // Refresh session if it exists
+  await supabase.auth.getSession();
 
-  // Refresh session if expired - required for Server Components
-  const { data: { session }, error } = await supabase.auth.getSession()
+  const url = req.nextUrl;
+  const { pathname } = url;
 
-  if (error) {
-    // Auth session error handling without console.error
+  // Define protected and auth routes
+  const isProtectedRoute = pathname.startsWith("/dashboard");
+  const isAuthRoute = ["/sign-in", "/sign-up", "/forgot-password"].some(
+    (route) => pathname.startsWith(route),
+  );
+
+  // Skip middleware for static assets and API routes
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api/") ||
+    pathname.includes(".") // Files with extensions like .jpg, .css, etc.
+  ) {
+    return response;
   }
 
-  return res
+  // Get user session
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  // Handle protected routes
+  if (isProtectedRoute && !session) {
+    url.pathname = "/sign-in";
+    url.searchParams.set("error", "Please sign in to access the dashboard");
+    return NextResponse.redirect(url);
+  }
+
+  // Handle auth routes when user is already logged in
+  if (isAuthRoute && session) {
+    url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
+  }
+
+  return response;
 }
 
-// Ensure the middleware is only called for relevant paths
+// Specify which routes this middleware should run on
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public (public files)
-     * - api/polar/webhook (webhook endpoints)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|public|api/payments/webhook).*)',
+    "/((?!_next/static|_next/image|favicon.ico|public|api/payments/webhook).*)",
   ],
-}
+};

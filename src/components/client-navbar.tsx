@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, BookOpen, Users, Search } from "lucide-react";
+import UserProfile from "./user-profile";
 import { ThemeToggle } from "./theme-toggle";
 import { useEffect, useState } from "react";
-import { createClientOnlyClient } from "@/utils/supabase/client-only";
+import { createClient } from "../utils/supabase/client";
 
-export default function Navbar() {
+export default function ClientNavbar() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClientOnlyClient();
+  const supabase = createClient();
 
   useEffect(() => {
     const getUser = async () => {
@@ -75,6 +76,7 @@ export default function Navbar() {
               <Link href="/dashboard" className="px-4 py-2 text-sm font-medium">
                 <Button>Dashboard</Button>
               </Link>
+              <UserProfile />
             </>
           ) : (
             <>

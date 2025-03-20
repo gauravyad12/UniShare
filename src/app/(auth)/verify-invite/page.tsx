@@ -27,12 +27,21 @@ export default function VerifyInvitePage() {
   const searchParams = useSearchParams();
   const errorMessage = searchParams.get("error");
   const successMessage = searchParams.get("success");
+  const clearCookie = searchParams.get("clear_cookie");
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Focus the first input on component mount
   useEffect(() => {
     inputRefs.current[0]?.focus();
   }, []);
+
+  // Clear cookie if requested via query param
+  useEffect(() => {
+    if (clearCookie === "true") {
+      // Clear the cookie client-side
+      document.cookie = "verified_invite_code=; path=/; max-age=0";
+    }
+  }, [clearCookie]);
 
   // Check if we already have a verified invite code in cookies
   useEffect(() => {

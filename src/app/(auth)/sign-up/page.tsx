@@ -8,32 +8,46 @@ import { signUpAction } from "@/app/actions";
 import Navbar from "@/components/navbar";
 import { GraduationCap } from "lucide-react";
 import { redirect } from "next/navigation";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
+import { createClient } from "@/utils/supabase/server";
 
-export default async function Signup(props: {
-  searchParams: Promise<Message>;
+export default async function SignUpPage({
+  searchParams,
+}: {
+  searchParams: { error?: string; success?: string };
 }) {
-  const searchParams = await props.searchParams;
+  const message: Message = searchParams.error
+    ? { error: searchParams.error }
+    : searchParams.success
+      ? { success: searchParams.success }
+      : {};
 
-  // Check if invite code exists in cookies (server-side)
-  const cookiesStore = cookies();
-  const hasInviteCode = cookiesStore.has("verified_invite_code");
+  // Check if invite code exists in cookies
+  const cookieStore = cookies();
+  const inviteCodeCookie = cookieStore.get("verified_invite_code");
+  const hasInviteCode = !!inviteCodeCookie;
 
-  // Redirect if no invite code is found, but only if this isn't a redirect from verify-invite
-  // Check if we're coming from verify-invite to prevent redirect loops
-  const headersList = headers();
-  const referer = headersList.get("referer") || "";
-  const isFromVerifyInvite = referer.includes("/verify-invite");
-
-  if (!hasInviteCode && !isFromVerifyInvite) {
+  // If no invite code, redirect to verify-invite page
+  if (!hasInviteCode) {
     return redirect("/verify-invite");
   }
 
-  if ("message" in searchParams) {
-    return (
-      <div className="flex h-screen w-full flex-1 items-center justify-center p-4 sm:max-w-md">
-        <FormMessage message={searchParams} />
-      </div>
+  // Verify the invite code is valid
+  const supabase = createClient();
+  const inviteCode = inviteCodeCookie.value;
+
+  // Verify invite code is valid
+  const { data: inviteData, error: inviteError } = await supabase
+    .from("invite_codes")
+    .select("*")
+    .ilike("code", inviteCode) // Case-insensitive matching
+    .eq("is_active", true)
+    .single();
+
+  // If invite code is invalid, redirect to verify-invite
+  if (inviteError || !inviteData) {
+    return redirect(
+      "/verify-invite?error=Invalid or expired invite code&clear_cookie=true",
     );
   }
 
@@ -42,7 +56,7 @@ export default async function Signup(props: {
       <Navbar />
       <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-8">
         <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-sm">
-          <form className="flex flex-col space-y-6">
+          <form action={signUpAction} className="flex flex-col space-y-6">
             <div className="space-y-2 text-center">
               <GraduationCap className="h-12 w-12 text-primary mx-auto mb-2" />
               <h1 className="text-3xl font-semibold tracking-tight">
@@ -144,8 +158,6 @@ export default async function Signup(props: {
                   className="w-full"
                 />
               </div>
-
-              {/* No need for hidden invite code field as we're using cookies now */}
             </div>
 
             <div className="text-xs text-muted-foreground text-center mb-4">
@@ -159,14 +171,15 @@ export default async function Signup(props: {
             </div>
 
             <SubmitButton
-              formAction={signUpAction}
               pendingText="Signing up..."
               className="w-full bg-primary hover:bg-primary/90"
             >
               Sign up
             </SubmitButton>
 
-            <FormMessage message={searchParams} />
+            {(message.error || message.success) && (
+              <FormMessage message={message} />
+            )}
           </form>
         </div>
       </div>
