@@ -4,6 +4,8 @@ import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeContextProvider } from "@/components/theme-context";
+import { AccentStyles } from "@/components/accent-styles";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,11 +22,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head />
       <Script src="https://api.tempolabs.ai/proxy-asset?url=https://storage.googleapis.com/tempo-public-assets/error-handling.js" />
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
-          <TempoInit />
+          <ThemeContextProvider>
+            <AccentStyles />
+            {children}
+            <TempoInit />
+          </ThemeContextProvider>
         </ThemeProvider>
       </body>
     </html>

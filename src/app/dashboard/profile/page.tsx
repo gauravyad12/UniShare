@@ -1,5 +1,7 @@
-import { createClient } from "../../../../supabase/server";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,25 +14,343 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { UserCircle, Upload } from "lucide-react";
+import {
+  UserCircle,
+  Upload,
+  Loader2,
+  CheckCircle,
+  Trash2,
+  XCircle,
+} from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { createClient } from "@/utils/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
-export default async function ProfilePage() {
-  const supabase = await createClient();
+export default function ProfilePage() {
+  const handleDeleteAccount = async () => {
+    try {
+      const supabase = createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+      // Sign out and redirect instead of trying to delete the account directly
+      // Admin functions are not available in the client
+      await supabase.auth.signOut();
+      router.push("/");
 
-  if (!user) {
-    return redirect("/sign-in");
+      toast({
+        title: "Signed out",
+        description: "Please contact support to delete your account.",
+      });
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+  const router = useRouter();
+  const { toast } = useToast();
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    full_name: "",
+    username: "",
+    bio: "",
+    major: "",
+    graduation_year: "",
+  });
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          router.push("/sign-in");
+          return;
+        }
+
+        setUser(user);
+
+        // Get user profile
+        const { data: profile } = await supabase
+          .from("user_profiles")
+          .select("*, university:universities(name)")
+          .eq("id", user.id)
+          .single();
+
+        setProfile(profile || {});
+
+        // If profile doesn't exist, create one with basic info
+        if (!profile) {
+          const userData = user.user_metadata || {};
+          const newProfile = {
+            id: user.id,
+            full_name: userData.full_name || "",
+            username: userData.username || "",
+            email: user.email,
+            created_at: new Date().toISOString(),
+          };
+
+          // Try to determine university from email domain
+          const emailDomain = user.email.split("@")[1];
+          if (emailDomain) {
+            const { data: universityData } = await supabase
+              .from("universities")
+              .select("id, name")
+              .eq("domain", emailDomain)
+              .single();
+
+            if (universityData) {
+              newProfile.university_id = universityData.id;
+              newProfile.university = { name: universityData.name };
+            }
+          }
+
+          setProfile(newProfile);
+
+          // Create profile in database
+          await supabase.from("user_profiles").insert(newProfile);
+        }
+
+        // Set form data
+        setFormData({
+          full_name: profile?.full_name || user?.user_metadata?.full_name || "",
+          username: profile?.username || user?.user_metadata?.username || "",
+          bio: profile?.bio || "",
+          major: profile?.major || "",
+          graduation_year: profile?.graduation_year?.toString() || "",
+        });
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [router]);
+
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const [usernameStatus, setUsernameStatus] = useState<
+    "available" | "taken" | "checking" | "unchanged" | null
+  >(null);
+  const [usernameDebounceTimeout, setUsernameDebounceTimeout] =
+    useState<NodeJS.Timeout | null>(null);
+
+  const checkUsername = async (username: string) => {
+    if (!username) {
+      setUsernameStatus(null);
+      return;
+    }
+
+    // If username is unchanged from profile, don't check
+    if (username === profile?.username) {
+      setUsernameStatus("unchanged");
+      return;
+    }
+
+    setUsernameStatus("checking");
+    setIsCheckingUsername(true);
+
+    try {
+      const response = await fetch("/api/username/check", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username }),
+      });
+
+      const data = await response.json();
+      setUsernameStatus(data.available ? "available" : "taken");
+    } catch (error) {
+      console.error("Error checking username:", error);
+      setUsernameStatus(null);
+    } finally {
+      setIsCheckingUsername(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { id, value } = e.target;
+
+    // Special handling for username
+    if (id === "username") {
+      // Clear any existing timeout
+      if (usernameDebounceTimeout) {
+        clearTimeout(usernameDebounceTimeout);
+      }
+
+      // Set a new timeout to check username after typing stops
+      if (value) {
+        const timeout = setTimeout(() => {
+          checkUsername(value);
+        }, 500);
+        setUsernameDebounceTimeout(timeout);
+      } else {
+        setUsernameStatus(null);
+      }
+    }
+
+    setFormData({
+      ...formData,
+      [id === "fullName"
+        ? "full_name"
+        : id === "username"
+          ? "username"
+          : id === "major"
+            ? "major"
+            : id === "graduationYear"
+              ? "graduation_year"
+              : id === "bio"
+                ? "bio"
+                : id]: value,
+    });
+  };
+
+  const handleSaveChanges = async () => {
+    setSaving(true);
+    setSaveSuccess(false);
+
+    // Check if username is taken
+    if (usernameStatus === "taken") {
+      toast({
+        title: "Username unavailable",
+        description: "Please choose a different username",
+        variant: "destructive",
+      });
+      setSaving(false);
+      return;
+    }
+
+    try {
+      // Include avatar_url in the form data if it exists
+      const updatedFormData = {
+        ...formData,
+        avatar_url: profile?.avatar_url,
+      };
+
+      console.log("Saving profile data:", updatedFormData);
+
+      const response = await fetch("/api/profile/update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updatedFormData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSaveSuccess(true);
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been successfully updated.",
+        });
+
+        // Update local profile state
+        setProfile({
+          ...profile,
+          full_name: formData.full_name,
+          username: formData.username,
+          bio: formData.bio,
+          major: formData.major,
+          graduation_year: formData.graduation_year,
+        });
+
+        // Clear success message after 3 seconds
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } else {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to update profile",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setSaving(true);
+
+      // Use fetch to upload the image via a FormData object
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/profile/upload-avatar", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to upload image");
+      }
+
+      // Update local state with the new avatar URL
+      setProfile({
+        ...profile,
+        avatar_url: data.avatarUrl,
+      });
+
+      toast({
+        title: "Profile picture updated",
+        description: "Your profile picture has been successfully updated.",
+      });
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast({
+        title: "Error",
+        description:
+          "Failed to upload profile picture: " + (error.message || error),
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading profile...</p>
+      </div>
+    );
   }
-
-  // Get user profile
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("*, university:universities(name)")
-    .eq("id", user.id)
-    .single();
 
   return (
     <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
@@ -62,10 +382,24 @@ export default async function ProfilePage() {
                   <UserCircle className="w-20 h-20 text-primary" />
                 )}
               </div>
-              <Button className="mt-2">
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Image
-              </Button>
+              <div className="relative">
+                <input
+                  type="file"
+                  id="avatar-upload"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                />
+                <Button
+                  className="mt-2"
+                  onClick={() =>
+                    document.getElementById("avatar-upload")?.click()
+                  }
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Image
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -84,17 +418,47 @@ export default async function ProfilePage() {
                   <Label htmlFor="fullName">Full Name</Label>
                   <Input
                     id="fullName"
-                    defaultValue={profile?.full_name || ""}
+                    value={formData.full_name}
+                    onChange={handleInputChange}
                     placeholder="Your full name"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="username">Username</Label>
+                    {usernameStatus && usernameStatus !== "unchanged" && (
+                      <div className="flex items-center text-xs">
+                        {usernameStatus === "checking" ? (
+                          <div className="flex items-center text-muted-foreground">
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            Checking...
+                          </div>
+                        ) : usernameStatus === "available" ? (
+                          <div className="flex items-center text-green-500">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Available
+                          </div>
+                        ) : (
+                          <div className="flex items-center text-red-500">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Taken
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <Input
                     id="username"
-                    defaultValue={profile?.username || ""}
+                    value={formData.username}
+                    onChange={handleInputChange}
                     placeholder="Choose a username"
+                    className={
+                      usernameStatus === "taken" ? "border-red-500" : ""
+                    }
                   />
+                  <p className="text-xs text-muted-foreground">
+                    This will be used for your profile URL: profile/@username
+                  </p>
                 </div>
               </div>
 
@@ -102,7 +466,7 @@ export default async function ProfilePage() {
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
-                  value={user.email}
+                  value={user?.email}
                   disabled
                   className="bg-muted/50"
                 />
@@ -113,17 +477,26 @@ export default async function ProfilePage() {
                   <Label htmlFor="university">University</Label>
                   <Input
                     id="university"
-                    value={profile?.university?.name || "Not set"}
+                    value={
+                      profile?.university?.name ||
+                      profile?.university_name ||
+                      "Not set"
+                    }
                     disabled
                     className="bg-muted/50"
+                    title="This is set automatically based on your email domain"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Automatically set based on your email domain
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="graduationYear">Graduation Year</Label>
                   <Input
                     id="graduationYear"
                     type="number"
-                    defaultValue={profile?.graduation_year || ""}
+                    value={formData.graduation_year}
+                    onChange={handleInputChange}
                     placeholder="Expected graduation year"
                   />
                 </div>
@@ -133,7 +506,8 @@ export default async function ProfilePage() {
                 <Label htmlFor="major">Major/Field of Study</Label>
                 <Input
                   id="major"
-                  defaultValue={profile?.major || ""}
+                  value={formData.major}
+                  onChange={handleInputChange}
                   placeholder="Your major or field of study"
                 />
               </div>
@@ -142,14 +516,32 @@ export default async function ProfilePage() {
                 <Label htmlFor="bio">Bio</Label>
                 <Textarea
                   id="bio"
-                  defaultValue={profile?.bio || ""}
+                  value={formData.bio}
+                  onChange={handleInputChange}
                   placeholder="Tell others about yourself"
                   rows={4}
                 />
               </div>
             </CardContent>
-            <CardFooter className="flex justify-end">
-              <Button>Save Changes</Button>
+            <CardFooter className="flex justify-between items-center">
+              {saveSuccess && (
+                <div className="flex items-center text-green-500">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  <span>Profile saved successfully</span>
+                </div>
+              )}
+              <div className="ml-auto">
+                <Button onClick={handleSaveChanges} disabled={saving}>
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
+              </div>
             </CardFooter>
           </Card>
         </div>
@@ -173,6 +565,51 @@ export default async function ProfilePage() {
             </Button>
           </div>
         </CardContent>
+      </Card>
+
+      <Card className="mt-6 border-destructive/50">
+        <CardHeader>
+          <CardTitle className="text-destructive flex items-center gap-2">
+            <Trash2 className="h-5 w-5" />
+            Danger Zone
+          </CardTitle>
+          <CardDescription>
+            Permanent actions that cannot be undone
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <h4 className="font-medium">Delete Account</h4>
+            <p className="text-sm text-muted-foreground">
+              Permanently delete your account and all associated data
+            </p>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive">Delete Account</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete
+                  your account and remove all your data from our servers.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteAccount}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete Account
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardFooter>
       </Card>
     </div>
   );

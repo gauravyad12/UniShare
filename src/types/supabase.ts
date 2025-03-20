@@ -175,6 +175,7 @@ export type Database = {
       }
       resources: {
         Row: {
+          author_id: string | null
           course_code: string | null
           created_at: string | null
           created_by: string | null
@@ -192,6 +193,7 @@ export type Database = {
           view_count: number | null
         }
         Insert: {
+          author_id?: string | null
           course_code?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -209,6 +211,7 @@ export type Database = {
           view_count?: number | null
         }
         Update: {
+          author_id?: string | null
           course_code?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -435,6 +438,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_followers: {
+        Row: {
+          created_at: string | null
+          follower_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          follower_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          follower_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           avatar_url: string | null
@@ -495,12 +519,54 @@ export type Database = {
           },
         ]
       }
+      user_settings: {
+        Row: {
+          color_scheme: string | null
+          created_at: string | null
+          email_notifications: boolean | null
+          font_size: number | null
+          profile_visibility: boolean | null
+          resource_notifications: boolean | null
+          study_group_notifications: boolean | null
+          theme_preference: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color_scheme?: string | null
+          created_at?: string | null
+          email_notifications?: boolean | null
+          font_size?: number | null
+          profile_visibility?: boolean | null
+          resource_notifications?: boolean | null
+          study_group_notifications?: boolean | null
+          theme_preference?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color_scheme?: string | null
+          created_at?: string | null
+          email_notifications?: boolean | null
+          font_size?: number | null
+          profile_visibility?: boolean | null
+          resource_notifications?: boolean | null
+          study_group_notifications?: boolean | null
+          theme_preference?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_user_settings_table: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

@@ -40,6 +40,30 @@ export default async function Dashboard() {
     .eq("id", user.id)
     .single();
 
+  // If user has no university set, try to detect it from email
+  if (userProfile && !userProfile.university_id && user.email) {
+    const emailDomain = user.email.split("@")[1];
+    if (emailDomain) {
+      const { data: universityData } = await supabase
+        .from("universities")
+        .select("id, name")
+        .eq("domain", emailDomain)
+        .single();
+
+      if (universityData) {
+        // Update user profile with detected university
+        await supabase
+          .from("user_profiles")
+          .update({ university_id: universityData.id })
+          .eq("id", user.id);
+
+        // Update local userProfile object
+        userProfile.university_id = universityData.id;
+        userProfile.university = { name: universityData.name };
+      }
+    }
+  }
+
   // Get counts for resources and study groups
   const { count: resourceCount } = await supabase
     .from("resources")
@@ -73,7 +97,12 @@ export default async function Dashboard() {
       {/* Welcome Section */}
       <header className="flex flex-col gap-4">
         <h1 className="text-3xl font-bold">
-          Welcome, {userProfile?.full_name || user.email}
+          Welcome,{" "}
+          {userProfile?.full_name ||
+            userProfile?.username ||
+            user?.user_metadata?.full_name ||
+            user?.user_metadata?.username ||
+            user.email}
         </h1>
         <div className="bg-secondary/50 text-sm p-3 px-4 rounded-lg text-muted-foreground flex gap-2 items-center">
           <InfoIcon size="14" />

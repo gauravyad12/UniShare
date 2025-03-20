@@ -57,7 +57,7 @@ export async function signUpAction(formData: FormData) {
   // Check if the domain exists in our universities table
   const { data: universityData, error: universityError } = await supabase
     .from("universities")
-    .select("id, domain")
+    .select("id, domain, name")
     .eq("domain", emailDomain)
     .single();
 
@@ -118,12 +118,14 @@ export async function signUpAction(formData: FormData) {
         id: user.id,
         full_name: fullName,
         username: username,
-        university_id: inviteData.university_id,
+        university_id: universityData.id,
+        university_name: universityData.name,
         invite_code_id: inviteData.id,
         created_at: new Date().toISOString(),
       });
     } catch (err) {
-      // Silent error handling
+      console.error("Error creating user profile:", err);
+      // Continue with sign-up process despite profile creation error
     }
   }
 
