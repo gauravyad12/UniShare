@@ -204,8 +204,9 @@ export default function VerifyInvitePage() {
             </div>
             <div className="flex justify-center mt-6">
               <SubmitButton
-                isLoading={isLoading}
-                className="px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md"
+                pendingText="Verifying..."
+                disabled={isLoading}
+                className="px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md w-40"
               >
                 Verify Code
               </SubmitButton>

@@ -7,10 +7,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { createClient } from "../../supabase/client-pages";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default function UserProfile() {
-  const supabase = createClient();
+  const supabase = createClientComponentClient();
 
   return (
     <DropdownMenu>
