@@ -39,24 +39,35 @@ import { useToast } from "@/components/ui/use-toast";
 export default function ProfilePage() {
   const handleDeleteAccount = async () => {
     try {
-      const supabase = createClient();
+      setSaving(true);
 
-      // Sign out and redirect instead of trying to delete the account directly
-      // Admin functions are not available in the client
-      await supabase.auth.signOut();
-      router.push("/");
-
-      toast({
-        title: "Signed out",
-        description: "Please contact support to delete your account.",
+      const response = await fetch("/api/profile/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Account deleted",
+          description: "Your account has been successfully deleted.",
+        });
+        router.push("/");
+      } else {
+        throw new Error(data.error || "Failed to delete account");
+      }
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error("Error deleting account:", error);
       toast({
         title: "Error",
-        description: "Failed to sign out. Please try again later.",
+        description: "Failed to delete your account. Please try again later.",
         variant: "destructive",
       });
+    } finally {
+      setSaving(false);
     }
   };
   const router = useRouter();
@@ -603,8 +614,16 @@ export default function ProfilePage() {
                 <AlertDialogAction
                   onClick={handleDeleteAccount}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  disabled={saving}
                 >
-                  Delete Account
+                  {saving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete Account"
+                  )}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
