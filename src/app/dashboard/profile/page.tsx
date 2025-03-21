@@ -37,39 +37,6 @@ import { createClient } from "@/utils/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 
 export default function ProfilePage() {
-  const handleDeleteAccount = async () => {
-    try {
-      setSaving(true);
-
-      const response = await fetch("/api/profile/delete", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        toast({
-          title: "Account deleted",
-          description: "Your account has been successfully deleted.",
-        });
-        router.push("/");
-      } else {
-        throw new Error(data.error || "Failed to delete account");
-      }
-    } catch (error) {
-      console.error("Error deleting account:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete your account. Please try again later.",
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
   const router = useRouter();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
@@ -84,6 +51,7 @@ export default function ProfilePage() {
     graduation_year: "",
   });
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -161,7 +129,7 @@ export default function ProfilePage() {
 
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<
-    "available" | "taken" | "checking" | "unchanged" | null
+    "available" | "taken" | "checking" | "unchanged" | "invalid" | null
   >(null);
   const [usernameDebounceTimeout, setUsernameDebounceTimeout] =
     useState<NodeJS.Timeout | null>(null);
@@ -178,10 +146,34 @@ export default function ProfilePage() {
       return;
     }
 
+    // Validate username format
+    const validUsernameRegex = /^[a-zA-Z0-9_-]+$/;
+    if (!validUsernameRegex.test(username)) {
+      setUsernameStatus("invalid");
+      return;
+    }
+
     setUsernameStatus("checking");
     setIsCheckingUsername(true);
 
     try {
+      // First check for bad words
+      const badWordsResponse = await fetch("/api/email/validate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ checkBadWords: true, username }),
+      });
+
+      if (!badWordsResponse.ok) {
+        const badWordsData = await badWordsResponse.json();
+        setUsernameStatus("invalid");
+        setIsCheckingUsername(false);
+        return;
+      }
+
+      // Then check if username is available
       const response = await fetch("/api/username/check", {
         method: "POST",
         headers: {
@@ -240,14 +232,72 @@ export default function ProfilePage() {
   const handleSaveChanges = async () => {
     setSaving(true);
     setSaveSuccess(false);
+    let hasErrors = false;
+    const errors: { [key: string]: string } = {};
 
-    // Check if username is taken
+    // Clear previous errors
+    setFormErrors({});
+
+    // Check if username is taken or invalid
     if (usernameStatus === "taken") {
-      toast({
-        title: "Username unavailable",
-        description: "Please choose a different username",
-        variant: "destructive",
-      });
+      errors.username =
+        "Username is already taken. Please choose a different one.";
+      hasErrors = true;
+    }
+
+    if (usernameStatus === "invalid") {
+      errors.username =
+        "Username contains invalid characters or inappropriate language.";
+      hasErrors = true;
+    }
+
+    // Show error if username is empty
+    if (!formData.username) {
+      errors.username = "Username is required.";
+      hasErrors = true;
+    }
+
+    // Show error if full name is empty
+    if (!formData.full_name) {
+      errors.fullName = "Full name is required.";
+      hasErrors = true;
+    }
+
+    // Validate graduation year
+    if (formData.graduation_year) {
+      const year = parseInt(formData.graduation_year);
+      const currentYear = new Date().getFullYear();
+      if (year < 1900 || year > currentYear + 10) {
+        errors.graduationYear =
+          "Graduation year must be between 1900 and 10 years in the future.";
+        hasErrors = true;
+      }
+    }
+
+    // Check for bad words in bio
+    if (formData.bio) {
+      try {
+        const bioCheckResponse = await fetch("/api/email/validate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ checkBadWords: true, username: formData.bio }),
+        });
+
+        if (!bioCheckResponse.ok) {
+          errors.bio = "Bio contains inappropriate language.";
+          hasErrors = true;
+        }
+      } catch (error) {
+        console.error("Error checking bio for bad words:", error);
+        errors.bio = "Error validating bio content.";
+        hasErrors = true;
+      }
+    }
+
+    if (hasErrors) {
+      setFormErrors(errors);
       setSaving(false);
       return;
     }
@@ -426,13 +476,21 @@ export default function ProfilePage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="fullName">Full Name</Label>
+                  </div>
                   <Input
                     id="fullName"
                     value={formData.full_name}
                     onChange={handleInputChange}
                     placeholder="Your full name"
+                    className={formErrors.fullName ? "border-red-500" : ""}
                   />
+                  {formErrors.fullName && (
+                    <p className="text-xs text-red-500">
+                      {formErrors.fullName}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
@@ -452,7 +510,7 @@ export default function ProfilePage() {
                         ) : (
                           <div className="flex items-center text-red-500">
                             <XCircle className="h-3 w-3 mr-1" />
-                            Taken
+                            {usernameStatus === "invalid" ? "Invalid" : "Taken"}
                           </div>
                         )}
                       </div>
@@ -464,12 +522,23 @@ export default function ProfilePage() {
                     onChange={handleInputChange}
                     placeholder="Choose a username"
                     className={
-                      usernameStatus === "taken" ? "border-red-500" : ""
+                      usernameStatus === "taken" ||
+                      usernameStatus === "invalid" ||
+                      formErrors.username
+                        ? "border-red-500"
+                        : ""
                     }
                   />
-                  <p className="text-xs text-muted-foreground">
-                    This will be used for your profile URL: profile/@username
-                  </p>
+                  {formErrors.username ? (
+                    <p className="text-xs text-red-500">
+                      {formErrors.username}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      This will be used for your profile URL: /u/
+                      {formData.username}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -509,7 +578,15 @@ export default function ProfilePage() {
                     value={formData.graduation_year}
                     onChange={handleInputChange}
                     placeholder="Expected graduation year"
+                    className={
+                      formErrors.graduationYear ? "border-red-500" : ""
+                    }
                   />
+                  {formErrors.graduationYear && (
+                    <p className="text-xs text-red-500">
+                      {formErrors.graduationYear}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -531,10 +608,19 @@ export default function ProfilePage() {
                   onChange={handleInputChange}
                   placeholder="Tell others about yourself"
                   rows={4}
+                  className={formErrors.bio ? "border-red-500" : ""}
                 />
+                {formErrors.bio && (
+                  <p className="text-xs text-red-500">{formErrors.bio}</p>
+                )}
               </div>
             </CardContent>
             <CardFooter className="flex justify-between items-center">
+              {Object.keys(formErrors).length > 0 && (
+                <div className="text-red-500 text-sm">
+                  Please fix the errors above before saving.
+                </div>
+              )}
               {saveSuccess && (
                 <div className="flex items-center text-green-500">
                   <CheckCircle className="h-4 w-4 mr-2" />
@@ -557,79 +643,6 @@ export default function ProfilePage() {
           </Card>
         </div>
       </div>
-
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Account Settings</CardTitle>
-          <CardDescription>
-            Manage your account security and preferences
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <h3 className="font-medium">Password</h3>
-            <p className="text-sm text-muted-foreground">
-              Change your password to keep your account secure
-            </p>
-            <Button variant="outline" asChild>
-              <a href="/dashboard/reset-password">Change Password</a>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="mt-6 border-destructive/50">
-        <CardHeader>
-          <CardTitle className="text-destructive flex items-center gap-2">
-            <Trash2 className="h-5 w-5" />
-            Danger Zone
-          </CardTitle>
-          <CardDescription>
-            Permanent actions that cannot be undone
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <h4 className="font-medium">Delete Account</h4>
-            <p className="text-sm text-muted-foreground">
-              Permanently delete your account and all associated data
-            </p>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">Delete Account</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete
-                  your account and remove all your data from our servers.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDeleteAccount}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  disabled={saving}
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Deleting...
-                    </>
-                  ) : (
-                    "Delete Account"
-                  )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </CardFooter>
-      </Card>
     </div>
   );
 }

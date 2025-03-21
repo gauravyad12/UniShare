@@ -36,9 +36,55 @@ export async function POST(request: NextRequest) {
     // Check if profile exists
     const { data: existingProfile, error: checkError } = await supabase
       .from("user_profiles")
-      .select("id, university_id")
+      .select("id, university_id, username")
       .eq("id", user.id)
       .single();
+
+    // If username is changing, check if it's already taken
+    if (username && username !== existingProfile?.username) {
+      const { data: existingUsername } = await supabase
+        .from("user_profiles")
+        .select("username")
+        .eq("username", username)
+        .single();
+
+      if (existingUsername) {
+        return NextResponse.json(
+          { error: "Username is already taken" },
+          { status: 400 },
+        );
+      }
+    }
+
+    // Validate required fields
+    if (!full_name) {
+      return NextResponse.json(
+        { error: "Full name is required" },
+        { status: 400 },
+      );
+    }
+
+    if (!username) {
+      return NextResponse.json(
+        { error: "Username is required" },
+        { status: 400 },
+      );
+    }
+
+    // Validate graduation year
+    if (graduation_year) {
+      const year = parseInt(graduation_year);
+      const currentYear = new Date().getFullYear();
+      if (year < 1900 || year > currentYear + 10) {
+        return NextResponse.json(
+          {
+            error:
+              "Graduation year must be between 1900 and 10 years in the future",
+          },
+          { status: 400 },
+        );
+      }
+    }
 
     // If no university_id is provided, try to detect it from email
     let detectedUniversityId = university_id;

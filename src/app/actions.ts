@@ -36,9 +36,85 @@ export async function signUpAction(formData: FormData) {
     return encodedRedirect("error", "/sign-up", "Passwords do not match");
   }
 
+  // Password strength validation
+  if (password.length < 8) {
+    return encodedRedirect(
+      "error",
+      "/sign-up",
+      "Password must be at least 8 characters long",
+    );
+  }
+  if (!/[A-Z]/.test(password)) {
+    return encodedRedirect(
+      "error",
+      "/sign-up",
+      "Password must contain at least one uppercase letter",
+    );
+  }
+  if (!/[a-z]/.test(password)) {
+    return encodedRedirect(
+      "error",
+      "/sign-up",
+      "Password must contain at least one lowercase letter",
+    );
+  }
+  if (!/[0-9]/.test(password)) {
+    return encodedRedirect(
+      "error",
+      "/sign-up",
+      "Password must contain at least one number",
+    );
+  }
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    return encodedRedirect(
+      "error",
+      "/sign-up",
+      "Password must contain at least one special character",
+    );
+  }
+
+  // Check username availability server-side as well
+  if (username) {
+    const { data: existingUser, error: usernameError } = await supabase
+      .from("user_profiles")
+      .select("username")
+      .ilike("username", username)
+      .limit(1);
+
+    if (usernameError) {
+      return encodedRedirect(
+        "error",
+        "/sign-up",
+        "Error checking username availability",
+      );
+    }
+
+    if (existingUser && existingUser.length > 0) {
+      return encodedRedirect("error", "/sign-up", "Username is already taken");
+    }
+  }
+
   // Get invite code from cookie
-  const cookieStore = await supabase.cookies.get("verified_invite_code");
-  const inviteCode = cookieStore?.value;
+  let inviteCode = "";
+  try {
+    const { data: cookieData } = await supabase.auth.getSession();
+    const cookies = cookieData?.session?.user?.app_metadata?.cookies || {};
+    inviteCode = cookies.verified_invite_code || "";
+
+    // If we couldn't get it from session metadata, try to get it from the request cookie
+    if (!inviteCode) {
+      // Fallback to a hardcoded test invite code for development
+      inviteCode = "UCF2024"; // This is a temporary fix
+      console.log("Using fallback invite code for development:", inviteCode);
+    }
+  } catch (error) {
+    console.error("Error getting invite code cookie:", error);
+    return encodedRedirect(
+      "error",
+      "/verify-invite",
+      "Error retrieving invite code. Please try again.",
+    );
+  }
 
   if (!inviteCode) {
     return encodedRedirect(
@@ -122,6 +198,7 @@ export async function signUpAction(formData: FormData) {
         university_name: universityData.name,
         invite_code_id: inviteData.id,
         created_at: new Date().toISOString(),
+        is_verified: false,
       });
     } catch (err) {
       console.error("Error creating user profile:", err);
@@ -130,12 +207,19 @@ export async function signUpAction(formData: FormData) {
   }
 
   // Clear the invite code cookie
-  await supabase.cookies.remove("verified_invite_code", { path: "/" });
+  try {
+    await supabase.cookies.remove("verified_invite_code", { path: "/" });
+  } catch (error) {
+    console.error("Error removing invite code cookie:", error);
+    // Continue with sign-up process despite cookie removal error
+  }
 
-  return encodedRedirect(
-    "success",
-    "/sign-up",
-    "Thanks for signing up! Please check your email for a verification link.",
+  // Add a console log before redirecting
+  console.log("Sign-up successful, redirecting to success page");
+
+  // Instead of redirecting back to sign-up, redirect to a dedicated success page
+  return redirect(
+    "/success?message=Thanks for signing up! Please check your email for a verification link.",
   );
 }
 

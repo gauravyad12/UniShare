@@ -4,7 +4,14 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserCircle, MapPin, Calendar, BookOpen, Users } from "lucide-react";
+import {
+  UserCircle,
+  MapPin,
+  Calendar,
+  BookOpen,
+  Users,
+  CheckCircle,
+} from "lucide-react";
 import ResourceCard from "@/components/resource-card";
 import StudyGroupCard from "@/components/study-group-card";
 import { Button } from "@/components/ui/button";
@@ -38,7 +45,7 @@ export default function PublicProfilePage({
         // Get profile by username
         const { data: profileData, error: profileError } = await supabase
           .from("user_profiles")
-          .select("*")
+          .select("*, university:universities(name)")
           .eq("username", username)
           .single();
 
@@ -123,7 +130,14 @@ export default function PublicProfilePage({
           <div className="flex-1">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
               <div>
-                <h1 className="text-2xl font-bold">{profile.full_name}</h1>
+                <h1 className="text-2xl font-bold flex items-center gap-2">
+                  {profile.full_name}
+                  {profile.is_verified && (
+                    <span className="text-blue-500">
+                      <CheckCircle className="h-5 w-5" />
+                    </span>
+                  )}
+                </h1>
                 <p className="text-muted-foreground">@{profile.username}</p>
               </div>
 
@@ -132,11 +146,21 @@ export default function PublicProfilePage({
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div className="flex flex-wrap items-center gap-4 mt-4">
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>{profile.university || "University not specified"}</span>
+                <span>
+                  {profile.university_name ||
+                    profile.university?.name ||
+                    "University not specified"}
+                </span>
               </div>
+              {profile.graduation_year && (
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span>Class of {profile.graduation_year}</span>
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span>

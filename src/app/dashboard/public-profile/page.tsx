@@ -154,17 +154,30 @@ export default function PublicProfilePage() {
           <div className="flex-grow">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <CardTitle className="text-2xl">{profile.full_name}</CardTitle>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  {profile.full_name}
+                  {profile.is_verified && (
+                    <span className="text-blue-500">
+                      <CheckCircle className="h-5 w-5" />
+                    </span>
+                  )}
+                </CardTitle>
                 <CardDescription className="text-lg">
                   @{profile.username}
                 </CardDescription>
-                <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                   {profile.university?.name && (
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       {profile.graduation_year
                         ? `Class of ${profile.graduation_year}`
                         : "Student"}
+                    </span>
+                  )}
+                  {profile.created_at && (
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      Joined {new Date(profile.created_at).toLocaleDateString()}
                     </span>
                   )}
                 </div>
