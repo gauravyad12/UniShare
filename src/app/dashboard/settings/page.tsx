@@ -38,6 +38,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  applyThemeToDocument,
+  broadcastThemeChange,
+  saveThemeToStorage,
+} from "@/lib/theme-utils";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -108,47 +113,136 @@ export default function SettingsPage() {
     fetchUserData();
   }, [router]);
 
-  // Sync settings with theme context when loaded
+  // Sync settings with theme context when loaded or when theme changes
   useEffect(() => {
     if (!loading) {
+      // Only update settings from context if they're different
+      // This prevents overriding database values with default values
       setSettings((prev) => ({
         ...prev,
-        theme_preference: theme || "system",
-        color_scheme: accentColor || "default",
-        font_size: fontSize || 2,
+        theme_preference:
+          prev.theme_preference !== "system"
+            ? prev.theme_preference
+            : theme || "system",
+        color_scheme:
+          prev.color_scheme !== "default"
+            ? prev.color_scheme
+            : accentColor || "default",
+        font_size: prev.font_size !== 2 ? prev.font_size : fontSize || 2,
       }));
     }
   }, [loading, theme, accentColor, fontSize]);
 
-  const handleSwitchChange = (id) => {
+  // Listen for theme changes from localStorage
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "theme" && e.newValue) {
+        setSettings((prev) => ({
+          ...prev,
+          theme_preference: e.newValue,
+        }));
+        setTheme(e.newValue);
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    // Also check localStorage on mount to ensure we're in sync
+    const storedTheme = localStorage.getItem("theme");
+    if (storedTheme && storedTheme !== theme) {
+      setSettings((prev) => ({
+        ...prev,
+        theme_preference: storedTheme,
+      }));
+      setTheme(storedTheme);
+    }
+
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [setTheme, theme]);
+
+  const handleSwitchChange = (id: string) => {
     setSettings({
       ...settings,
-      [id]: !settings[id],
+      [id]: !settings[id as keyof typeof settings],
     });
   };
 
-  const handleThemeChange = (newTheme) => {
+  const handleThemeChange = (newTheme: string) => {
+    // Update local state
     setSettings({
       ...settings,
       theme_preference: newTheme,
     });
+
+    // Update theme context
     setTheme(newTheme);
+
+    // Directly apply theme to document for immediate effect
+    if (newTheme === "dark") {
+      document.documentElement.classList.add("dark");
+      document.documentElement.classList.remove("light");
+    } else if (newTheme === "light") {
+      document.documentElement.classList.add("light");
+      document.documentElement.classList.remove("dark");
+    } else if (newTheme === "system") {
+      const isDarkMode = window.matchMedia(
+        "(prefers-color-scheme: dark)",
+      ).matches;
+      if (isDarkMode) {
+        document.documentElement.classList.add("dark");
+        document.documentElement.classList.remove("light");
+      } else {
+        document.documentElement.classList.add("light");
+        document.documentElement.classList.remove("dark");
+      }
+    }
+
+    // Save to localStorage to ensure persistence
+    saveThemeToStorage(newTheme);
+
+    // Broadcast theme change to other tabs/windows
+    broadcastThemeChange(newTheme);
+
+    // Save to database immediately to prevent losing changes on refresh
+    handleSaveSettings();
   };
 
-  const handleColorChange = (color) => {
+  const handleColorChange = (color: string) => {
+    // Update local state
     setSettings({
       ...settings,
       color_scheme: color,
     });
+
+    // Update theme context
     setAccentColor(color);
+
+    // Directly apply color for immediate effect
+    const dashboardContainer = document.querySelector(".dashboard-styles");
+    if (dashboardContainer) {
+      if (color === "default") {
+        dashboardContainer.removeAttribute("data-accent");
+      } else {
+        dashboardContainer.setAttribute("data-accent", color);
+      }
+    }
+
+    // No longer auto-saving settings
   };
 
-  const handleFontSizeChange = (size) => {
+  const handleFontSizeChange = (size: number) => {
+    // Update local state
     setSettings({
       ...settings,
       font_size: size,
     });
+
+    // Update theme context
     setFontSize(size);
+
+    // Directly apply font size to document for immediate effect
+    const rootSize = 16 + (size - 2) * 1; // Base size is 16px, each step changes by 1px
+    document.documentElement.style.fontSize = `${rootSize}px`;
   };
 
   const handleSaveSettings = async () => {
@@ -156,6 +250,12 @@ export default function SettingsPage() {
     setSaveSuccess(false);
 
     try {
+      // Apply theme, accent color, and font size changes to the context
+      setTheme(settings.theme_preference);
+      setAccentColor(settings.color_scheme);
+      setFontSize(settings.font_size);
+
+      // Save to database
       const response = await fetch("/api/settings/update", {
         method: "POST",
         headers: {
@@ -193,20 +293,6 @@ export default function SettingsPage() {
       setSaving(false);
     }
   };
-
-  function getColorValue(color: string): string {
-    const colorMap = {
-      default: "rgb(59, 130, 246)", // Original primary color
-      blue: "rgb(59, 130, 246)",
-      yellow: "rgb(234, 179, 8)",
-      pink: "rgb(236, 72, 153)",
-      purple: "rgb(168, 85, 247)",
-      orange: "rgb(249, 115, 22)",
-      green: "rgb(34, 197, 94)",
-    };
-
-    return colorMap[color as keyof typeof colorMap] || colorMap.default;
-  }
 
   const handleDeleteAccount = async () => {
     try {
@@ -387,7 +473,7 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-4">
                     <div
                       key="default"
-                      className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer overflow-hidden border border-gray-300`}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer overflow-hidden border border-gray-300 ${settings.color_scheme === "default" ? "ring-2 ring-primary ring-offset-2" : ""}`}
                       onClick={() => handleColorChange("default")}
                       style={{
                         background:
@@ -408,7 +494,7 @@ export default function SettingsPage() {
                     ].map((colorOption) => (
                       <div
                         key={colorOption.name}
-                        className={`w-10 h-10 ${colorOption.color} rounded-full flex items-center justify-center cursor-pointer`}
+                        className={`w-10 h-10 ${colorOption.color} rounded-full flex items-center justify-center cursor-pointer ${settings.color_scheme === colorOption.name ? "ring-2 ring-primary ring-offset-2" : ""}`}
                         onClick={() => handleColorChange(colorOption.name)}
                       >
                         {settings.color_scheme === colorOption.name && (

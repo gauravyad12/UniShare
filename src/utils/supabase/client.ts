@@ -17,5 +17,10 @@ export function createClient() {
     },
   );
 
+  // Make supabase available globally for theme sync
+  if (typeof window !== "undefined") {
+    (window as any).supabaseClient = supabaseClient;
+  }
+
   return supabaseClient;
 }

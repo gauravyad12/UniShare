@@ -19,11 +19,13 @@ import {
   Bell,
   MessageSquare,
   LogOut,
+  UserPlus,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ThemeToggle } from "./theme-toggle";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import Notifications from "./notifications";
+import Messages from "./messages";
 
 export default function DashboardNavbar() {
   const router = useRouter();
@@ -128,15 +130,18 @@ export default function DashboardNavbar() {
               <Users className="h-4 w-4" />
               Study Groups
             </Link>
+            <Link
+              href="/dashboard/invite"
+              className="text-sm font-medium flex items-center gap-1 hover:text-primary transition-colors"
+            >
+              <UserPlus className="h-4 w-4" />
+              Invite
+            </Link>
           </div>
         </div>
         <div className="flex gap-4 items-center">
-          <Button variant="ghost" size="icon" aria-label="Notifications">
-            <Bell className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" aria-label="Messages">
-            <MessageSquare className="h-5 w-5" />
-          </Button>
+          <Messages />
+          <Notifications />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">

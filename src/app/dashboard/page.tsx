@@ -7,6 +7,7 @@ import {
   Lightbulb,
   UserCircle,
   Users,
+  UserPlus,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -112,6 +113,63 @@ export default async function Dashboard() {
           </span>
         </div>
       </header>
+
+      {/* Quick Actions */}
+      <section className="mb-6">
+        <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+          <Button
+            asChild
+            variant="outline"
+            className="h-auto py-4 flex flex-col items-center justify-center gap-2"
+          >
+            <Link href="/dashboard/resources">
+              <BookOpen className="h-6 w-6" />
+              <span>Browse Resources</span>
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            className="h-auto py-4 flex flex-col items-center justify-center gap-2"
+          >
+            <Link href="/dashboard/resources?upload=true">
+              <BookOpen className="h-6 w-6" />
+              <span>Upload Resource</span>
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            className="h-auto py-4 flex flex-col items-center justify-center gap-2"
+          >
+            <Link href="/dashboard/study-groups">
+              <Users className="h-6 w-6" />
+              <span>Find Study Groups</span>
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            className="h-auto py-4 flex flex-col items-center justify-center gap-2"
+          >
+            <Link href="/dashboard/study-groups?create=true">
+              <Users className="h-6 w-6" />
+              <span>Create Study Group</span>
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            className="h-auto py-4 flex flex-col items-center justify-center gap-2 bg-primary/5 border-primary/20 hover:bg-primary/10"
+          >
+            <Link href="/dashboard/invite">
+              <UserPlus className="h-6 w-6 text-primary" />
+              <span>Invite Friends</span>
+            </Link>
+          </Button>
+        </div>
+      </section>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -263,53 +321,6 @@ export default async function Dashboard() {
             )}
           </CardContent>
         </Card>
-      </section>
-
-      {/* Quick Actions */}
-      <section>
-        <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <Button
-            asChild
-            variant="outline"
-            className="h-auto py-4 flex flex-col items-center justify-center gap-2"
-          >
-            <Link href="/dashboard/resources">
-              <BookOpen className="h-6 w-6" />
-              <span>Browse Resources</span>
-            </Link>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            className="h-auto py-4 flex flex-col items-center justify-center gap-2"
-          >
-            <Link href="/dashboard/resources?upload=true">
-              <BookOpen className="h-6 w-6" />
-              <span>Upload Resource</span>
-            </Link>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            className="h-auto py-4 flex flex-col items-center justify-center gap-2"
-          >
-            <Link href="/dashboard/study-groups">
-              <Users className="h-6 w-6" />
-              <span>Find Study Groups</span>
-            </Link>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            className="h-auto py-4 flex flex-col items-center justify-center gap-2"
-          >
-            <Link href="/dashboard/study-groups?create=true">
-              <Users className="h-6 w-6" />
-              <span>Create Study Group</span>
-            </Link>
-          </Button>
-        </div>
       </section>
     </div>
   );

@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 // Define special routes that should be redirected to their original paths
 const SPECIAL_ROUTES = [
@@ -27,7 +27,7 @@ export default function UsernamePage({
   params: { username: string };
 }) {
   if (!params?.username) {
-    redirect("/");
+    notFound();
     return null;
   }
 
@@ -35,10 +35,9 @@ export default function UsernamePage({
 
   // Check if this is a special route before making any database calls
   if (SPECIAL_ROUTES.includes(username)) {
-    redirect(`/${username}`);
-    return null;
+    return notFound();
   }
 
-  // Redirect to the profile URL pattern with query parameter
-  redirect(`/profile?username=${username}`);
+  // Return 404 for any username route
+  return notFound();
 }

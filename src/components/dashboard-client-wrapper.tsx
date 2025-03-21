@@ -5,19 +5,43 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { Button } from "./ui/button";
 import Link from "next/link";
+import { useThemeContext } from "./theme-context";
 
 interface DashboardClientWrapperProps {
   children: ReactNode;
   initialAuthState?: boolean;
+  initialFontSize?: number;
+  initialAccentColor?: string;
 }
 
 export function DashboardClientWrapper({
   children,
   initialAuthState = false,
+  initialFontSize = 2,
+  initialAccentColor = "default",
 }: DashboardClientWrapperProps) {
   const [isLoading, setIsLoading] = useState(!initialAuthState);
   const [isAuthenticated, setIsAuthenticated] = useState(initialAuthState);
   const router = useRouter();
+  const { setFontSize, setAccentColor } = useThemeContext();
+
+  // Initialize theme settings from server props
+  useEffect(() => {
+    if (initialFontSize) {
+      setFontSize(initialFontSize);
+      // Apply font size directly to document for immediate effect
+      const rootSize = 16 + (initialFontSize - 2) * 1;
+      document.documentElement.style.fontSize = `${rootSize}px`;
+      // Also apply to any dashboard container that might exist
+      const dashboardContainer = document.querySelector(".dashboard-styles");
+      if (dashboardContainer) {
+        dashboardContainer.style.fontSize = `${rootSize}px`;
+      }
+    }
+    if (initialAccentColor) {
+      setAccentColor(initialAccentColor);
+    }
+  }, [initialFontSize, initialAccentColor, setFontSize, setAccentColor]);
 
   useEffect(() => {
     if (initialAuthState) {

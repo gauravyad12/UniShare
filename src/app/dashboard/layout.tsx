@@ -1,6 +1,8 @@
 import DashboardNavbar from "@/components/dashboard-navbar";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { DashboardClientWrapper } from "@/components/dashboard-client-wrapper";
 
 export default async function DashboardLayout({
   children,
@@ -16,10 +18,37 @@ export default async function DashboardLayout({
     redirect("/sign-in?error=Please sign in to access the dashboard");
   }
 
+  // Get user settings for initial color scheme and font size
+  const { data: userSettings } = await supabase
+    .from("user_settings")
+    .select("color_scheme, font_size")
+    .eq("user_id", session.user.id)
+    .single();
+
+  const colorScheme = userSettings?.color_scheme || "default";
+  const fontSize = userSettings?.font_size || 2;
+  const rootSize = 16 + (fontSize - 2) * 1; // Base size is 16px, each step changes by 1px
+
+  // Prepare attributes for the dashboard container
+  const dataAccentAttr =
+    colorScheme !== "default" ? { "data-accent": colorScheme } : {};
+  // Apply font size directly to html element for immediate effect
+  const styleAttr = { fontSize: `${rootSize}px` };
+
   return (
-    <div className="flex flex-col min-h-screen">
-      <DashboardNavbar />
-      <main className="flex-1 w-full">{children}</main>
-    </div>
+    <DashboardClientWrapper
+      initialAuthState={true}
+      initialFontSize={fontSize}
+      initialAccentColor={colorScheme}
+    >
+      <div
+        className="flex flex-col min-h-screen dashboard-styles"
+        {...dataAccentAttr}
+        style={styleAttr}
+      >
+        <DashboardNavbar />
+        <main className="flex-1 w-full">{children}</main>
+      </div>
+    </DashboardClientWrapper>
   );
 }

@@ -3,6 +3,11 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { createClient } from "@/utils/supabase/client";
+import {
+  applyThemeToDocument,
+  saveThemeToStorage,
+  broadcastThemeChange,
+} from "@/lib/theme-utils";
 
 type ThemeContextType = {
   theme: string;
@@ -80,6 +85,12 @@ export function ThemeContextProvider({
   const setTheme = (newTheme: string) => {
     setUserTheme(newTheme);
     setNextTheme(newTheme);
+    saveThemeToStorage(newTheme);
+
+    // Apply theme to document
+    if (!isPublic) {
+      applyThemeToDocument(newTheme, accentColor, fontSize);
+    }
   };
 
   // Check if user is authenticated
@@ -139,20 +150,57 @@ export function ThemeContextProvider({
   const applyThemeBasedOnRoute = (isPublicRoute: boolean) => {
     if (isPublicRoute) {
       // Public routes: reset custom styling but keep theme mode
-      document.documentElement.style.removeProperty("--accent-color");
+      // Reset to default styles for public routes
       document.documentElement.removeAttribute("data-accent");
       document.documentElement.style.fontSize = "16px";
+      document.documentElement.style.removeProperty("--primary");
+      document.documentElement.style.removeProperty("--ring");
+
+      // Remove dashboard-specific class if present
+      const dashboardElements = document.querySelectorAll(".dashboard-styles");
+      dashboardElements.forEach((el) => {
+        if (el.classList.contains("dashboard-styles")) {
+          el.classList.remove("dashboard-styles");
+          // Also remove any inline styles that might have been applied
+          el.removeAttribute("style");
+        }
+      });
 
       // Keep dark/light mode preference
       if (userTheme) {
         setNextTheme(userTheme);
+        // Directly apply dark/light mode
+        if (userTheme === "dark") {
+          document.documentElement.classList.add("dark");
+          document.documentElement.classList.remove("light");
+        } else if (userTheme === "light") {
+          document.documentElement.classList.add("light");
+          document.documentElement.classList.remove("dark");
+        }
       }
     } else if (isAuthenticated) {
       // Dashboard/authenticated routes: apply custom styling
-      applyAccentColor(accentColor);
-      applyFontSize(fontSize);
-      if (userTheme) {
-        setNextTheme(userTheme);
+      applyThemeToDocument(
+        userTheme || nextTheme || "system",
+        accentColor,
+        fontSize,
+      );
+
+      // Make sure the dashboard container has the data-accent attribute and font size
+      const dashboardContainer = document.querySelector(".dashboard-styles");
+      if (dashboardContainer) {
+        // Apply accent color
+        if (accentColor !== "default") {
+          dashboardContainer.setAttribute("data-accent", accentColor);
+        } else {
+          dashboardContainer.removeAttribute("data-accent");
+        }
+
+        // Apply font size
+        const rootSize = 16 + (fontSize - 2) * 1;
+        dashboardContainer.style.fontSize = `${rootSize}px`;
+        // Also apply to html for consistent sizing
+        document.documentElement.style.fontSize = `${rootSize}px`;
       }
     }
   };
@@ -182,12 +230,23 @@ export function ThemeContextProvider({
             if (settings.theme_preference) {
               setUserTheme(settings.theme_preference);
               setNextTheme(settings.theme_preference);
+              // Ensure theme is immediately applied
+              saveThemeToStorage(settings.theme_preference);
             }
             if (settings.color_scheme) {
               setAccentColorState(settings.color_scheme);
             }
             if (settings.font_size) {
               setFontSizeState(settings.font_size);
+            }
+
+            // Apply settings immediately after fetching
+            if (!isPublic) {
+              applyThemeToDocument(
+                settings.theme_preference || "system",
+                settings.color_scheme || "default",
+                settings.font_size || 2,
+              );
             }
           }
         }
@@ -199,46 +258,52 @@ export function ThemeContextProvider({
     };
 
     fetchUserSettings();
-  }, [isAuthenticated, setNextTheme]);
+  }, [isAuthenticated, setNextTheme, isPublic]);
 
   // Apply settings when they change or authentication status changes
   useEffect(() => {
     if (!isLoading) {
-      applyThemeBasedOnRoute(isPublic);
+      // Only apply custom styling on dashboard pages
+      if (!isPublic && isAuthenticated) {
+        applyThemeToDocument(
+          userTheme || nextTheme || "system",
+          accentColor,
+          fontSize,
+        );
+      } else {
+        applyThemeBasedOnRoute(isPublic);
+      }
     }
-  }, [isLoading, isPublic, accentColor, fontSize, userTheme, isAuthenticated]);
+  }, [
+    isLoading,
+    isPublic,
+    accentColor,
+    fontSize,
+    userTheme,
+    nextTheme,
+    isAuthenticated,
+  ]);
 
   const setAccentColor = (color: string) => {
     setAccentColorState(color);
-    if (!isPublic && isAuthenticated) {
-      applyAccentColor(color);
-    }
-  };
 
-  const applyAccentColor = (color: string) => {
-    if (color === "default") {
-      // Reset to system defaults for the default option
-      document.documentElement.style.removeProperty("--accent-color");
-      document.documentElement.removeAttribute("data-accent");
-    } else {
-      document.documentElement.style.setProperty(
-        "--accent-color",
-        getColorValue(color),
-      );
-      document.documentElement.setAttribute("data-accent", color);
+    // Only apply accent color on dashboard pages
+    if (!isPublic && isAuthenticated) {
+      applyThemeToDocument(userTheme || nextTheme || "system", color, fontSize);
     }
   };
 
   const setFontSize = (size: number) => {
     setFontSizeState(size);
-    if (!isPublic && isAuthenticated) {
-      applyFontSize(size);
-    }
-  };
 
-  const applyFontSize = (size: number) => {
-    const rootSize = 16 + (size - 2) * 1; // Base size is 16px, each step changes by 1px
-    document.documentElement.style.fontSize = `${rootSize}px`;
+    // Only apply font size on dashboard pages
+    if (!isPublic && isAuthenticated) {
+      applyThemeToDocument(
+        userTheme || nextTheme || "system",
+        accentColor,
+        size,
+      );
+    }
   };
 
   const saveSettings = async () => {
@@ -276,6 +341,40 @@ export function ThemeContextProvider({
     }
   }, [userTheme, accentColor, fontSize, isLoading, isPublic, isAuthenticated]);
 
+  // Listen for theme changes from other tabs/windows
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "theme" && e.newValue) {
+        setUserTheme(e.newValue);
+        setNextTheme(e.newValue);
+
+        if (!isPublic && isAuthenticated) {
+          applyThemeToDocument(e.newValue, accentColor, fontSize);
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    // Only check localStorage for public routes - for dashboard routes we want to use the database value
+    if (isPublic) {
+      const storedTheme = localStorage.getItem("theme");
+      if (storedTheme && storedTheme !== nextTheme) {
+        setUserTheme(storedTheme);
+        setNextTheme(storedTheme);
+      }
+    }
+
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [
+    accentColor,
+    fontSize,
+    isPublic,
+    isAuthenticated,
+    setNextTheme,
+    nextTheme,
+  ]);
+
   return (
     <ThemeContext.Provider
       value={{
@@ -294,17 +393,3 @@ export function ThemeContextProvider({
 }
 
 export const useThemeContext = () => useContext(ThemeContext);
-
-function getColorValue(color: string): string {
-  const colorMap = {
-    default: "rgb(59, 130, 246)", // Original primary color
-    blue: "rgb(59, 130, 246)",
-    yellow: "rgb(234, 179, 8)",
-    pink: "rgb(236, 72, 153)",
-    purple: "rgb(168, 85, 247)",
-    orange: "rgb(249, 115, 22)",
-    green: "rgb(34, 197, 94)",
-  };
-
-  return colorMap[color as keyof typeof colorMap] || colorMap.default;
-}
