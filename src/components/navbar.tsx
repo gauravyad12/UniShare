@@ -10,37 +10,15 @@ import { createClientOnlyClient } from "@/utils/supabase/client-only";
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [clientError, setClientError] = useState<string | null>(null);
-
-  // Check if environment variables are available
-  const hasSupabaseConfig =
-    typeof window !== "undefined" &&
-    !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  // Only create the client if the environment variables are available
-  const supabase = hasSupabaseConfig ? createClientOnlyClient() : null;
+  const supabase = createClientOnlyClient();
 
   useEffect(() => {
-    if (!supabase) {
-      setClientError(
-        "Supabase client could not be initialized. Check environment variables.",
-      );
-      setLoading(false);
-      return;
-    }
-
     const getUser = async () => {
-      try {
-        const { data, error } = await supabase.auth.getUser();
-        if (!error && data?.user) {
-          setUser(data.user);
-        }
-      } catch (err) {
-        console.error("Error fetching user:", err);
-      } finally {
-        setLoading(false);
+      const { data, error } = await supabase.auth.getUser();
+      if (!error && data?.user) {
+        setUser(data.user);
       }
+      setLoading(false);
     };
 
     getUser();
@@ -59,7 +37,7 @@ export default function Navbar() {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [supabase.auth]);
 
   return (
     <nav className="w-full border-b border-border bg-background py-4">

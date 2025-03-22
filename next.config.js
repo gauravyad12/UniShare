@@ -8,17 +8,7 @@ const nextConfig = {
     }
     return config;
   },
-  // Explicitly set the port to 5000
-  serverRuntimeConfig: {
-    port: 5000,
-  },
-  publicRuntimeConfig: {
-    port: 5000,
-  },
 };
-
-// Set the server port to avoid EADDRINUSE errors
-process.env.PORT = "5000";
 
 if (process.env.NEXT_PUBLIC_TEMPO) {
   nextConfig["experimental"] = {
