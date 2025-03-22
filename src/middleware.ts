@@ -3,48 +3,62 @@ import type { NextRequest } from "next/server";
 import { createClient } from "./utils/supabase/middleware";
 
 export async function middleware(req: NextRequest) {
-  const { supabase, response } = createClient(req);
+  try {
+    // Check if environment variables are available
+    if (
+      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    ) {
+      console.error("Supabase environment variables are missing");
+      return NextResponse.next();
+    }
 
-  // Refresh session if it exists
-  await supabase.auth.getSession();
+    const { supabase, response } = createClient(req);
 
-  const url = req.nextUrl;
-  const { pathname } = url;
+    // Refresh session if it exists
+    await supabase.auth.getSession();
 
-  // Define protected and auth routes
-  const isProtectedRoute = pathname.startsWith("/dashboard");
-  const isAuthRoute = ["/sign-in", "/sign-up", "/forgot-password"].some(
-    (route) => pathname.startsWith(route),
-  );
+    const url = req.nextUrl;
+    const { pathname } = url;
 
-  // Skip middleware for static assets and API routes
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/api/") ||
-    pathname.includes(".") // Files with extensions like .jpg, .css, etc.
-  ) {
+    // Define protected and auth routes
+    const isProtectedRoute = pathname.startsWith("/dashboard");
+    const isAuthRoute = ["/sign-in", "/sign-up", "/forgot-password"].some(
+      (route) => pathname.startsWith(route),
+    );
+
+    // Skip middleware for static assets and API routes
+    if (
+      pathname.startsWith("/_next") ||
+      pathname.startsWith("/api/") ||
+      pathname.includes(".") // Files with extensions like .jpg, .css, etc.
+    ) {
+      return response;
+    }
+
+    // Get user session
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    // Handle protected routes
+    if (isProtectedRoute && !session) {
+      url.pathname = "/sign-in";
+      url.searchParams.set("error", "Please sign in to access the dashboard");
+      return NextResponse.redirect(url);
+    }
+
+    // Handle auth routes when user is already logged in
+    if (isAuthRoute && session) {
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
+
     return response;
+  } catch (error) {
+    console.error("Middleware error:", error);
+    return NextResponse.next();
   }
-
-  // Get user session
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  // Handle protected routes
-  if (isProtectedRoute && !session) {
-    url.pathname = "/sign-in";
-    url.searchParams.set("error", "Please sign in to access the dashboard");
-    return NextResponse.redirect(url);
-  }
-
-  // Handle auth routes when user is already logged in
-  if (isAuthRoute && session) {
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
-  }
-
-  return response;
 }
 
 // Specify which routes this middleware should run on
