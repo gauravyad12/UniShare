@@ -29,12 +29,19 @@ export async function detectUniversityFromEmail(email: string) {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("universities")
-      .select("id, name")
-      .eq("domain", emailDomain)
-      .single();
+      .select("id, name, domain");
 
     if (error || !data) return null;
-    return data;
+
+    // Find a university with a matching domain (handling comma-separated domains, case-insensitive)
+    const matchedUniversity = data.find((university) => {
+      const domains = university.domain
+        .split(",")
+        .map((d) => d.trim().toLowerCase());
+      return domains.includes(emailDomain.toLowerCase());
+    });
+
+    return matchedUniversity || null;
   } catch (error) {
     console.error("Error detecting university:", error);
     return null;

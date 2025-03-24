@@ -14,18 +14,50 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { Copy, RefreshCw, Share2, Users, Loader2 } from "lucide-react";
-import { v4 as uuidv4 } from "uuid";
+import {
+  Copy,
+  RefreshCw,
+  Share2,
+  Users,
+  Loader2,
+  Mail,
+  BookOpen,
+  Award,
+  CheckCircle2,
+  Clock,
+  Sparkles,
+  GraduationCap,
+} from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 
 export default function InvitePage() {
   const supabase = createClient();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [sending, setSending] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [inviteUrl, setInviteUrl] = useState("");
   const [inviteUsage, setInviteUsage] = useState({ current: 0, max: 5 });
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [emailInput, setEmailInput] = useState("");
+  const [sentInvitations, setSentInvitations] = useState<any[]>([]);
+  const [verificationStatus, setVerificationStatus] = useState({
+    isVerified: false,
+    successfulInvites: 0,
+    requiredInvites: 5,
+  });
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchInviteCode = async () => {
@@ -63,6 +95,9 @@ export default function InvitePage() {
             `${window.location.origin}/verify-invite?code=${inviteData[0].code}`,
           );
         }
+
+        // Fetch sent invitations
+        await fetchSentInvitations();
       } catch (error) {
         console.error("Error fetching invite code:", error);
         toast({
@@ -78,56 +113,47 @@ export default function InvitePage() {
     fetchInviteCode();
   }, [supabase, toast]);
 
+  const fetchSentInvitations = async () => {
+    try {
+      const response = await fetch("/api/invite/list");
+      const data = await response.json();
+
+      if (data.success) {
+        setSentInvitations(data.invitations || []);
+        setVerificationStatus(
+          data.verificationStatus || {
+            isVerified: false,
+            successfulInvites: 0,
+            requiredInvites: 5,
+          },
+        );
+      } else {
+        console.error("Error fetching invitations:", data.error);
+      }
+    } catch (error) {
+      console.error("Error fetching sent invitations:", error);
+    }
+  };
+
   const generateInviteCode = async () => {
     try {
       setGenerating(true);
 
-      // Generate a new invite code
-      const newCode = uuidv4().substring(0, 8).toUpperCase();
+      // Use the API endpoint to generate a new invite code
+      const response = await fetch("/api/invite/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-      // Get current user
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return;
+      const data = await response.json();
 
-      // Get user's university ID
-      const { data: profileData } = await supabase
-        .from("user_profiles")
-        .select("university_id")
-        .eq("id", userData.user.id)
-        .single();
-
-      if (!profileData?.university_id) {
-        toast({
-          title: "Error",
-          description:
-            "Your profile must have a university assigned to generate invite codes",
-          variant: "destructive",
-        });
-        return;
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate invite code");
       }
 
-      // Create new invite code in database
-      const { data: inviteData, error } = await supabase
-        .from("invite_codes")
-        .insert({
-          code: newCode,
-          created_by: userData.user.id,
-          university_id: profileData.university_id,
-          is_active: true,
-          max_uses: 5,
-          current_uses: 0,
-          created_at: new Date().toISOString(),
-          expires_at: new Date(
-            Date.now() + 30 * 24 * 60 * 60 * 1000,
-          ).toISOString(), // 30 days from now
-        })
-        .select()
-        .single();
-
-      if (error) {
-        throw error;
-      }
-
+      const newCode = data.inviteCode.code;
       setInviteCode(newCode);
       setInviteUsage({ current: 0, max: 5 });
       setInviteUrl(`${window.location.origin}/verify-invite?code=${newCode}`);
@@ -140,11 +166,58 @@ export default function InvitePage() {
       console.error("Error generating invite code:", error);
       toast({
         title: "Error",
-        description: "Failed to generate invite code",
+        description: error.message || "Failed to generate invite code",
         variant: "destructive",
       });
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const sendInviteEmail = async () => {
+    if (!emailInput || !inviteCode) return;
+
+    try {
+      setSending(true);
+
+      const response = await fetch("/api/invite/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inviteCode,
+          email: emailInput,
+          senderName: userProfile?.full_name || "A fellow student",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send invitation email");
+      }
+
+      toast({
+        title: "Success",
+        description: "Invitation email sent successfully",
+      });
+
+      // Clear email input and close dialog
+      setEmailInput("");
+      setIsEmailDialogOpen(false);
+
+      // Refresh sent invitations list
+      await fetchSentInvitations();
+    } catch (error) {
+      console.error("Error sending invitation email:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send invitation email",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
     }
   };
 
@@ -184,191 +257,437 @@ export default function InvitePage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-6">Invite Friends</h1>
+
+      {/* Verification Progress */}
+      <Card className="mb-6">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2">
+            <Award className="h-5 w-5 text-primary" />
+            Verification Progress
+          </CardTitle>
+          <CardDescription>
+            Invite 5 friends who sign up to get verified status on your profile
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium">
+                Progress to Verification
+              </span>
+              <span className="text-sm font-medium">
+                {verificationStatus.successfulInvites} /{" "}
+                {verificationStatus.requiredInvites} successful invites
+              </span>
+            </div>
+            <Progress
+              value={
+                (verificationStatus.successfulInvites /
+                  verificationStatus.requiredInvites) *
+                100
+              }
+              className="h-2"
+            />
+            <div className="flex items-center gap-2 text-sm">
+              {verificationStatus.isVerified ? (
+                <div className="flex items-center gap-2 text-green-600">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>Your profile is verified!</span>
+                </div>
+              ) : (
+                <div className="text-muted-foreground">
+                  {verificationStatus.successfulInvites >=
+                  verificationStatus.requiredInvites ? (
+                    <span>
+                      You've reached the required invites! Your profile will be
+                      verified soon.
+                    </span>
+                  ) : (
+                    <span>
+                      Invite{" "}
+                      {verificationStatus.requiredInvites -
+                        verificationStatus.successfulInvites}{" "}
+                      more friends to get verified.
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Your Invite Code
+              </CardTitle>
+              <CardDescription>
+                Share this code with friends from your university to invite them
+                to join
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {inviteCode ? (
+                <>
+                  <div className="flex flex-col space-y-2">
+                    <Label htmlFor="inviteCode">Invite Code</Label>
+                    <div className="flex">
+                      <Input
+                        id="inviteCode"
+                        value={inviteCode}
+                        readOnly
+                        className="rounded-r-none font-mono text-center text-lg tracking-wider"
+                      />
+                      <Button
+                        onClick={() => copyToClipboard(inviteCode)}
+                        className="rounded-l-none"
+                        variant="secondary"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col space-y-2">
+                    <Label htmlFor="inviteLink">Invite Link</Label>
+                    <div className="flex">
+                      <Input
+                        id="inviteLink"
+                        value={inviteUrl}
+                        readOnly
+                        className="rounded-r-none text-sm"
+                      />
+                      <Button
+                        onClick={() => copyToClipboard(inviteUrl)}
+                        className="rounded-l-none"
+                        variant="secondary"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 p-4 bg-muted rounded-lg">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium">Usage</span>
+                      <span className="text-sm">
+                        {inviteUsage.current} / {inviteUsage.max} uses
+                      </span>
+                    </div>
+                    <div className="w-full bg-background rounded-full h-2.5">
+                      <div
+                        className="bg-primary h-2.5 rounded-full"
+                        style={{
+                          width: `${(inviteUsage.current / inviteUsage.max) * 100}%`,
+                        }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      This invite code expires in 30 days or after{" "}
+                      {inviteUsage.max} uses
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-6">
+                  <p className="mb-4">
+                    You don't have an active invite code yet
+                  </p>
+                  <Button onClick={generateInviteCode} disabled={generating}>
+                    {generating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>Generate Invite Code</>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+            {inviteCode && (
+              <CardFooter className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  onClick={generateInviteCode}
+                  disabled={generating}
+                  className="flex-1"
+                >
+                  {generating ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                  )}
+                  New Code
+                </Button>
+                <Button
+                  onClick={() => setIsEmailDialogOpen(true)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  Email Invite
+                </Button>
+                <Button onClick={shareInvite} className="flex-1">
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Share
+                </Button>
+              </CardFooter>
+            )}
+          </Card>
+
+          {/* Email Invitation Dialog */}
+          <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Send Invitation Email</DialogTitle>
+                <DialogDescription>
+                  Send an invitation email to a friend with your invite code.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Friend's Email</Label>
+                  <Input
+                    id="email"
+                    placeholder="friend@university.edu"
+                    type="email"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                  />
+                </div>
+                <div className="bg-muted p-3 rounded-md text-sm">
+                  <p>
+                    We'll send an email with your invite code and a link to sign
+                    up.
+                  </p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEmailDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={sendInviteEmail}
+                  disabled={sending || !emailInput}
+                >
+                  {sending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>Send Invitation</>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Invite Benefits</CardTitle>
+              <CardDescription>
+                Why you should invite your classmates to join UniShare
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-4">
+                <li className="flex items-start gap-3">
+                  <div className="bg-primary/10 p-2 rounded-full">
+                    <Users className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Build Your Network</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Connect with more classmates to expand your academic
+                      network
+                    </p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="bg-primary/10 p-2 rounded-full">
+                    <GraduationCap className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Exclusive Access</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Invite-only system ensures a trusted community of verified
+                      students
+                    </p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="bg-primary/10 p-2 rounded-full">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Better Study Groups</h3>
+                    <p className="text-sm text-muted-foreground">
+                      More members means more diverse study groups and resources
+                    </p>
+                  </div>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sent Invitations */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Your Invite Code
+              <Mail className="h-5 w-5" />
+              Sent Invitations
             </CardTitle>
             <CardDescription>
-              Share this code with friends from your university to invite them
-              to join
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {inviteCode ? (
-              <>
-                <div className="flex flex-col space-y-2">
-                  <Label htmlFor="inviteCode">Invite Code</Label>
-                  <div className="flex">
-                    <Input
-                      id="inviteCode"
-                      value={inviteCode}
-                      readOnly
-                      className="rounded-r-none font-mono text-center text-lg tracking-wider"
-                    />
-                    <Button
-                      onClick={() => copyToClipboard(inviteCode)}
-                      className="rounded-l-none"
-                      variant="secondary"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex flex-col space-y-2">
-                  <Label htmlFor="inviteLink">Invite Link</Label>
-                  <div className="flex">
-                    <Input
-                      id="inviteLink"
-                      value={inviteUrl}
-                      readOnly
-                      className="rounded-r-none text-sm"
-                    />
-                    <Button
-                      onClick={() => copyToClipboard(inviteUrl)}
-                      className="rounded-l-none"
-                      variant="secondary"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="mt-4 p-4 bg-muted rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">Usage</span>
-                    <span className="text-sm">
-                      {inviteUsage.current} / {inviteUsage.max} uses
-                    </span>
-                  </div>
-                  <div className="w-full bg-background rounded-full h-2.5">
-                    <div
-                      className="bg-primary h-2.5 rounded-full"
-                      style={{
-                        width: `${(inviteUsage.current / inviteUsage.max) * 100}%`,
-                      }}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    This invite code expires in 30 days or after{" "}
-                    {inviteUsage.max} uses
-                  </p>
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-6">
-                <p className="mb-4">You don't have an active invite code yet</p>
-                <Button onClick={generateInviteCode} disabled={generating}>
-                  {generating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>Generate Invite Code</>
-                  )}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-          {inviteCode && (
-            <CardFooter className="flex justify-between">
-              <Button
-                variant="outline"
-                onClick={generateInviteCode}
-                disabled={generating}
-              >
-                {generating ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                )}
-                Generate New Code
-              </Button>
-              <Button onClick={shareInvite}>
-                <Share2 className="mr-2 h-4 w-4" />
-                Share
-              </Button>
-            </CardFooter>
-          )}
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Invite Benefits</CardTitle>
-            <CardDescription>
-              Why you should invite your classmates to join UniShare
+              Track the status of invitations you've sent
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-4">
-              <li className="flex items-start gap-3">
-                <div className="bg-primary/10 p-2 rounded-full">
-                  <Users className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-medium">Build Your Network</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Connect with more classmates to expand your academic network
-                  </p>
-                </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <div className="bg-primary/10 p-2 rounded-full">
-                  <svg
-                    className="h-5 w-5 text-primary"
-                    fill="none"
-                    height="24"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    width="24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z" />
-                    <path d="M12 7c1-.56 2.78-2 5-2 .97 0 1.94.27 2.76.79" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-medium">Exclusive Access</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Invite-only system ensures a trusted community of verified
-                    students
-                  </p>
-                </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <div className="bg-primary/10 p-2 rounded-full">
-                  <svg
-                    className="h-5 w-5 text-primary"
-                    fill="none"
-                    height="24"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    width="24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path d="M8.8 20v-4.1l1.9.2a2.3 2.3 0 0 0 2.164-2.1V8.3A5.37 5.37 0 0 0 2 8.25c0 2.8.656 3.95 1 4.8a.2.2 0 0 1-.2.2H2a.2.2 0 0 1-.2-.2C1.255 11.455 0 9.2 0 6a6 6 0 0 1 11.8-1.4A5.4 5.4 0 0 1 22 8.5c0 2.3-1.5 4.3-3.8 5l-2 .5" />
-                    <path d="M13 19c1.1 0 2 .9 2 2v1h-4v-1a2 2 0 0 1 2-2z" />
-                    <path d="M8 15v-2.5A2.5 2.5 0 0 1 10.5 10" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="font-medium">Better Study Groups</h3>
-                  <p className="text-sm text-muted-foreground">
-                    More members means more diverse study groups and resources
-                  </p>
-                </div>
-              </li>
-            </ul>
+            <Tabs defaultValue="all" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="all">All Invitations</TabsTrigger>
+                <TabsTrigger value="pending">Pending</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="all">
+                {sentInvitations.length > 0 ? (
+                  <div className="space-y-4">
+                    {sentInvitations.map((invitation) => (
+                      <div
+                        key={invitation.id}
+                        className="border rounded-lg p-4"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-medium">
+                              {invitation.sent_to_email}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Sent{" "}
+                              {new Date(
+                                invitation.sent_at,
+                              ).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div>
+                            {invitation.status === "used" ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <CheckCircle2 className="mr-1 h-3 w-3" />
+                                Signed Up
+                              </span>
+                            ) : invitation.status === "failed" ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                Failed
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                <Clock className="mr-1 h-3 w-3" />
+                                Pending
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="mt-2 text-sm">
+                          <p>
+                            Invite code:{" "}
+                            <span className="font-mono">
+                              {invitation.invite_codes?.code}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Mail className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                    <p>You haven't sent any invitations yet</p>
+                    {inviteCode && (
+                      <Button
+                        variant="outline"
+                        className="mt-4"
+                        onClick={() => setIsEmailDialogOpen(true)}
+                      >
+                        <Mail className="mr-2 h-4 w-4" />
+                        Send Your First Invitation
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="pending">
+                {sentInvitations.filter((inv) => inv.status === "sent").length >
+                0 ? (
+                  <div className="space-y-4">
+                    {sentInvitations
+                      .filter((inv) => inv.status === "sent")
+                      .map((invitation) => (
+                        <div
+                          key={invitation.id}
+                          className="border rounded-lg p-4"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-medium">
+                                {invitation.sent_to_email}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Sent{" "}
+                                {new Date(
+                                  invitation.sent_at,
+                                ).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                <Clock className="mr-1 h-3 w-3" />
+                                Pending
+                              </span>
+                            </div>
+                          </div>
+                          <div className="mt-2 text-sm">
+                            <p>
+                              Invite code:{" "}
+                              <span className="font-mono">
+                                {invitation.invite_codes?.code}
+                              </span>
+                            </p>
+                          </div>
+                          <div className="mt-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                              onClick={() => {
+                                setEmailInput(invitation.sent_to_email);
+                                setIsEmailDialogOpen(true);
+                              }}
+                            >
+                              <Mail className="mr-1 h-3 w-3" />
+                              Resend
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No pending invitations</p>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>

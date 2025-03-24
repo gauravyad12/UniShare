@@ -15,31 +15,18 @@ serve(async (req) => {
 
   try {
     // Get environment variables
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_KEY");
-
-    // Log detailed information about environment variables for debugging
-    console.log("Environment check:");
-    console.log("- SUPABASE_URL exists:", !!supabaseUrl);
-    console.log("- SUPABASE_SERVICE_KEY exists:", !!supabaseKey);
-
-    // Fallback to hardcoded values if environment variables are not available
-    // This is a temporary solution for debugging purposes
-    const finalSupabaseUrl =
-      supabaseUrl || Deno.env.get("NEXT_PUBLIC_SUPABASE_URL");
-    const finalSupabaseKey =
-      supabaseKey ||
+    const supabaseUrl =
+      Deno.env.get("SUPABASE_URL") || Deno.env.get("NEXT_PUBLIC_SUPABASE_URL");
+    const supabaseKey =
+      Deno.env.get("SUPABASE_SERVICE_KEY") ||
       Deno.env.get("SUPABASE_ANON_KEY") ||
       Deno.env.get("NEXT_PUBLIC_SUPABASE_ANON_KEY");
 
-    console.log("- Using URL env var:", !!finalSupabaseUrl);
-    console.log("- Using KEY env var:", !!finalSupabaseKey);
-
-    if (!finalSupabaseUrl || !finalSupabaseKey) {
+    if (!supabaseUrl || !supabaseKey) {
       throw new Error("Supabase environment variables are not set properly");
     }
 
-    const supabaseClient = createClient(finalSupabaseUrl, finalSupabaseKey);
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     const { inviteCode } = await req.json();
 

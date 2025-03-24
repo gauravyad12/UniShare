@@ -1,60 +1,57 @@
 "use client";
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import Navbar from "@/components/navbar";
-import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import ErrorBoundary from "@/components/error-boundary";
+import { useEffect } from "react";
 
 export default function Error({
   error,
   reset,
 }: {
-  error?: Error & { digest?: string };
-  reset?: () => void;
+  error: Error & { digest?: string };
+  reset: () => void;
 }) {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const [errorMessage, setErrorMessage] = useState<string>("");
-
   useEffect(() => {
-    // Get error message from URL params or from error prop
-    const urlMessage = searchParams?.get("message");
-    setErrorMessage(
-      urlMessage ||
-        error?.message ||
-        "An unexpected error occurred. Please try again later.",
-    );
-  }, [searchParams, error]);
+    // Enhanced error logging for debugging
+    console.error("Application error:", {
+      message: error.message,
+      stack: error.stack,
+      digest: error.digest,
+      name: error.name,
+      cause: error.cause,
+    });
 
-  const handleReset = () => {
-    if (reset) {
-      reset();
-    } else {
-      // If no reset function is provided, refresh the page
-      window.location.href = window.location.pathname;
+    // Always log errors to help with debugging
+    try {
+      fetch("/api/debug", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "client-error",
+          error: {
+            message: error.message,
+            digest: error.digest,
+            name: error.name,
+            stack: error.stack
+              ? error.stack.split("\n").slice(0, 5).join("\n")
+              : null,
+          },
+        }),
+      }).catch(() => {
+        // Silent catch - don't let error logging cause more errors
+      });
+    } catch (e) {
+      // Ignore errors in the error handler
     }
-  };
 
-  return (
-    <>
-      <Navbar />
-      <div className="flex min-h-[80vh] flex-col items-center justify-center text-center px-4">
-        <h1 className="text-6xl font-bold">Error</h1>
-        <h2 className="mt-4 text-2xl font-semibold">Something went wrong</h2>
-        <p className="mt-2 text-muted-foreground">{errorMessage}</p>
-        <div className="mt-8 flex gap-4">
-          <Button onClick={handleReset} variant="outline">
-            Try Again
-          </Button>
-          <Button asChild>
-            <Link href="/">Return Home</Link>
-          </Button>
-        </div>
-      </div>
-    </>
-  );
+    // Try to clear cache if it might be a stale data issue
+    try {
+      fetch("/api/restart").catch(() => {
+        // Silent catch
+      });
+    } catch (e) {
+      // Ignore errors
+    }
+  }, [error]);
+
+  return <ErrorBoundary error={error} reset={reset} />;
 }
-
-// Create a standalone page version for direct navigation
-Error.getInitialProps = () => ({ statusCode: 500 });

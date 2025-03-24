@@ -17,22 +17,29 @@ export async function middleware(req: NextRequest) {
       pathname === "/favicon.ico" || // Skip for favicon
       pathname === "/" || // Skip for home page to prevent redirect loops
       pathname === "/universities" || // Skip for universities page
+      pathname === "/success" || // Skip for success page
       pathname.startsWith("/tempobook/") // Skip for tempobook pages
     ) {
-      return NextResponse.next();
+      const response = NextResponse.next();
+      // Add cache control headers to prevent caching issues
+      response.headers.set("x-middleware-cache", "no-cache");
+      response.headers.set("Cache-Control", "no-store, max-age=0");
+      return response;
     }
 
-    // Hardcoded API keys for testing
-    const supabaseUrl = "https://ncvinrzllkqlypnyluco.supabase.co";
-    const supabaseKey =
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jdmlucnpsbGtxbHlwbnlsdWNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxNzIxMDMsImV4cCI6MjA1Nzc0ODEwM30.ZFTtxcCa4www7icBhNKaJBnLjqepNVIqRxamEEFarsI";
+    // Use environment variables instead of hardcoded values
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
       console.warn(
         "Supabase credentials missing in .env file. Skipping auth checks.",
       );
       // Allow the request to proceed without auth checks if credentials are missing
-      return NextResponse.next();
+      const response = NextResponse.next();
+      response.headers.set("x-middleware-cache", "no-cache");
+      response.headers.set("Cache-Control", "no-store, max-age=0");
+      return response;
     }
 
     let supabase, response;
@@ -40,19 +47,28 @@ export async function middleware(req: NextRequest) {
       const clientResult = createClient(req);
       if (!clientResult) {
         console.warn("Failed to create Supabase client. Skipping auth checks.");
-        return NextResponse.next();
+        const response = NextResponse.next();
+        response.headers.set("x-middleware-cache", "no-cache");
+        response.headers.set("Cache-Control", "no-store, max-age=0");
+        return response;
       }
       supabase = clientResult.supabase;
       response = clientResult.response;
 
       if (!supabase) {
         console.warn("Supabase client is null. Skipping auth checks.");
-        return NextResponse.next();
+        const response = NextResponse.next();
+        response.headers.set("x-middleware-cache", "no-cache");
+        response.headers.set("Cache-Control", "no-store, max-age=0");
+        return response;
       }
     } catch (clientError) {
       console.error("Failed to create Supabase client:", clientError);
       // Just proceed without auth checks if client creation fails
-      return NextResponse.next();
+      const response = NextResponse.next();
+      response.headers.set("x-middleware-cache", "no-cache");
+      response.headers.set("Cache-Control", "no-store, max-age=0");
+      return response;
     }
 
     // Refresh session if it exists
@@ -61,7 +77,10 @@ export async function middleware(req: NextRequest) {
     } catch (sessionError) {
       console.error("Failed to get session:", sessionError);
       // Just proceed without auth checks if session refresh fails
-      return NextResponse.next();
+      const response = NextResponse.next();
+      response.headers.set("x-middleware-cache", "no-cache");
+      response.headers.set("Cache-Control", "no-store, max-age=0");
+      return response;
     }
 
     const url = req.nextUrl;
@@ -85,7 +104,10 @@ export async function middleware(req: NextRequest) {
         return NextResponse.redirect(url);
       }
       // For non-protected routes, just proceed without auth checks
-      return NextResponse.next();
+      const response = NextResponse.next();
+      response.headers.set("x-middleware-cache", "no-cache");
+      response.headers.set("Cache-Control", "no-store, max-age=0");
+      return response;
     }
 
     // Handle protected routes
@@ -101,17 +123,26 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(url);
     }
 
+    // Add cache control headers to prevent caching issues
+    if (response) {
+      response.headers.set("x-middleware-cache", "no-cache");
+      response.headers.set("Cache-Control", "no-store, max-age=0");
+    }
+
     return response || NextResponse.next();
   } catch (error) {
     console.error("Middleware error:", error);
     // Just proceed without auth checks if there's an error
-    return NextResponse.next();
+    const response = NextResponse.next();
+    response.headers.set("x-middleware-error", "true");
+    response.headers.set("Cache-Control", "no-store, max-age=0");
+    return response;
   }
 }
 
 // Specify which routes this middleware should run on
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|public|api/payments/webhook).*)",
+    "/((?!_next/static|_next/image|favicon.ico|public|api/payments/webhook|api/debug|api/restart|api/healthcheck).*)",
   ],
 };

@@ -28,7 +28,9 @@ export default function VerifyInvitePage() {
   const errorMessage = searchParams.get("error");
   const successMessage = searchParams.get("success");
   const clearCookie = searchParams.get("clear_cookie");
+  const codeParam = searchParams.get("code");
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [autoVerified, setAutoVerified] = useState(false);
 
   // Focus the first input on component mount
   useEffect(() => {
@@ -42,6 +44,28 @@ export default function VerifyInvitePage() {
       document.cookie = "verified_invite_code=; path=/; max-age=0";
     }
   }, [clearCookie]);
+
+  // Auto-fill and verify code from URL parameter
+  useEffect(() => {
+    if (codeParam && !autoVerified) {
+      // Only process if we have a code and haven't auto-verified yet
+      const codeArray = codeParam.split("").slice(0, 6);
+
+      // Pad with empty strings if code is shorter than 6 characters
+      const paddedCode = [
+        ...codeArray,
+        ...Array(6 - codeArray.length).fill(""),
+      ];
+
+      setInviteCode(paddedCode);
+
+      // Auto-verify the code after a short delay to allow state to update
+      setTimeout(() => {
+        handleVerifyInvite(null, codeParam);
+        setAutoVerified(true);
+      }, 300);
+    }
+  }, [codeParam]);
 
   // Check if we already have a verified invite code in cookies
   useEffect(() => {
@@ -70,12 +94,15 @@ export default function VerifyInvitePage() {
     };
   }, [router]);
 
-  const handleVerifyInvite = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleVerifyInvite = async (
+    e: React.FormEvent | null,
+    manualCode?: string,
+  ) => {
+    if (e) e.preventDefault();
     setIsLoading(true);
     setError(null);
 
-    const code = inviteCode.join("").trim();
+    const code = manualCode || inviteCode.join("").trim();
     if (!code) {
       setError("Invite code is required");
       setIsLoading(false);
@@ -86,7 +113,6 @@ export default function VerifyInvitePage() {
       const supabase = createClient();
 
       // Call the edge function to verify the invite code
-      const code = inviteCode.join("");
       console.log("Verifying invite code:", code);
 
       try {

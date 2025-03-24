@@ -191,8 +191,8 @@ export default function PublicProfilePage({
         </div>
       </div>
 
-      <Tabs defaultValue="resources" className="w-full">
-        <TabsList className="grid w-full md:w-[400px] grid-cols-2">
+      <Tabs defaultValue="resources" className="w-full mx-auto">
+        <TabsList className="grid w-full md:w-[400px] grid-cols-2 mx-auto">
           <TabsTrigger value="resources" className="flex items-center gap-2">
             <BookOpen className="h-4 w-4" />
             Resources ({resources.length})

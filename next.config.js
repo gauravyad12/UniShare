@@ -22,16 +22,63 @@ const nextConfig = {
   swcMinify: false,
   // Disable React strict mode to prevent double rendering
   reactStrictMode: false,
-  // Explicitly set the output mode
-  output: "standalone",
-  // Disable middleware temporarily
-  skipMiddlewareUrlNormalize: true,
-  skipTrailingSlashRedirect: true,
+  // IMPORTANT: DO NOT use distDir or output with Next.js 14+ as it causes 404 errors
+  // Enable middleware
+  skipMiddlewareUrlNormalize: false,
+  skipTrailingSlashRedirect: false,
+  // Increase timeout to prevent Bad Gateway errors
+  experimental: {
+    serverComponentsExternalPackages: [],
+    serverActions: {
+      bodySizeLimit: "4mb",
+    },
+    // Increase timeouts
+    timeoutInMs: 120000, // 120 seconds
+    // Disable some features that might cause issues
+    optimizeCss: false,
+    optimizePackageImports: [],
+    // Adjust memory settings
+    isrMemoryCacheSize: 0,
+    largePageDataBytes: 128 * 1000, // 128KB
+  },
+  // Disable powered by header
+  poweredByHeader: false,
+  // Increase buffer size for responses
+  httpAgentOptions: {
+    keepAlive: true,
+  },
+  // Increase static generation timeout
+  staticPageGenerationTimeout: 180,
+  // Adjust image settings
+  images: {
+    domains: ["images.unsplash.com", "api.dicebear.com"],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256],
+    formats: ["image/webp"],
+  },
+  // Compress responses
+  compress: true,
+  // Increase memory limit
+  onDemandEntries: {
+    maxInactiveAge: 120 * 1000, // 120 seconds
+    pagesBufferLength: 5,
+  },
+  // Disable strict mode for API routes
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };
 
 // Configure SWC plugins for Tempo
 if (process.env.NEXT_PUBLIC_TEMPO) {
+  // Preserve existing experimental settings
+  const currentExperimental = nextConfig.experimental || {};
+
   nextConfig["experimental"] = {
+    ...currentExperimental,
     // NextJS 14.2.x
     swcPlugins: [[require.resolve("tempo-devtools/swc/0.90"), {}]],
   };

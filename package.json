@@ -38,6 +38,7 @@
     "react-hook-form": "^7.54.2",
     "react-resizable-panels": "^2.1.7",
     "react-tsparticles": "^2.12.2",
+    "resend": "^4.1.2",
     "stripe": "^17.6.0",
     "tempo-devtools": "^2.0.94",
     "tsparticles": "^3.8.1",

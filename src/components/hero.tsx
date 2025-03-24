@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, Check, BookOpen, Users, Calendar } from "lucide-react";
+import { ArrowUpRight, Check, BookOpen, Users, MapPin } from "lucide-react";
 import ParticlesBackground from "./particles-background";
 import { createClient } from "../../supabase/client";
 import { useEffect, useState } from "react";
@@ -148,7 +148,7 @@ export default function Hero() {
                 </p>
               </div>
               <div className="flex flex-col items-center p-6 bg-card rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                <Calendar className="w-10 h-10 text-primary mb-4" />
+                <MapPin className="w-10 h-10 text-primary mb-4" />
                 <h3 className="text-lg font-semibold mb-2">
                   University Specific
                 </h3>

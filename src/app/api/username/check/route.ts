@@ -13,11 +13,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if username already exists
+    // Check if username already exists (case-insensitive)
     const { data, error } = await supabase
       .from("user_profiles")
       .select("username")
-      .eq("username", username)
+      .ilike("username", username)
       .single();
 
     if (error && error.code !== "PGRST116") {

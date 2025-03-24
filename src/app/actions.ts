@@ -73,12 +73,15 @@ export async function signUpAction(formData: FormData) {
     );
   }
 
-  // Check username availability server-side as well
+  // Check username availability server-side as well (case-insensitive)
   if (username) {
+    // Convert username to lowercase for storage
+    const lowercaseUsername = username.toLowerCase();
+
     const { data: existingUser, error: usernameError } = await supabase
       .from("user_profiles")
       .select("username")
-      .ilike("username", username)
+      .ilike("username", lowercaseUsername)
       .limit(1);
 
     if (usernameError) {
@@ -116,6 +119,7 @@ export async function signUpAction(formData: FormData) {
     );
   }
 
+  // Check invite code in a single place to avoid multiple redirects
   if (!inviteCode) {
     return encodedRedirect(
       "error",
@@ -125,23 +129,83 @@ export async function signUpAction(formData: FormData) {
   }
 
   // Check if email domain is from a supported university
-  const emailDomain = email.split("@")[1];
-  if (!emailDomain) {
+  const emailParts = email.split("@");
+  if (emailParts.length < 2 || !emailParts[1]) {
     return encodedRedirect("error", "/sign-up", "Invalid email format");
   }
+  const emailDomain = emailParts[1].toLowerCase();
 
-  // Check if the domain exists in our universities table
-  const { data: universityData, error: universityError } = await supabase
+  // Get all universities and check for matching domains
+  const { data: universities, error: universityQueryError } = await supabase
     .from("universities")
-    .select("id, domain, name")
-    .eq("domain", emailDomain)
-    .single();
+    .select("id, domain, name");
 
-  if (universityError || !universityData) {
+  if (universityQueryError) {
     return encodedRedirect(
       "error",
       "/sign-up",
-      "Your university email domain is not supported. Please contact support.",
+      "Error checking university email domains. Please try again.",
+    );
+  }
+
+  // Find university with matching domain (case-insensitive, handling spaces after commas)
+  console.log(`Checking email domain in actions.ts: ${emailDomain}`);
+
+  // Debug: Log all universities and their domains
+  universities?.forEach((uni) => {
+    console.log(
+      `University in actions.ts: ${uni.name}, Domains: ${uni.domain}`,
+    );
+  });
+
+  const universityData = universities?.find((university) => {
+    if (!university.domain) return false;
+    const domains = university.domain
+      .split(",")
+      .map((d) => d.trim().toLowerCase());
+    const matches = domains.includes(emailDomain);
+    console.log(
+      `Checking ${university.name} in actions.ts: domains=${domains.join("|")}, match=${matches}`,
+    );
+    return matches;
+  });
+
+  // Common email domains like icloud.com should be supported
+  const commonDomains = [
+    "gmail.com",
+    "outlook.com",
+    "hotmail.com",
+    "yahoo.com",
+    "icloud.com",
+  ];
+
+  if (!universityData && !commonDomains.includes(emailDomain)) {
+    return encodedRedirect(
+      "error",
+      "/sign-up",
+      "Your email domain is not supported. Please contact support.",
+    );
+  }
+
+  // If no university matched but it's a common domain, use the General Users university
+  const universityToUse =
+    universityData ||
+    universities?.find(
+      (u) =>
+        u.name === "General Users" ||
+        u.domain.toLowerCase().includes("gmail.com") ||
+        u.domain.toLowerCase().includes("icloud.com"),
+    );
+
+  console.log(
+    `University to use in actions.ts: ${universityToUse?.name || "None found"}`,
+  );
+
+  if (!universityToUse) {
+    return encodedRedirect(
+      "error",
+      "/sign-up",
+      "Could not find appropriate university for your email. Please contact support.",
     );
   }
 
@@ -184,22 +248,77 @@ export async function signUpAction(formData: FormData) {
   if (user) {
     try {
       // Update invite code usage count
-      await supabase
+      const { error: updateCountError } = await supabase
         .from("invite_codes")
         .update({ current_uses: (inviteData.current_uses || 0) + 1 })
         .eq("id", inviteData.id);
 
-      // Create user profile with university info from invite code
-      await supabase.from("user_profiles").insert({
-        id: user.id,
-        full_name: fullName,
-        username: username,
-        university_id: universityData.id,
-        university_name: universityData.name,
-        invite_code_id: inviteData.id,
-        created_at: new Date().toISOString(),
-        is_verified: false,
-      });
+      if (updateCountError) {
+        console.error(
+          "Error updating invite code usage count:",
+          updateCountError,
+        );
+      }
+
+      // Create user profile with university info from invite code (store username in lowercase)
+      const { error: profileError } = await supabase
+        .from("user_profiles")
+        .insert({
+          id: user.id,
+          full_name: fullName,
+          username: username ? username.toLowerCase() : null,
+          university_id: universityToUse.id,
+          university_name: universityToUse.name || "University",
+          invite_code_id: inviteData.id,
+          created_at: new Date().toISOString(),
+          is_verified: false,
+        });
+
+      if (profileError) {
+        console.error("Error creating user profile:", profileError);
+      }
+
+      // Create user settings for the new user
+      // With RLS disabled, we can use the regular client
+      try {
+        const { error: settingsError } = await supabase
+          .from("user_settings")
+          .insert({
+            user_id: user.id,
+            email_notifications: true,
+            study_group_notifications: true,
+            resource_notifications: true,
+            profile_visibility: true,
+            theme_preference: "system",
+            color_scheme: "default",
+            font_size: 2,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+        if (settingsError) {
+          console.error("Error creating user settings:", settingsError);
+        }
+      } catch (settingsError) {
+        console.error("Error creating user settings:", settingsError);
+      }
+
+      // Check if this invite code was sent via email and update its status
+      const { data: sentInvitation } = await supabase
+        .from("sent_invitations")
+        .select("id")
+        .eq("invite_code_id", inviteData.id)
+        .eq("sent_to_email", email)
+        .eq("status", "sent")
+        .limit(1);
+
+      if (sentInvitation && sentInvitation.length > 0) {
+        // Update the invitation status to used
+        await supabase
+          .from("sent_invitations")
+          .update({ status: "used" })
+          .eq("id", sentInvitation[0].id);
+      }
     } catch (err) {
       console.error("Error creating user profile:", err);
       // Continue with sign-up process despite profile creation error

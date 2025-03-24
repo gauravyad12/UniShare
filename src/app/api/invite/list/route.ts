@@ -1,0 +1,61 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/utils/supabase/server";
+
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = createClient();
+
+    // Get current user
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get all invitations sent by the user
+    const { data: invitations, error } = await supabase
+      .from("sent_invitations")
+      .select("*, invite_codes(code)")
+      .eq("sent_by", userData.user.id)
+      .order("sent_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching invitations:", error);
+      return NextResponse.json(
+        { error: "Failed to fetch invitations" },
+        { status: 500 },
+      );
+    }
+
+    // Get verification status
+    const { data: verificationData, error: verificationError } = await supabase
+      .from("user_profiles")
+      .select("is_verified")
+      .eq("id", userData.user.id)
+      .single();
+
+    if (verificationError) {
+      console.error("Error fetching verification status:", verificationError);
+    }
+
+    // Count successful invites
+    const successfulInvites = invitations.filter(
+      (inv) => inv.status === "used",
+    ).length;
+
+    return NextResponse.json({
+      success: true,
+      invitations,
+      verificationStatus: {
+        isVerified: verificationData?.is_verified || false,
+        successfulInvites,
+        requiredInvites: 5,
+      },
+    });
+  } catch (error) {
+    console.error("Error in list invitations API:", error);
+    return NextResponse.json(
+      { error: "An unexpected error occurred" },
+      { status: 500 },
+    );
+  }
+}

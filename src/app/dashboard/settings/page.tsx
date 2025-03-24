@@ -294,26 +294,41 @@ export default function SettingsPage() {
     }
   };
 
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
   const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
     try {
-      const supabase = createClient();
-
-      // Sign out and redirect instead of trying to delete the account directly
-      // Admin functions are not available in the client
-      await supabase.auth.signOut();
-      router.push("/");
-
-      toast({
-        title: "Signed out",
-        description: "Please contact support to delete your account.",
+      // Call the delete API endpoint
+      const response = await fetch("/api/profile/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast({
+          title: "Account deleted",
+          description:
+            data.message || "Your account has been successfully deleted.",
+        });
+        router.push("/");
+      } else {
+        throw new Error(data.error || "Failed to delete account");
+      }
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error("Error deleting account:", error);
       toast({
         title: "Error",
-        description: "Failed to sign out. Please try again later.",
+        description:
+          error.message ||
+          "Failed to delete your account. Please try again later.",
         variant: "destructive",
       });
+      setDeletingAccount(false);
     }
   };
 
@@ -606,8 +621,16 @@ export default function SettingsPage() {
                   <AlertDialogAction
                     onClick={handleDeleteAccount}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={deletingAccount}
                   >
-                    Delete Account
+                    {deletingAccount ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      "Delete Account"
+                    )}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

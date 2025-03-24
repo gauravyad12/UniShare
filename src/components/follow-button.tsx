@@ -1,26 +1,59 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { UserPlus, UserCheck, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 interface FollowButtonProps {
   userId: string;
-  isFollowing: boolean;
+  isFollowing?: boolean;
 }
 
 export function FollowButton({
   userId,
   isFollowing: initialIsFollowing,
 }: FollowButtonProps) {
-  const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
+  const [isFollowing, setIsFollowing] = useState(initialIsFollowing || false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(!initialIsFollowing);
   const { toast } = useToast();
+
+  // If initialIsFollowing is not provided, check the follow status
+  useEffect(() => {
+    const checkFollowStatus = async () => {
+      if (initialIsFollowing !== undefined) {
+        setIsCheckingStatus(false);
+        return;
+      }
+
+      try {
+        setIsCheckingStatus(true);
+        const response = await fetch(`/api/users/${userId}/follow/status`, {
+          method: "GET",
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setIsFollowing(data.isFollowing);
+        }
+      } catch (error) {
+        console.error("Error checking follow status:", error);
+      } finally {
+        setIsCheckingStatus(false);
+      }
+    };
+
+    checkFollowStatus();
+  }, [userId, initialIsFollowing]);
 
   const handleFollow = async () => {
     setIsLoading(true);
     try {
+      console.log(
+        `Sending ${isFollowing ? "unfollow" : "follow"} request for user ${userId}`,
+      );
+
       const response = await fetch(`/api/users/${userId}/follow`, {
         method: "POST",
         headers: {
@@ -42,6 +75,7 @@ export function FollowButton({
             : "You are now following this user",
         });
       } else {
+        console.error("Follow error:", data.error);
         toast({
           title: "Error",
           description: data.error || "Something went wrong",
@@ -49,15 +83,25 @@ export function FollowButton({
         });
       }
     } catch (error) {
+      console.error("Follow request error:", error);
       toast({
         title: "Error",
-        description: "Something went wrong",
+        description: "Something went wrong with the request",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (isCheckingStatus) {
+    return (
+      <Button variant="outline" disabled>
+        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        Checking...
+      </Button>
+    );
+  }
 
   return (
     <Button

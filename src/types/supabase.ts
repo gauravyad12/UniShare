@@ -301,6 +301,44 @@ export type Database = {
           },
         ]
       }
+      sent_invitations: {
+        Row: {
+          created_at: string | null
+          id: string
+          invite_code_id: string | null
+          sent_at: string | null
+          sent_by: string | null
+          sent_to_email: string
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          invite_code_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          sent_to_email: string
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          invite_code_id?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          sent_to_email?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sent_invitations_invite_code_id_fkey"
+            columns: ["invite_code_id"]
+            isOneToOne: false
+            referencedRelation: "invite_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_group_discussions: {
         Row: {
           created_at: string | null
@@ -534,6 +572,7 @@ export type Database = {
           is_verified: boolean | null
           major: string | null
           university_id: string | null
+          university_name: string | null
           updated_at: string | null
           username: string | null
         }
@@ -548,6 +587,7 @@ export type Database = {
           is_verified?: boolean | null
           major?: string | null
           university_id?: string | null
+          university_name?: string | null
           updated_at?: string | null
           username?: string | null
         }
@@ -562,6 +602,7 @@ export type Database = {
           is_verified?: boolean | null
           major?: string | null
           university_id?: string | null
+          university_name?: string | null
           updated_at?: string | null
           username?: string | null
         }
@@ -635,6 +676,19 @@ export type Database = {
           user_id: string
         }
         Returns: undefined
+      }
+      execute_sql: {
+        Args: {
+          query: string
+          params?: Json
+        }
+        Returns: Json
+      }
+      insert_notification: {
+        Args: {
+          notification: Json
+        }
+        Returns: Json
       }
     }
     Enums: {

@@ -40,12 +40,15 @@ export async function POST(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    // If username is changing, check if it's already taken
-    if (username && username !== existingProfile?.username) {
+    // If username is changing, check if it's already taken (case-insensitive)
+    if (
+      username &&
+      username.toLowerCase() !== existingProfile?.username?.toLowerCase()
+    ) {
       const { data: existingUsername } = await supabase
         .from("user_profiles")
         .select("username")
-        .eq("username", username)
+        .ilike("username", username)
         .single();
 
       if (existingUsername) {
@@ -95,16 +98,58 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Prepare update data
-    const profileData = {
+    // Prepare update data (store username in lowercase)
+    const profileData: any = {
       full_name,
-      username,
+      username: username ? username.toLowerCase() : null,
       bio,
       major,
       graduation_year: graduation_year ? parseInt(graduation_year) : null,
       university_id: detectedUniversityId || existingProfile?.university_id,
       updated_at: new Date().toISOString(),
     };
+
+    // Always set university_name to avoid errors
+    if (detectedUniversityId) {
+      try {
+        const { data: universityData } = await supabase
+          .from("universities")
+          .select("name")
+          .eq("id", detectedUniversityId)
+          .single();
+
+        if (universityData?.name) {
+          profileData.university_name = universityData.name;
+        } else {
+          // Fallback to a default value if we can't get the name
+          profileData.university_name = "University";
+        }
+      } catch (error) {
+        console.error("Error fetching university name:", error);
+        // Set a default value to avoid null errors
+        profileData.university_name = "University";
+      }
+    } else if (existingProfile?.university_id) {
+      try {
+        const { data: universityData } = await supabase
+          .from("universities")
+          .select("name")
+          .eq("id", existingProfile.university_id)
+          .single();
+
+        if (universityData?.name) {
+          profileData.university_name = universityData.name;
+        } else {
+          profileData.university_name = "University";
+        }
+      } catch (error) {
+        console.error("Error fetching university name:", error);
+        profileData.university_name = "University";
+      }
+    } else {
+      // Default value if no university ID is available
+      profileData.university_name = "University";
+    }
 
     // Add avatar_url if it exists
     if (avatar_url) {

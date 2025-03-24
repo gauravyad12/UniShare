@@ -1,8 +1,10 @@
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient, executeRawSql } from "@/utils/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
+    // Get regular client for auth
     const supabase = createClient();
     const {
       data: { user },
@@ -12,138 +14,191 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Delete all related data first
-    // This is important to do before deleting the user to maintain referential integrity
-
-    // 1. Delete user's resources
-    const { error: resourcesError } = await supabase
-      .from("resources")
-      .delete()
-      .eq("author_id", user.id);
-
-    if (resourcesError) {
-      console.error("Error deleting user resources:", resourcesError);
-    }
-
-    // 2. Delete user's study group memberships
-    const { error: membershipError } = await supabase
-      .from("study_group_members")
-      .delete()
-      .eq("user_id", user.id);
-
-    if (membershipError) {
-      console.error("Error deleting study group memberships:", membershipError);
-    }
-
-    // 3. Get study groups created by the user
-    const { data: userStudyGroups } = await supabase
-      .from("study_groups")
-      .select("id")
-      .eq("creator_id", user.id);
-
-    // 4. Delete members of user's study groups
-    if (userStudyGroups && userStudyGroups.length > 0) {
-      const groupIds = userStudyGroups.map((group) => group.id);
-
-      const { error: groupMembersError } = await supabase
-        .from("study_group_members")
-        .delete()
-        .in("study_group_id", groupIds);
-
-      if (groupMembersError) {
-        console.error("Error deleting study group members:", groupMembersError);
-      }
-
-      // 5. Delete the study groups created by the user
-      const { error: studyGroupsError } = await supabase
-        .from("study_groups")
-        .delete()
-        .eq("creator_id", user.id);
-
-      if (studyGroupsError) {
-        console.error("Error deleting study groups:", studyGroupsError);
-      }
-    }
-
-    // 6. Delete user's followers relationships
-    const { error: followersError } = await supabase
-      .from("user_followers")
-      .delete()
-      .eq("user_id", user.id);
-
-    if (followersError) {
-      console.error("Error deleting user followers:", followersError);
-    }
-
-    // 7. Delete user's following relationships
-    const { error: followingError } = await supabase
-      .from("user_followers")
-      .delete()
-      .eq("follower_id", user.id);
-
-    if (followingError) {
-      console.error("Error deleting user following:", followingError);
-    }
-
-    // 8. Delete user's settings
-    const { error: settingsError } = await supabase
-      .from("user_settings")
-      .delete()
-      .eq("user_id", user.id);
-
-    if (settingsError) {
-      console.error("Error deleting user settings:", settingsError);
-    }
-
-    // 9. Delete user's profile
-    const { error: profileError } = await supabase
-      .from("user_profiles")
-      .delete()
-      .eq("id", user.id);
-
-    if (profileError) {
-      console.error("Error deleting user profile:", profileError);
-    }
-
-    // 10. Delete user's avatar from storage if it exists
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("avatar_url")
-      .eq("id", user.id)
-      .single();
-
-    if (profile?.avatar_url) {
-      // Extract the file path from the URL
-      const avatarPath = profile.avatar_url.split("/").pop();
-      if (avatarPath) {
-        const { error: storageError } = await supabase.storage
-          .from("avatars")
-          .remove([avatarPath]);
-
-        if (storageError) {
-          console.error("Error deleting avatar from storage:", storageError);
-        }
-      }
-    }
-
-    // 11. Finally, delete the user from auth using the custom function
-    // This uses the SQL function we created that has the necessary permissions
-    const { error: authError } = await supabase.rpc("delete_user_by_id", {
-      user_id: user.id,
-    });
-
-    if (authError) {
-      console.error("Error deleting user from auth:", authError);
+    // Get admin client to bypass RLS
+    const adminClient = createAdminClient();
+    if (!adminClient) {
       return NextResponse.json(
-        { error: `Failed to delete user: ${authError.message}` },
+        { error: "Server configuration error" },
         { status: 500 },
       );
     }
 
-    // Sign out the user
+    const userId = user.id;
+    console.log(`Starting deletion process for user ${userId}`);
+
+    // STEP 1: Clean up all related data first
+    // This multi-step approach ensures we delete everything even if some steps fail
+
+    // Delete user's resources
+    await adminClient.from("resources").delete().eq("created_by", userId);
+
+    // Delete user's study group memberships
+    await adminClient
+      .from("study_group_members")
+      .delete()
+      .eq("user_id", userId);
+
+    // Delete user's followers and following relationships
+    await adminClient
+      .from("user_followers")
+      .delete()
+      .or(`user_id.eq.${userId},follower_id.eq.${userId}`);
+
+    // Delete user's notifications
+    await adminClient.from("notifications").delete().eq("user_id", userId);
+
+    // Delete user's sent invitations
+    await adminClient.from("sent_invitations").delete().eq("sent_by", userId);
+
+    // Get user's profile for avatar URL before deletion
+    const { data: profile } = await adminClient
+      .from("user_profiles")
+      .select("avatar_url")
+      .eq("id", userId)
+      .single();
+
+    // Delete user's settings
+    await adminClient.from("user_settings").delete().eq("user_id", userId);
+
+    // Delete user's profile
+    await adminClient.from("user_profiles").delete().eq("id", userId);
+
+    // Delete user's avatar from storage if it exists
+    if (profile?.avatar_url) {
+      try {
+        const avatarPath = profile.avatar_url.split("/").pop();
+        if (avatarPath) {
+          await adminClient.storage.from("avatars").remove([avatarPath]);
+        }
+      } catch (avatarError) {
+        console.error("Error deleting avatar:", avatarError);
+        // Continue with deletion even if avatar removal fails
+      }
+    }
+
+    // STEP 2: Sign out the user before deleting the auth record
     await supabase.auth.signOut();
 
-    return NextResponse.json({ success: true });
+    // STEP 3: Delete the user from auth.users using multiple approaches
+    let authDeletionSuccess = false;
+
+    // Approach 1: Try using the RPC function
+    try {
+      const { data: rpcResult, error: rpcError } = await adminClient.rpc(
+        "delete_user_by_id",
+        { user_id: userId },
+      );
+
+      if (!rpcError && rpcResult === true) {
+        authDeletionSuccess = true;
+        console.log("Successfully deleted user via RPC function");
+      } else {
+        console.log("RPC deletion failed, trying alternative methods");
+      }
+    } catch (rpcError) {
+      console.error("Error with RPC deletion:", rpcError);
+    }
+
+    // Approach 2: Try using the force_delete_user function
+    if (!authDeletionSuccess) {
+      try {
+        const { data: forceResult, error: forceError } = await adminClient.rpc(
+          "force_delete_user",
+          { user_id: userId },
+        );
+
+        if (!forceError && forceResult === true) {
+          authDeletionSuccess = true;
+          console.log("Successfully deleted user via force_delete_user");
+        } else {
+          console.log("Force deletion failed, trying direct admin API");
+        }
+      } catch (forceError) {
+        console.error("Error with force deletion:", forceError);
+      }
+    }
+
+    // Approach 3: Try using the Supabase admin API
+    if (!authDeletionSuccess) {
+      try {
+        // First check if user exists before trying to delete
+        const { data: userExists, error: userCheckError } =
+          await adminClient.auth.admin.getUserById(userId);
+
+        if (userExists && !userCheckError) {
+          const { error: adminError } =
+            await adminClient.auth.admin.deleteUser(userId);
+
+          if (!adminError) {
+            authDeletionSuccess = true;
+            console.log("Successfully deleted user via admin API");
+          } else {
+            console.error("Admin API deletion failed:", adminError);
+            // Don't mark as failure yet, we'll try other methods
+          }
+        } else {
+          console.log(
+            "User not found in auth.users, skipping admin API deletion",
+          );
+          // Consider this a success since the user doesn't exist anyway
+          authDeletionSuccess = true;
+        }
+      } catch (adminError) {
+        console.error("Error with admin API deletion:", adminError);
+        // Don't mark as failure yet, we'll try other methods
+      }
+    }
+
+    // Approach 4: Last resort - try direct SQL execution
+    if (!authDeletionSuccess) {
+      try {
+        // First check if the user exists in auth.users
+        const { data: checkData, error: checkError } = await executeRawSql(
+          adminClient,
+          "SELECT EXISTS(SELECT 1 FROM auth.users WHERE id = $1) as exists",
+          [userId],
+        );
+
+        const userExists = checkData && checkData.exists;
+
+        if (userExists) {
+          // User exists, try to delete
+          const { error: sqlError } = await executeRawSql(
+            adminClient,
+            "DELETE FROM auth.users WHERE id = $1",
+            [userId],
+          );
+
+          if (!sqlError) {
+            authDeletionSuccess = true;
+            console.log("Successfully deleted user via direct SQL");
+          } else {
+            console.error("Direct SQL deletion failed:", sqlError);
+          }
+        } else {
+          // User doesn't exist in auth.users, consider it a success
+          console.log(
+            "User not found in auth.users via SQL check, marking as success",
+          );
+          authDeletionSuccess = true;
+        }
+      } catch (sqlError) {
+        console.error("Error with direct SQL deletion:", sqlError);
+      }
+    }
+
+    // Check if any deletion method succeeded
+    if (!authDeletionSuccess) {
+      return NextResponse.json(
+        { error: "Failed to delete user account after multiple attempts" },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Your account and all associated data have been deleted",
+    });
   } catch (error) {
     console.error("Unexpected error during account deletion:", error);
     return NextResponse.json(

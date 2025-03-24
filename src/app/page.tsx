@@ -14,6 +14,8 @@ import {
   School,
   UserCheck,
   File,
+  MapPin,
+  Check,
 } from "lucide-react";
 import { useEffect } from "react";
 import Link from "next/link";
@@ -70,7 +72,7 @@ export default function Home() {
                   "Access course notes, textbook solutions, and study guides",
               },
               {
-                icon: <Shield className="w-6 h-6" />,
+                icon: <Check className="w-6 h-6" />,
                 title: "University Verified",
                 description:
                   "Exclusive access for students with valid university emails",

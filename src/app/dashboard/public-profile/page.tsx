@@ -199,8 +199,8 @@ export default function PublicProfilePage() {
         </CardHeader>
       </Card>
 
-      <Tabs defaultValue="resources" className="w-full">
-        <TabsList className="mb-4">
+      <Tabs defaultValue="resources" className="w-full mx-auto">
+        <TabsList className="mb-4 flex justify-center mx-auto">
           <TabsTrigger value="resources" className="flex items-center gap-2">
             <BookOpen className="h-4 w-4" />
             Resources

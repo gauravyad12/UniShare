@@ -1,10 +1,10 @@
-import { TempoInit } from "@/components/tempo-init";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeSync } from "@/components/theme-sync";
+import { TempoInit } from "@/components/tempo-init";
 
 const inter = Inter({ subsets: ["latin"] });
 
