@@ -23,7 +23,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head />
       <Script src="https://api.tempolabs.ai/proxy-asset?url=https://storage.googleapis.com/tempo-public-assets/error-handling.js" />
-      <body className={inter.className}>
+      <body
+        className={`${inter.className} min-h-screen flex flex-col bg-background`}
+      >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ThemeSync />
           {children}

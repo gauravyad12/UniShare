@@ -206,7 +206,7 @@ export default function VerifyInvitePage() {
               <SubmitButton
                 pendingText="Verifying..."
                 disabled={isLoading}
-                className="px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md w-40"
+                className="w-40 bg-primary hover:bg-primary/90"
               >
                 Verify Code
               </SubmitButton>

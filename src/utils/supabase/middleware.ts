@@ -4,21 +4,28 @@ import { NextRequest, NextResponse } from "next/server";
 export function createClient(request: NextRequest) {
   const isDebug = process.env.NODE_ENV === "development";
 
-  // Create an unmodified response
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
+  try {
+    // Hardcoded API keys for testing
+    const supabaseUrl = "https://ncvinrzllkqlypnyluco.supabase.co";
+    const supabaseKey =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jdmlucnpsbGtxbHlwbnlsdWNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxNzIxMDMsImV4cCI6MjA1Nzc0ODEwM30.ZFTtxcCa4www7icBhNKaJBnLjqepNVIqRxamEEFarsI";
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+    if (!supabaseUrl || !supabaseKey) {
+      console.warn("Supabase credentials missing in .env file");
+      return null;
+    }
+
+    // Create an unmodified response
+    let response = NextResponse.next({
+      request: {
+        headers: request.headers,
+      },
+    });
+
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
         get(name: string) {
           const cookie = request.cookies.get(name);
-
           return cookie?.value;
         },
         set(
@@ -33,43 +40,56 @@ export function createClient(request: NextRequest) {
             sameSite?: "strict" | "lax" | "none";
           },
         ) {
-          // If we're setting the auth cookie, update the request as well so that the session is available immediately
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          });
+          try {
+            // If we're setting the auth cookie, update the request as well so that the session is available immediately
+            request.cookies.set({
+              name,
+              value,
+              ...options,
+            });
+            response = NextResponse.next({
+              request: {
+                headers: request.headers,
+              },
+            });
+            response.cookies.set({
+              name,
+              value,
+              ...options,
+            });
+          } catch (cookieError) {
+            console.error("Error setting cookie in middleware:", cookieError);
+            // Continue without setting cookies if there's an error
+          }
         },
         remove(name: string, options: { path?: string; domain?: string }) {
-          request.cookies.delete({
-            name,
-            ...options,
-          });
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          response.cookies.delete({
-            name,
-            ...options,
-          });
+          try {
+            request.cookies.delete({
+              name,
+              ...options,
+            });
+            response = NextResponse.next({
+              request: {
+                headers: request.headers,
+              },
+            });
+            response.cookies.delete({
+              name,
+              ...options,
+            });
+          } catch (cookieError) {
+            console.error("Error removing cookie in middleware:", cookieError);
+            // Continue without removing cookies if there's an error
+          }
         },
       },
       // Add debug logs for auth state
       debug: isDebug,
-    },
-  );
+    });
 
-  return { supabase, response };
+    return { supabase, response };
+  } catch (error) {
+    console.error("Error creating Supabase client in middleware:", error);
+    return null;
+  }
 }

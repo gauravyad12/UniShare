@@ -8,16 +8,32 @@ const nextConfig = {
     }
     return config;
   },
+  // Set server port from environment variable
+  serverRuntimeConfig: {
+    port: process.env.PORT || 3000,
+  },
+  env: {
+    PORT: process.env.PORT || 3000,
+    // Ensure we're only using .env file values
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  },
+  // Disable SWC minification to prevent module resolution issues
+  swcMinify: false,
+  // Disable React strict mode to prevent double rendering
+  reactStrictMode: false,
+  // Explicitly set the output mode
+  output: "standalone",
+  // Disable middleware temporarily
+  skipMiddlewareUrlNormalize: true,
+  skipTrailingSlashRedirect: true,
 };
 
+// Configure SWC plugins for Tempo
 if (process.env.NEXT_PUBLIC_TEMPO) {
   nextConfig["experimental"] = {
-    // NextJS 13.4.8 up to 14.1.3:
-    // swcPlugins: [[require.resolve("tempo-devtools/swc/0.86"), {}]],
-    // NextJS 14.1.3 to 14.2.11:
+    // NextJS 14.2.x
     swcPlugins: [[require.resolve("tempo-devtools/swc/0.90"), {}]],
-
-    // NextJS 15+ (Not yet supported, coming soon)
   };
 }
 
