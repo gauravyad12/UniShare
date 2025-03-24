@@ -183,7 +183,7 @@ export async function signUpAction(formData: FormData) {
     return encodedRedirect(
       "error",
       "/sign-up",
-      "Your email domain is not supported. Please contact support.",
+      "This email domain is not supported. Please use a university email or contact support.",
     );
   }
 

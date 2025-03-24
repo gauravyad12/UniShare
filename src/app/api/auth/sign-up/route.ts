@@ -135,7 +135,8 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json(
         {
-          error: "Your email domain is not supported. Please contact support.",
+          error:
+            "Your email domain is not supported. Please use a university email or contact support.",
         },
         { status: 400 },
       );

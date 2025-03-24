@@ -110,7 +110,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           valid: false,
-          error: "Your email domain is not supported. Please contact support.",
+          error:
+            "Your email domain or university is not supported. Please contact support.",
         },
         { status: 200 }, // Use 200 status with valid:false instead of 400
       );

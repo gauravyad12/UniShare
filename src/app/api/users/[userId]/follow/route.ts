@@ -102,43 +102,45 @@ export async function POST(
         );
       }
 
-      // Create notification - Only create one notification
+      // Check if a notification already exists for this follow action to prevent duplicates
       try {
-        // Get follower name
-        const { data: profile } = await adminClient
+        const { data: followerProfile } = await adminClient
           .from("user_profiles")
-          .select("username, full_name")
+          .select("username")
           .eq("id", user.id)
           .single();
 
-        const followerName =
-          profile?.username || profile?.full_name || "Someone";
+        const followerUsername = followerProfile?.username || "someone";
 
-        // Check if a similar notification already exists to prevent duplicates
+        // Check for existing notifications from this user to prevent duplicates
         const { data: existingNotifications } = await adminClient
           .from("notifications")
-          .select("id")
+          .select("*")
           .eq("user_id", targetUserId)
+          .eq("actor_id", user.id)
           .eq("type", "follow")
-          .eq("link", `/u/${profile?.username || user.id}`)
           .limit(1);
 
-        // Only insert if no similar notification exists
+        // Only insert if no existing notification is found
         if (!existingNotifications || existingNotifications.length === 0) {
-          // Insert notification directly with admin client
+          // Insert notification with actor_id field
           await adminClient.from("notifications").insert({
             user_id: targetUserId,
             title: "New Follower",
-            message: `${followerName} started following you`,
+            message: `User @${followerUsername} started following you`,
             type: "follow",
-            is_read: false,
+            link: `/u/${followerUsername}`,
             created_at: new Date().toISOString(),
-            link: `/u/${profile?.username || user.id}`,
+            is_read: false,
+            actor_id: user.id, // Add the follower's ID as the actor_id
           });
         }
-      } catch (notifError) {
-        // Log but don't fail the request
-        console.error("Notification error (non-blocking):", notifError);
+      } catch (notificationError) {
+        console.log(
+          "Failed to create notification, but follow was successful:",
+          notificationError,
+        );
+        // Continue even if notification creation fails
       }
 
       return NextResponse.json({

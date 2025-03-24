@@ -187,6 +187,30 @@ export default function SignUpForm({ message }: SignUpFormProps) {
     emailError,
   ]);
 
+  // Check for domain not supported error in message prop
+  useEffect(() => {
+    if (message.error) {
+      if (
+        message.error.includes("university/domain isn't supported") ||
+        message.error.includes("Your university/domain isn't supported") ||
+        message.error.includes("This email domain is not supported") ||
+        message.error.includes("Your email domain is not supported") ||
+        message.error.includes(
+          "Your email domain or university is not supported",
+        )
+      ) {
+        setEmailError(
+          "Your email domain or university is not supported. Please contact support.",
+        );
+        setFormError(null); // Clear the form error to avoid duplicate messages
+      } else if (message.error.includes("Invalid email format")) {
+        setEmailError(
+          "Invalid email format. Please enter a valid email address.",
+        );
+      }
+    }
+  }, [message]);
+
   // Check for bad words in username
   const checkForBadWords = async (username: string) => {
     try {
@@ -297,10 +321,12 @@ export default function SignUpForm({ message }: SignUpFormProps) {
         body: JSON.stringify({ domain: emailDomain }),
       });
 
-      if (!domainResponse.ok) {
-        const data = await domainResponse.json();
+      const data = await domainResponse.json();
+
+      if (!domainResponse.ok || !data.valid) {
         setEmailError(
-          data.error || "Your university email domain is not supported",
+          data.error ||
+            "Your email domain or university is not supported. Please contact support.",
         );
         setIsSubmitting(false);
         return;
@@ -537,7 +563,14 @@ export default function SignUpForm({ message }: SignUpFormProps) {
         )}
       </Button>
 
-      {(message.error || message.success) && <FormMessage message={message} />}
+      {((message.error &&
+        !message.error.includes("university/domain isn't supported") &&
+        !message.error.includes("This email domain is not supported") &&
+        !message.error.includes("Your email domain is not supported") &&
+        !message.error.includes(
+          "Your email domain or university is not supported",
+        )) ||
+        message.success) && <FormMessage message={message} />}
     </form>
   );
 }

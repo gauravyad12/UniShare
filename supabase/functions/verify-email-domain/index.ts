@@ -94,7 +94,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           valid: false,
-          error: "Your email domain is not supported",
+          error:
+            "Your email domain or university is not supported. Please contact support.",
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
