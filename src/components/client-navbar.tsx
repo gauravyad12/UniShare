@@ -40,10 +40,21 @@ export default function ClientNavbar() {
     };
   }, [supabase.auth]);
 
+  const handleNavigation = () => {
+    if (typeof document !== "undefined") {
+      document.dispatchEvent(new Event("navigationStart"));
+    }
+  };
+
   return (
     <nav className="w-full border-b border-border bg-background py-4">
       <div className="container mx-auto px-4 flex justify-between items-center">
-        <Link href="/" prefetch className="flex items-center gap-2">
+        <Link
+          href="/"
+          prefetch
+          className="flex items-center gap-2"
+          onClick={handleNavigation}
+        >
           <GraduationCap className="h-8 w-8 text-primary" />
           <span className="text-xl font-bold">UniShare</span>
         </Link>
@@ -52,18 +63,21 @@ export default function ClientNavbar() {
           <Link
             href="/#platform-features"
             className="text-foreground/80 hover:text-primary font-medium"
+            onClick={handleNavigation}
           >
             Features
           </Link>
           <Link
             href="/#how-it-works"
             className="text-foreground/80 hover:text-primary font-medium"
+            onClick={handleNavigation}
           >
             How It Works
           </Link>
           <Link
             href="/universities"
             className="text-foreground/80 hover:text-primary font-medium"
+            onClick={handleNavigation}
           >
             Universities
           </Link>
@@ -73,7 +87,11 @@ export default function ClientNavbar() {
           <ThemeToggle />
           {!loading && user ? (
             <>
-              <Link href="/dashboard" className="px-4 py-2 text-sm font-medium">
+              <Link
+                href="/dashboard"
+                className="px-4 py-2 text-sm font-medium"
+                onClick={handleNavigation}
+              >
                 <Button>Dashboard</Button>
               </Link>
               <UserProfile />
@@ -83,12 +101,14 @@ export default function ClientNavbar() {
               <Link
                 href="/sign-in"
                 className="px-4 py-2 text-sm font-medium text-foreground/80 hover:text-primary"
+                onClick={handleNavigation}
               >
                 Sign In
               </Link>
               <Link
                 href="/verify-invite"
                 className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90"
+                onClick={handleNavigation}
               >
                 Join Now
               </Link>

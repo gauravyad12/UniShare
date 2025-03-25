@@ -5,6 +5,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeSync } from "@/components/theme-sync";
 import { TempoInit } from "@/components/tempo-init";
+import { NavigationEvents } from "@/components/navigation-events";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,6 +30,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ThemeSync />
           {children}
+          <NavigationEvents />
           <TempoInit />
         </ThemeProvider>
       </body>
