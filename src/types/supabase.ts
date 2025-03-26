@@ -173,68 +173,47 @@ export type Database = {
             referencedRelation: "resources"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "resource_comments_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources_with_comments"
+            referencedColumns: ["id"]
+          },
         ]
       }
-      resource_ratings: {
+      resource_likes: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
-          rating: number
-          resource_id: string | null
-          updated_at: string | null
-          user_id: string | null
+          resource_id: string
+          user_id: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
-          rating: number
-          resource_id?: string | null
-          updated_at?: string | null
-          user_id?: string | null
+          resource_id: string
+          user_id: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
-          rating?: number
-          resource_id?: string | null
-          updated_at?: string | null
-          user_id?: string | null
+          resource_id?: string
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "resource_ratings_resource_id_fkey"
+            foreignKeyName: "resource_likes_resource_id_fkey"
             columns: ["resource_id"]
             isOneToOne: false
             referencedRelation: "resources"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      resource_tags: {
-        Row: {
-          created_at: string | null
-          id: string
-          resource_id: string | null
-          tag_name: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          resource_id?: string | null
-          tag_name: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          resource_id?: string | null
-          tag_name?: string
-        }
-        Relationships: [
           {
-            foreignKeyName: "resource_tags_resource_id_fkey"
+            foreignKeyName: "resource_likes_resource_id_fkey"
             columns: ["resource_id"]
             isOneToOne: false
-            referencedRelation: "resources"
+            referencedRelation: "resources_with_comments"
             referencedColumns: ["id"]
           },
         ]
@@ -242,15 +221,18 @@ export type Database = {
       resources: {
         Row: {
           author_id: string | null
+          comment_count: number | null
           course_code: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
           download_count: number | null
+          downloads: number
           external_link: string | null
           file_url: string | null
           id: string
           is_approved: boolean | null
+          likes: number
           professor: string | null
           resource_type: string
           title: string
@@ -260,15 +242,18 @@ export type Database = {
         }
         Insert: {
           author_id?: string | null
+          comment_count?: number | null
           course_code?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           download_count?: number | null
+          downloads?: number
           external_link?: string | null
           file_url?: string | null
           id?: string
           is_approved?: boolean | null
+          likes?: number
           professor?: string | null
           resource_type: string
           title: string
@@ -278,15 +263,18 @@ export type Database = {
         }
         Update: {
           author_id?: string | null
+          comment_count?: number | null
           course_code?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
           download_count?: number | null
+          downloads?: number
           external_link?: string | null
           file_url?: string | null
           id?: string
           is_approved?: boolean | null
+          likes?: number
           professor?: string | null
           resource_type?: string
           title?: string
@@ -574,6 +562,7 @@ export type Database = {
           invite_code_id: string | null
           is_verified: boolean | null
           major: string | null
+          role: string | null
           university_id: string | null
           university_name: string | null
           updated_at: string | null
@@ -589,6 +578,7 @@ export type Database = {
           invite_code_id?: string | null
           is_verified?: boolean | null
           major?: string | null
+          role?: string | null
           university_id?: string | null
           university_name?: string | null
           updated_at?: string | null
@@ -604,6 +594,7 @@ export type Database = {
           invite_code_id?: string | null
           is_verified?: boolean | null
           major?: string | null
+          role?: string | null
           university_id?: string | null
           university_name?: string | null
           updated_at?: string | null
@@ -667,7 +658,68 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      resource_comments_with_profiles: {
+        Row: {
+          avatar_url: string | null
+          comment: string | null
+          created_at: string | null
+          full_name: string | null
+          id: string | null
+          profile_id: string | null
+          resource_id: string | null
+          updated_at: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resource_comments_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resource_comments_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources_with_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resources_with_comments: {
+        Row: {
+          author_id: string | null
+          comment_count: number | null
+          course_code: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          download_count: number | null
+          downloads: number | null
+          external_link: string | null
+          file_url: string | null
+          id: string | null
+          is_approved: boolean | null
+          likes: number | null
+          professor: string | null
+          resource_type: string | null
+          title: string | null
+          university_id: string | null
+          updated_at: string | null
+          view_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resources_university_id_fkey"
+            columns: ["university_id"]
+            isOneToOne: false
+            referencedRelation: "universities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       create_user_settings_table: {
@@ -686,6 +738,15 @@ export type Database = {
           params?: Json
         }
         Returns: Json
+      }
+      increment_column_value: {
+        Args: {
+          p_table_name: string
+          p_column_name: string
+          p_record_id: string
+          p_increment_by?: number
+        }
+        Returns: undefined
       }
       insert_notification: {
         Args: {

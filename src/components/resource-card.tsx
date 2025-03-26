@@ -8,7 +8,7 @@ import {
 } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Download, Eye, Star, ThumbsUp } from "lucide-react";
+import { Download, MessageSquare, Star, ThumbsUp } from "lucide-react";
 
 interface ResourceCardProps {
   resource: {
@@ -23,10 +23,24 @@ interface ResourceCardProps {
     created_at: string;
     tags?: { tag_name: string }[];
     ratings?: { rating: number }[];
+    comment_count?: number;
+    likes?: number;
+    downloads?: number;
   };
   onView?: (id: string) => void;
   onDownload?: (id: string) => void;
 }
+
+// Format numbers to use k, m, etc. for thousands, millions, etc.
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1).replace(/\.0$/, "") + "m";
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+  }
+  return num.toString();
+};
 
 export default function ResourceCard({
   resource,
@@ -39,6 +53,9 @@ export default function ResourceCard({
       ? resource.ratings.reduce((sum, item) => sum + item.rating, 0) /
         resource.ratings.length
       : 0;
+
+  // Get likes count - ensure it's a number
+  const likesCount = typeof resource.likes === "number" ? resource.likes : 0;
 
   // Format date
   const formattedDate = new Date(resource.created_at).toLocaleDateString(
@@ -82,12 +99,18 @@ export default function ResourceCard({
               </Badge>
             )}
           </div>
-          {averageRating > 0 && (
+          <div className="flex items-center gap-2">
+            {averageRating > 0 && (
+              <div className="flex items-center">
+                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                <span className="text-sm ml-1">{averageRating.toFixed(1)}</span>
+              </div>
+            )}
             <div className="flex items-center">
-              <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-              <span className="text-sm ml-1">{averageRating.toFixed(1)}</span>
+              <ThumbsUp className="h-4 w-4 text-blue-500" />
+              <span className="text-sm ml-1">{likesCount}</span>
             </div>
-          )}
+          </div>
         </div>
         <CardTitle className="mt-2 text-xl">{resource.title}</CardTitle>
         {resource.professor && (
@@ -110,12 +133,14 @@ export default function ResourceCard({
       <CardFooter className="flex justify-between pt-2 border-t">
         <div className="flex items-center text-sm text-gray-500">
           <div className="flex items-center mr-3">
-            <Eye className="h-4 w-4 mr-1" />
-            <span>{resource.view_count}</span>
+            <Download className="h-4 w-4 mr-1" />
+            <span>
+              {formatNumber(resource.downloads || resource.download_count || 0)}
+            </span>
           </div>
           <div className="flex items-center">
-            <Download className="h-4 w-4 mr-1" />
-            <span>{resource.download_count}</span>
+            <MessageSquare className="h-4 w-4 mr-1" />
+            <span>{formatNumber(resource.comment_count || 0)}</span>
           </div>
         </div>
 
@@ -131,7 +156,7 @@ export default function ResourceCard({
             size="sm"
             onClick={() => onDownload && onDownload(resource.id)}
           >
-            Download
+            {resource.resource_type === "link" ? "View Link" : "Download"}
           </Button>
         </div>
       </CardFooter>

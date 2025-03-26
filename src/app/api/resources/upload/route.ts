@@ -15,23 +15,23 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
-    const type = formData.get("type") as string;
+    const resourceType = formData.get("type") as string;
     const courseCode = formData.get("course_code") as string;
     const file = formData.get("file") as File;
-    const externalUrl = formData.get("external_url") as string;
+    const externalLink = formData.get("external_link") as string;
 
     if (!title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
-    if (type !== "link" && !file) {
+    if (resourceType !== "link" && !file) {
       return NextResponse.json(
         { error: "File is required for non-link resources" },
         { status: 400 },
       );
     }
 
-    if (type === "link" && !externalUrl) {
+    if (resourceType === "link" && !externalLink) {
       return NextResponse.json(
         { error: "URL is required for link resources" },
         { status: 400 },
@@ -86,13 +86,11 @@ export async function POST(request: NextRequest) {
       .insert({
         title,
         description,
-        type,
+        resource_type: resourceType,
         course_code: courseCode,
         file_url: fileUrl,
-        external_url: externalUrl,
+        external_link: externalLink,
         author_id: user.id,
-        author_name:
-          userProfile.full_name || userProfile.username || user.email,
         university_id: userProfile.university_id,
         is_approved: true, // Auto-approve for now
         created_at: new Date().toISOString(),
