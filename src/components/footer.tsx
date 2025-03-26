@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Twitter, Linkedin, Instagram } from "lucide-react";
+import { Twitter, Facebook, Instagram } from "lucide-react";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -53,7 +53,7 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href="#"
+                  href="/dashboard/resources"
                   className="text-muted-foreground hover:text-primary"
                 >
                   Study Materials
@@ -61,7 +61,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/dashboard/study-groups"
                   className="text-muted-foreground hover:text-primary"
                 >
                   Study Groups
@@ -69,18 +69,18 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/ai-tools"
                   className="text-muted-foreground hover:text-primary"
                 >
-                  Academic Calendar
+                  AI Tools
                 </Link>
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/unblock-websites"
                   className="text-muted-foreground hover:text-primary"
                 >
-                  Tutorials
+                  Unblock Websites
                 </Link>
               </li>
             </ul>
@@ -92,7 +92,7 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  href="#"
+                  href="/help-center"
                   className="text-muted-foreground hover:text-primary"
                 >
                   Help Center
@@ -100,7 +100,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/contact"
                   className="text-muted-foreground hover:text-primary"
                 >
                   Contact Us
@@ -108,7 +108,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/community-guidelines"
                   className="text-muted-foreground hover:text-primary"
                 >
                   Community Guidelines
@@ -116,7 +116,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="#"
+                  href="/contact"
                   className="text-muted-foreground hover:text-primary"
                 >
                   Report Issue
@@ -173,15 +173,30 @@ export default function Footer() {
           </div>
 
           <div className="flex space-x-6">
-            <a href="#" className="text-muted-foreground hover:text-foreground">
+            <a
+              href="https://twitter.com/useunishare"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground"
+            >
               <span className="sr-only">Twitter</span>
               <Twitter className="h-6 w-6" />
             </a>
-            <a href="#" className="text-muted-foreground hover:text-foreground">
-              <span className="sr-only">LinkedIn</span>
-              <Linkedin className="h-6 w-6" />
+            <a
+              href="https://facebook.com/useunishare"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <span className="sr-only">Facebook</span>
+              <Facebook className="h-6 w-6" />
             </a>
-            <a href="#" className="text-muted-foreground hover:text-foreground">
+            <a
+              href="https://instagram.com/useunishare"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground"
+            >
               <span className="sr-only">Instagram</span>
               <Instagram className="h-6 w-6" />
             </a>
