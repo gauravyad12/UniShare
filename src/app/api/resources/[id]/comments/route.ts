@@ -8,13 +8,22 @@ async function updateResourceCommentCount(
   increment = true,
 ) {
   try {
-    // Use the increment_column_value RPC function to update the comment count
-    const { data, error } = await supabase.rpc("increment_column_value", {
-      p_table_name: "resources",
-      p_column_name: "comment_count",
-      p_record_id: resourceId,
-      p_increment_by: increment ? 1 : -1,
-    });
+    // First, get the current count of comments for this resource
+    const { count, error: countError } = await supabase
+      .from("resource_comments")
+      .select("*", { count: "exact" })
+      .eq("resource_id", resourceId);
+
+    if (countError) {
+      console.error("Error counting comments:", countError);
+      return false;
+    }
+
+    // Update the resource with the accurate count
+    const { error } = await supabase
+      .from("resources")
+      .update({ comment_count: count })
+      .eq("id", resourceId);
 
     if (error) {
       console.error("Error updating comment count:", error);
@@ -93,7 +102,7 @@ export async function GET(
       // Fallback to counting comments if needed
       const { count, error: countError } = await supabase
         .from("resource_comments")
-        .select("id", { count: true })
+        .select("*", { count: "exact" })
         .eq("resource_id", resourceId);
 
       if (countError) {
@@ -181,8 +190,8 @@ export async function POST(
       );
     }
 
-    // Update the comment count on the resource
-    await updateResourceCommentCount(supabase, resourceId, true);
+    // Update the comment count on the resource with the accurate count
+    await updateResourceCommentCount(supabase, resourceId);
 
     // Fetch the newly created comment with user profile data using the view
     const { data: newCommentData, error: fetchError } = await supabase
@@ -303,8 +312,8 @@ export async function DELETE(
       );
     }
 
-    // Update the comment count on the resource
-    await updateResourceCommentCount(supabase, resourceId, false);
+    // Update the comment count on the resource with the accurate count
+    await updateResourceCommentCount(supabase, resourceId);
 
     // Get the updated resource to get the latest comment_count
     const { data: updatedResource, error: updatedResourceError } =
