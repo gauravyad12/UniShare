@@ -10,7 +10,7 @@ import { NavigationEvents } from "@/components/navigation-events";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "UniShare - Academic Resource Sharing Platform",
+  title: "UniShare | Academic Resource Sharing Platform",
   description:
     "An exclusive platform for university students to collaborate, share academic resources, and form study groups in a secure environment.",
 };

@@ -5,7 +5,7 @@ import Footer from "@/components/footer";
 import Navbar from "@/components/navbar";
 
 export const metadata: Metadata = {
-  title: "Academic Integrity Policy - UniShare",
+  title: "UniShare | Academic Integrity Policy",
   description: "Academic Integrity Policy for UniShare platform",
 };
 

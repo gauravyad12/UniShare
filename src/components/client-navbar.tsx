@@ -81,6 +81,13 @@ export default function ClientNavbar() {
           >
             Universities
           </Link>
+          <Link
+            href="/pricing"
+            className="text-foreground/80 hover:text-primary font-medium"
+            onClick={handleNavigation}
+          >
+            Pricing
+          </Link>
         </div>
 
         <div className="flex gap-4 items-center">

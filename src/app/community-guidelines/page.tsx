@@ -5,7 +5,7 @@ import Footer from "@/components/footer";
 import Navbar from "@/components/navbar";
 
 export const metadata: Metadata = {
-  title: "Community Guidelines - UniShare",
+  title: "UniShare | Community Guidelines",
   description:
     "Guidelines for the UniShare community to ensure a positive and productive environment",
 };

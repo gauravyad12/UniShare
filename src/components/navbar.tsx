@@ -152,6 +152,12 @@ export default function Navbar() {
           >
             Universities
           </Link>
+          <Link
+            href="/pricing"
+            className="text-foreground/80 hover:text-primary font-medium"
+          >
+            Pricing
+          </Link>
         </div>
 
         <div className="flex gap-4 items-center">

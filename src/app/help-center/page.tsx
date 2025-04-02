@@ -5,7 +5,7 @@ import Footer from "@/components/footer";
 import Navbar from "@/components/navbar";
 
 export const metadata: Metadata = {
-  title: "Help Center - UniShare",
+  title: "UniShare | Help Center",
   description: "Frequently asked questions about the UniShare platform",
 };
 

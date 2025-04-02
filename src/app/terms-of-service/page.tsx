@@ -5,7 +5,7 @@ import Footer from "@/components/footer";
 import Navbar from "@/components/navbar";
 
 export const metadata: Metadata = {
-  title: "Terms of Service - UniShare",
+  title: "UniShare | Terms of Service",
   description: "Terms of Service for UniShare platform",
 };
 

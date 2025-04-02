@@ -14,7 +14,7 @@ import Navbar from "@/components/navbar";
 import { Bot, Brain, FileText, Sparkles } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "AI Tools - UniShare",
+  title: "UniShare | AI Tools",
   description:
     "AI-powered tools to enhance your learning experience on UniShare",
 };

@@ -17,6 +17,12 @@ import ResourceUploadForm from "@/components/resource-upload-form";
 import ResourceViewWrapper from "@/components/resource-view-wrapper";
 import ResourceTabContent from "@/components/resource-tab-content";
 import { Suspense } from "react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "UniShare | Resources",
+  description: "Browse and share academic resources with your university peers",
+};
 
 export default async function ResourcesPage({
   searchParams,

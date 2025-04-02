@@ -5,7 +5,7 @@ import Footer from "@/components/footer";
 import Navbar from "@/components/navbar";
 
 export const metadata: Metadata = {
-  title: "Copyright Policy - UniShare",
+  title: "UniShare | Copyright Policy",
   description: "Copyright Policy for UniShare platform",
 };
 

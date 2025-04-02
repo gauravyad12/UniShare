@@ -7,6 +7,12 @@ import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/password-input";
 import Link from "next/link";
 import { GraduationCap } from "lucide-react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "UniShare | Sign In",
+  description: "Sign in to your UniShare account",
+};
 
 export default function SignInPage({
   searchParams,

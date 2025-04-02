@@ -15,7 +15,7 @@ import Navbar from "@/components/navbar";
 import { Globe, Lock, Shield, Zap } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Unblock Websites - UniShare",
+  title: "UniShare | Unblock Websites",
   description:
     "Access educational resources and research materials blocked by university networks",
 };

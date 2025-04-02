@@ -1,6 +1,12 @@
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import { createClient } from "@/utils/supabase/server";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "UniShare | Supported Universities",
+  description: "View the list of universities currently supported by UniShare",
+};
 
 interface University {
   id: number;

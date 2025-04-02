@@ -11,6 +11,12 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import SignUpForm from "@/components/sign-up-form";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "UniShare | Sign Up",
+  description: "Create your UniShare account",
+};
 
 export default async function SignUpPage({
   searchParams,
