@@ -1,3 +1,8 @@
+"use client";
+
+import { useEffect } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+
 export function registerNavigationEvents() {
   if (typeof window !== "undefined") {
     const originalPushState = history.pushState;
@@ -31,4 +36,16 @@ export function registerNavigationEvents() {
       }, 100);
     });
   }
+}
+
+export function NavigationEvents() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    // Signal that navigation is complete when route changes
+    document.dispatchEvent(new Event("navigationComplete"));
+  }, [pathname, searchParams]);
+
+  return null;
 }

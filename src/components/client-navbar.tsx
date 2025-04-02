@@ -43,6 +43,7 @@ export default function ClientNavbar() {
   const handleNavigation = () => {
     if (typeof document !== "undefined") {
       document.dispatchEvent(new Event("navigationStart"));
+      // We'll manually dispatch navigationComplete in the NavigationEvents component
     }
   };
 
