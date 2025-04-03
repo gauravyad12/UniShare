@@ -58,7 +58,7 @@ export default async function StudyGroupsPage() {
           <h1 className="text-3xl font-bold">Study Groups</h1>
           <Button>
             <Users className="mr-2 h-4 w-4" />
-            Create Study Group
+            Create Group
           </Button>
         </div>
         <div className="relative">

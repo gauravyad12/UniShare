@@ -133,7 +133,7 @@ export default function Navbar() {
           <span className="text-xl font-bold">UniShare</span>
         </Link>
 
-        <div className="hidden md:flex gap-6 items-center">
+        <div className="hidden lg:flex gap-6 items-center">
           <Link
             href="/#platform-features"
             className="text-foreground/80 hover:text-primary font-medium"
@@ -164,7 +164,10 @@ export default function Navbar() {
           <ThemeToggle />
           {!loading && user ? (
             <>
-              <Link href="/dashboard" className="px-4 py-2 text-sm font-medium">
+              <Link
+                href="/dashboard"
+                className="hidden md:block px-4 py-2 text-sm font-medium"
+              >
                 <Button>Dashboard</Button>
               </Link>
             </>
@@ -178,7 +181,7 @@ export default function Navbar() {
               </Link>
               <Link
                 href="/verify-invite"
-                className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90"
+                className="hidden md:block px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90"
               >
                 Join Now
               </Link>

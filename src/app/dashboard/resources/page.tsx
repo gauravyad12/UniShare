@@ -153,23 +153,29 @@ export default async function ResourcesPage({
       {/* Resources List */}
       {!searchParams.upload && !viewedResource && (
         <Tabs defaultValue={activeTab} className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="all" asChild>
-              <Link href="/dashboard/resources?tab=all">All Resources</Link>
-            </TabsTrigger>
-            <TabsTrigger value="notes" asChild>
-              <Link href="/dashboard/resources?tab=notes">Notes</Link>
-            </TabsTrigger>
-            <TabsTrigger value="textbooks" asChild>
-              <Link href="/dashboard/resources?tab=textbooks">Textbooks</Link>
-            </TabsTrigger>
-            <TabsTrigger value="links" asChild>
-              <Link href="/dashboard/resources?tab=links">External Links</Link>
-            </TabsTrigger>
-            <TabsTrigger value="my-uploads" asChild>
-              <Link href="/dashboard/resources?tab=my-uploads">My Uploads</Link>
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto pb-2">
+            <TabsList className="mb-4 w-max min-w-full">
+              <TabsTrigger value="all" asChild>
+                <Link href="/dashboard/resources?tab=all">All Resources</Link>
+              </TabsTrigger>
+              <TabsTrigger value="notes" asChild>
+                <Link href="/dashboard/resources?tab=notes">Notes</Link>
+              </TabsTrigger>
+              <TabsTrigger value="textbooks" asChild>
+                <Link href="/dashboard/resources?tab=textbooks">Textbooks</Link>
+              </TabsTrigger>
+              <TabsTrigger value="links" asChild>
+                <Link href="/dashboard/resources?tab=links">
+                  External Links
+                </Link>
+              </TabsTrigger>
+              <TabsTrigger value="my-uploads" asChild>
+                <Link href="/dashboard/resources?tab=my-uploads">
+                  My Uploads
+                </Link>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent
             value={activeTab}

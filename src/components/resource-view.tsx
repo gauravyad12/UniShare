@@ -749,7 +749,7 @@ export default function ResourceView({
               </div>
             )}
         </CardContent>
-        <CardFooter className="flex justify-between border-t pt-4">
+        <CardFooter className="flex flex-col sm:flex-row justify-between border-t pt-4 gap-4">
           <div className="flex items-center text-sm text-gray-500">
             <div className="flex items-center mr-3">
               <Download className="h-4 w-4 mr-1" />
@@ -769,40 +769,49 @@ export default function ResourceView({
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
             <Button
               variant={hasLiked ? "default" : "outline"}
               onClick={handleLike}
               disabled={isLoading || hasLiked}
-              className={hasLiked ? "bg-primary hover:bg-primary/90" : ""}
+              className={`${hasLiked ? "bg-primary hover:bg-primary/90" : ""} flex-shrink-0`}
+              size="sm"
             >
               <ThumbsUp
-                className={`h-4 w-4 mr-2 ${hasLiked ? "fill-white" : ""}`}
+                className={`h-4 w-4 mr-1 ${hasLiked ? "fill-white" : ""}`}
               />
               {hasLiked ? "Liked" : "Like"}
             </Button>
-            <div className="flex gap-2">
-              {resource.file_url &&
-                resource.file_url.toLowerCase().endsWith(".pdf") && (
-                  <Button variant="outline" onClick={handleViewPdf}>
-                    <Eye className="h-4 w-4 mr-2" />
-                    {showPdfViewer ? "Hide PDF" : "View PDF"}
-                  </Button>
-                )}
-              <Button onClick={handleDownload} disabled={isLoading}>
-                {resource.external_link ? (
-                  <>
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Visit Link
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </>
-                )}
-              </Button>
-            </div>
+            {resource.file_url &&
+              resource.file_url.toLowerCase().endsWith(".pdf") && (
+                <Button
+                  variant="outline"
+                  onClick={handleViewPdf}
+                  size="sm"
+                  className="flex-shrink-0"
+                >
+                  <Eye className="h-4 w-4 mr-1" />
+                  {showPdfViewer ? "Hide PDF" : "View PDF"}
+                </Button>
+              )}
+            <Button
+              onClick={handleDownload}
+              disabled={isLoading}
+              size="sm"
+              className="flex-shrink-0"
+            >
+              {resource.external_link ? (
+                <>
+                  <ExternalLink className="h-4 w-4 mr-1" />
+                  Visit Link
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-1" />
+                  Download
+                </>
+              )}
+            </Button>
           </div>
         </CardFooter>
       </Card>
