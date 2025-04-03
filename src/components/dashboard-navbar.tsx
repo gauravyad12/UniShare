@@ -32,6 +32,7 @@ export default function DashboardNavbar() {
   const supabase = createClient();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
+  const [fullName, setFullName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -49,13 +50,14 @@ export default function DashboardNavbar() {
 
         const { data: profile } = await supabase
           .from("user_profiles")
-          .select("avatar_url, username")
+          .select("avatar_url, username, full_name")
           .eq("id", user.id)
           .single();
 
         if (profile) {
           setAvatarUrl(profile.avatar_url);
           setUsername(profile.username);
+          setFullName(profile.full_name);
         }
       } catch (error) {
         console.error("Error fetching user profile:", error);
@@ -80,6 +82,7 @@ export default function DashboardNavbar() {
           if (payload.new) {
             setAvatarUrl(payload.new.avatar_url);
             setUsername(payload.new.username);
+            setFullName(payload.new.full_name);
           }
         },
       )
@@ -163,24 +166,42 @@ export default function DashboardNavbar() {
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-56">
+              {fullName && (
+                <div className="flex flex-col space-y-1 p-2 border-b border-border">
+                  <p className="font-medium">{fullName}</p>
+                  {username && (
+                    <p className="text-xs text-muted-foreground">@{username}</p>
+                  )}
+                </div>
+              )}
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/profile">Profile</Link>
+                <Link href="/dashboard/profile" className="flex items-center">
+                  <UserCircle className="h-4 w-4 mr-2" />
+                  Profile
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/settings">Settings</Link>
+                <Link href="/dashboard/settings" className="flex items-center">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Settings
+                </Link>
               </DropdownMenuItem>
               {username && (
                 <DropdownMenuItem asChild>
-                  <Link href={`/u/${username}`}>Public Profile</Link>
+                  <Link href={`/u/${username}`} className="flex items-center">
+                    <Users className="h-4 w-4 mr-2" />
+                    Public Profile
+                  </Link>
                 </DropdownMenuItem>
               )}
+              <div className="px-2 py-1.5 border-t border-border mt-1"></div>
               <DropdownMenuItem
                 onClick={handleSignOut}
-                className="text-red-500"
+                className="text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center"
               >
                 <LogOut className="h-4 w-4 mr-2" />
-                Sign out
+                Log out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
