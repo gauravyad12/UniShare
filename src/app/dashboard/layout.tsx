@@ -1,4 +1,5 @@
 import DashboardNavbar from "@/components/dashboard-navbar";
+import BottomNavbar from "@/components/bottom-navbar";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -53,7 +54,8 @@ export default async function DashboardLayout({
         style={styleAttr}
       >
         <DashboardNavbar />
-        <main className="flex-1 w-full">{children}</main>
+        <main className="flex-1 w-full pb-16 md:pb-0">{children}</main>
+        <BottomNavbar />
       </div>
     </DashboardClientWrapper>
   );

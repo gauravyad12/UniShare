@@ -100,7 +100,7 @@ export default function DashboardNavbar() {
   };
 
   return (
-    <nav className="w-full border-b border-border bg-background py-4">
+    <nav className="w-full border-b border-border bg-background py-4 hidden md:block">
       <div className="container mx-auto px-4 flex justify-between items-center">
         <div className="flex items-center gap-4">
           <Link href="/" prefetch className="flex items-center gap-2">
@@ -108,7 +108,7 @@ export default function DashboardNavbar() {
             <span className="text-xl font-bold">UniShare</span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-4 ml-6">
+          <div className="flex items-center gap-4 ml-6">
             <Link
               href="/dashboard"
               className="text-sm font-medium flex items-center gap-1 hover:text-primary transition-colors"
