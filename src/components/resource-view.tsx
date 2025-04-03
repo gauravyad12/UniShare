@@ -74,9 +74,11 @@ const formatNumber = (num: number): string => {
 export default function ResourceView({
   resource,
   isOwner = false,
+  currentUserId,
 }: {
   resource: Resource;
   isOwner?: boolean;
+  currentUserId?: string;
 }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -889,7 +891,7 @@ export default function ResourceView({
                           {formatCommentDate(comment.created_at)}
                         </p>
                       </div>
-                      {comment.user_id === resource.author_id && (
+                      {comment.user_id === currentUserId && (
                         <Button
                           variant="ghost"
                           size="sm"
