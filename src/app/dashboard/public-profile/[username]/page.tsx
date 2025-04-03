@@ -11,6 +11,8 @@ import {
   BookOpen,
   Users,
   CheckCircle,
+  UserPlus,
+  UsersRound,
 } from "lucide-react";
 import ResourceCard from "@/components/resource-card";
 import StudyGroupCard from "@/components/study-group-card";
@@ -18,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { FollowButton } from "@/components/follow-button";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function PublicProfilePage({
   params,
@@ -31,9 +34,63 @@ export default function PublicProfilePage({
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isCurrentUserProfile, setIsCurrentUserProfile] = useState(false);
+  const [followStats, setFollowStats] = useState({
+    followersCount: 0,
+    followingCount: 0,
+    isFollowing: false,
+  });
+
+  // Handle follow status changes
+  const handleFollowStatusChange = (status) => {
+    console.log("Follow status changed:", status);
+    setFollowStats(status);
+  };
   const username = params.username;
 
+  // Fetch follow stats separately
   useEffect(() => {
+    let isMounted = true;
+
+    if (profile && currentUser && !isCurrentUserProfile) {
+      const fetchFollowStats = async () => {
+        try {
+          const response = await fetch(
+            `/api/users/${profile.id}/follow/status`,
+            {
+              headers: {
+                "Cache-Control": "no-cache",
+                Pragma: "no-cache",
+              },
+              cache: "no-store",
+            },
+          );
+
+          if (!isMounted) return;
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log("Initial follow stats fetched:", data);
+            setFollowStats({
+              isFollowing: data.isFollowing,
+              followersCount: data.followersCount || 0,
+              followingCount: data.followingCount || 0,
+            });
+          }
+        } catch (error) {
+          console.error("Error fetching follow stats:", error);
+        }
+      };
+
+      fetchFollowStats();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [profile, currentUser, isCurrentUserProfile]);
+
+  useEffect(() => {
+    console.log("Public profile page mounted for username:", username);
     const fetchData = async () => {
       try {
         setIsLoading(true);
@@ -55,6 +112,7 @@ export default function PublicProfilePage({
           return;
         }
 
+        console.log("Profile data fetched:", profileData);
         setProfile(profileData);
         setIsCurrentUserProfile(userData.user?.id === profileData.id);
 
@@ -62,8 +120,8 @@ export default function PublicProfilePage({
         const { data: resourcesData } = await supabase
           .from("resources")
           .select("*")
-          .eq("user_id", profileData.id)
-          .eq("is_public", true)
+          .eq("author_id", profileData.id)
+          .eq("is_approved", true)
           .order("created_at", { ascending: false });
 
         setResources(resourcesData || []);
@@ -73,7 +131,7 @@ export default function PublicProfilePage({
           .from("study_groups")
           .select("*")
           .eq("created_by", profileData.id)
-          .eq("is_public", true)
+          .eq("is_private", false)
           .order("created_at", { ascending: false });
 
         setStudyGroups(studyGroupsData || []);
@@ -142,7 +200,11 @@ export default function PublicProfilePage({
               </div>
 
               {!isCurrentUserProfile && currentUser && (
-                <FollowButton userId={profile.id} />
+                <FollowButton
+                  userId={profile.id}
+                  initialIsFollowing={followStats.isFollowing}
+                  onFollowStatusChange={handleFollowStatusChange}
+                />
               )}
             </div>
 
@@ -187,6 +249,31 @@ export default function PublicProfilePage({
                 ))}
               </div>
             )}
+
+            <div className="mt-4 flex gap-2">
+              <Card className="flex-1">
+                <CardContent className="p-2 text-center">
+                  <div className="font-medium text-base">
+                    {followStats.followersCount}
+                  </div>
+                  <div className="flex items-center justify-center gap-1 text-muted-foreground text-xs">
+                    <UsersRound className="h-3 w-3" />
+                    <span>Followers</span>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="flex-1">
+                <CardContent className="p-2 text-center">
+                  <div className="font-medium text-base">
+                    {followStats.followingCount}
+                  </div>
+                  <div className="flex items-center justify-center gap-1 text-muted-foreground text-xs">
+                    <UserPlus className="h-3 w-3" />
+                    <span>Following</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>

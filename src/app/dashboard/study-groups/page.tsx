@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import StudyGroupCard from "@/components/study-group-card";
 
+import { redirect } from "next/navigation";
+
 export default async function StudyGroupsPage() {
   const supabase = await createClient();
 

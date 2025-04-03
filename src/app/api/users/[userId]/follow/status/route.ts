@@ -5,6 +5,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { userId: string } },
 ) {
+  console.log("Follow status API called for userId:", params.userId);
   try {
     const supabase = createClient();
     const {
@@ -18,12 +19,15 @@ export async function GET(
     const { userId } = params;
 
     // Check if the current user is following the target user
+    console.log("Checking if user", user.id, "is following", userId);
     const { data, error } = await supabase
       .from("user_followers")
       .select("*")
       .eq("user_id", userId)
       .eq("follower_id", user.id)
       .maybeSingle();
+
+    console.log("Follow status result:", { data, error });
 
     if (error) {
       console.error("Error checking follow status:", error);
@@ -33,7 +37,42 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ isFollowing: !!data });
+    // Count followers (people following this user)
+    const { count: followersCount, error: followersError } = await supabase
+      .from("user_followers")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId);
+
+    if (followersError) {
+      console.error("Error counting followers:", followersError);
+      return NextResponse.json(
+        { error: "Failed to count followers" },
+        { status: 500 },
+      );
+    }
+
+    // Count following (people this user follows)
+    const { count: followingCount, error: followingError } = await supabase
+      .from("user_followers")
+      .select("*", { count: "exact", head: true })
+      .eq("follower_id", userId);
+
+    if (followingError) {
+      console.error("Error counting following:", followingError);
+      return NextResponse.json(
+        { error: "Failed to count following" },
+        { status: 500 },
+      );
+    }
+
+    const result = {
+      isFollowing: !!data,
+      followersCount: followersCount || 0,
+      followingCount: followingCount || 0,
+    };
+
+    console.log("Returning follow status:", result);
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Error in follow status API:", error);
     return NextResponse.json(

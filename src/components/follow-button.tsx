@@ -7,57 +7,88 @@ import { useToast } from "@/components/ui/use-toast";
 
 interface FollowButtonProps {
   userId: string;
-  isFollowing?: boolean;
+  initialIsFollowing?: boolean;
+  onFollowStatusChange?: (status: {
+    isFollowing: boolean;
+    followersCount: number;
+    followingCount: number;
+  }) => void;
 }
 
 export function FollowButton({
   userId,
-  isFollowing: initialIsFollowing,
+  initialIsFollowing,
+  onFollowStatusChange,
 }: FollowButtonProps) {
   const [isFollowing, setIsFollowing] = useState(initialIsFollowing || false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingStatus, setIsCheckingStatus] = useState(!initialIsFollowing);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(
+    userId ? true : false,
+  );
   const { toast } = useToast();
 
-  // If initialIsFollowing is not provided, check the follow status
+  // Check follow status on mount
   useEffect(() => {
-    const checkFollowStatus = async () => {
-      if (initialIsFollowing !== undefined) {
-        setIsCheckingStatus(false);
-        return;
-      }
+    let isMounted = true;
 
-      try {
+    if (userId) {
+      const checkFollowStatus = async () => {
+        if (!isMounted) return;
         setIsCheckingStatus(true);
-        const response = await fetch(`/api/users/${userId}/follow/status`, {
-          method: "GET",
-        });
 
-        if (response.ok) {
-          const data = await response.json();
-          setIsFollowing(data.isFollowing);
+        try {
+          const response = await fetch(`/api/users/${userId}/follow/status`, {
+            headers: {
+              "Cache-Control": "no-cache",
+              Pragma: "no-cache",
+            },
+            cache: "no-store",
+          });
+
+          if (!isMounted) return;
+
+          if (response.ok) {
+            const data = await response.json();
+            setIsFollowing(data.isFollowing);
+
+            if (onFollowStatusChange && isMounted) {
+              onFollowStatusChange({
+                isFollowing: data.isFollowing,
+                followersCount: data.followersCount || 0,
+                followingCount: data.followingCount || 0,
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Error checking follow status:", error);
+        } finally {
+          if (isMounted) {
+            setIsCheckingStatus(false);
+          }
         }
-      } catch (error) {
-        console.error("Error checking follow status:", error);
-      } finally {
-        setIsCheckingStatus(false);
-      }
-    };
+      };
 
-    checkFollowStatus();
-  }, [userId, initialIsFollowing]);
+      checkFollowStatus();
+    } else {
+      setIsCheckingStatus(false);
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userId]);
 
   const handleFollow = async () => {
+    if (!userId || isLoading) return;
+
     setIsLoading(true);
     try {
-      console.log(
-        `Sending ${isFollowing ? "unfollow" : "follow"} request for user ${userId}`,
-      );
-
       const response = await fetch(`/api/users/${userId}/follow`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
         },
         body: JSON.stringify({
           action: isFollowing ? "unfollow" : "follow",
@@ -67,15 +98,42 @@ export function FollowButton({
       const data = await response.json();
 
       if (response.ok) {
-        setIsFollowing(!isFollowing);
+        const newFollowingState = !isFollowing;
+        setIsFollowing(newFollowingState);
+
         toast({
-          title: isFollowing ? "Unfollowed" : "Following",
-          description: isFollowing
-            ? "You have unfollowed this user"
-            : "You are now following this user",
+          title: newFollowingState ? "Following" : "Unfollowed",
+          description: newFollowingState
+            ? "You are now following this user"
+            : "You have unfollowed this user",
         });
+
+        // After successful follow/unfollow, fetch updated counts
+        if (onFollowStatusChange) {
+          try {
+            const statusResponse = await fetch(
+              `/api/users/${userId}/follow/status`,
+              {
+                headers: {
+                  "Cache-Control": "no-cache",
+                  Pragma: "no-cache",
+                },
+                cache: "no-store",
+              },
+            );
+            if (statusResponse.ok) {
+              const statusData = await statusResponse.json();
+              onFollowStatusChange({
+                isFollowing: newFollowingState,
+                followersCount: statusData.followersCount || 0,
+                followingCount: statusData.followingCount || 0,
+              });
+            }
+          } catch (error) {
+            console.error("Error fetching updated follow status:", error);
+          }
+        }
       } else {
-        console.error("Follow error:", data.error);
         toast({
           title: "Error",
           description: data.error || "Something went wrong",

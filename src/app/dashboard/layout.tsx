@@ -4,6 +4,12 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { DashboardClientWrapper } from "@/components/dashboard-client-wrapper";
 
+export const metadata = {
+  title: "UniShare | Dashboard",
+  description:
+    "View your personalized dashboard with resources and study groups",
+};
+
 export default async function DashboardLayout({
   children,
 }: {

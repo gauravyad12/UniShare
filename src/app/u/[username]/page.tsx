@@ -1,55 +1,116 @@
-import { createClient } from "@/utils/supabase/server";
+"use client";
+
+import { createClient } from "@/utils/supabase/client";
 import { redirect } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ResourceCard from "@/components/resource-card";
 import StudyGroupCard from "@/components/study-group-card";
+import { useEffect, useState } from "react";
 
-export default async function UserProfilePage({
+export default function UserProfilePage({
   params,
 }: {
   params: { username: string };
 }) {
-  const supabase = createClient();
+  const [loading, setLoading] = useState(true);
+  const [profileData, setProfileData] = useState<any>(null);
+  const [resources, setResources] = useState<any[]>([]);
+  const [studyGroups, setStudyGroups] = useState<any[]>([]);
+  const [notFound, setNotFound] = useState(false);
 
-  // Check if user is logged in
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const supabase = createClient();
 
-  // If logged in, redirect to dashboard public profile
-  if (session) {
-    redirect(`/dashboard/public-profile/${params.username}`);
+        // Check if user is logged in
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        // If logged in, redirect to dashboard public profile
+        if (session) {
+          window.location.href = `/dashboard/public-profile/${params.username}`;
+          return;
+        }
+
+        // Clean the username parameter (remove @ if present and trim whitespace)
+        const cleanUsername = params.username.startsWith("@")
+          ? params.username.substring(1).trim()
+          : params.username.trim();
+
+        // First try exact match
+        const { data: exactMatchData } = await supabase
+          .from("user_profiles")
+          .select("*")
+          .eq("username", cleanUsername)
+          .maybeSingle();
+
+        // If not found with exact match, try case-insensitive search
+        let finalProfileData = exactMatchData;
+
+        if (!finalProfileData) {
+          const { data: caseInsensitiveData } = await supabase
+            .from("user_profiles")
+            .select("*")
+            .ilike("username", cleanUsername)
+            .maybeSingle();
+
+          finalProfileData = caseInsensitiveData;
+        }
+
+        if (!finalProfileData) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+
+        setProfileData(finalProfileData);
+
+        // Fetch public resources by this user
+        const { data: resourcesData = [] } = await supabase
+          .from("resources")
+          .select("*")
+          .eq("author_id", finalProfileData.id)
+          .eq("is_approved", true)
+          .order("created_at", { ascending: false })
+          .limit(3);
+
+        setResources(resourcesData);
+
+        // Fetch public study groups by this user
+        const { data: studyGroupsData = [] } = await supabase
+          .from("study_groups")
+          .select("*")
+          .eq("created_by", finalProfileData.id)
+          .eq("is_private", false)
+          .order("created_at", { ascending: false })
+          .limit(3);
+
+        setStudyGroups(studyGroupsData);
+      } catch (error) {
+        console.error("Error fetching profile data:", error);
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [params.username]);
+
+  if (loading) {
+    return (
+      <div className="container mx-auto py-8 text-center">
+        <h1 className="text-2xl font-bold mb-6">Loading Profile...</h1>
+      </div>
+    );
   }
 
-  // Fetch the public profile data
-  // Clean the username parameter (remove @ if present and trim whitespace)
-  const cleanUsername = params.username.startsWith("@")
-    ? params.username.substring(1).trim()
-    : params.username.trim();
-
-  // First try exact match
-  const { data: profileData, error: exactMatchError } = await supabase
-    .from("user_profiles")
-    .select("*")
-    .eq("username", cleanUsername)
-    .maybeSingle();
-
-  // If not found with exact match, try case-insensitive search
-  let finalProfileData = profileData;
-
-  if (!finalProfileData) {
-    const { data: caseInsensitiveData } = await supabase
-      .from("user_profiles")
-      .select("*")
-      .ilike("username", cleanUsername)
-      .maybeSingle();
-
-    finalProfileData = caseInsensitiveData;
-  }
-
-  if (!finalProfileData) {
+  if (notFound) {
     return (
       <div className="container mx-auto py-8 text-center">
         <h1 className="text-2xl font-bold mb-6">User Not Found</h1>
@@ -58,24 +119,6 @@ export default async function UserProfilePage({
     );
   }
 
-  // Fetch public resources by this user
-  const { data: resources = [], error: resourcesError } = await supabase
-    .from("resources")
-    .select("*")
-    .eq("author_id", finalProfileData.id)
-    .eq("is_approved", true)
-    .order("created_at", { ascending: false })
-    .limit(3);
-
-  // Fetch public study groups by this user
-  const { data: studyGroups = [], error: studyGroupsError } = await supabase
-    .from("study_groups")
-    .select("*")
-    .eq("created_by", finalProfileData.id)
-    .eq("is_private", false)
-    .order("created_at", { ascending: false })
-    .limit(3);
-
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -83,11 +126,11 @@ export default async function UserProfilePage({
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8">
           <Avatar className="w-24 h-24 border-2 border-primary">
             <AvatarImage
-              src={finalProfileData.avatar_url || undefined}
-              alt={finalProfileData.full_name || finalProfileData.username}
+              src={profileData.avatar_url || undefined}
+              alt={profileData.full_name || profileData.username}
             />
             <AvatarFallback className="text-2xl">
-              {(finalProfileData.full_name || finalProfileData.username || "")
+              {(profileData.full_name || profileData.username || "")
                 .substring(0, 2)
                 .toUpperCase()}
             </AvatarFallback>
@@ -95,25 +138,24 @@ export default async function UserProfilePage({
 
           <div className="text-center md:text-left">
             <h1 className="text-3xl font-bold">
-              {finalProfileData.full_name || finalProfileData.username}
+              {profileData.full_name || profileData.username}
             </h1>
             <p className="text-muted-foreground mb-2">
-              @{finalProfileData.username}
+              @{profileData.username}
             </p>
-            {finalProfileData.university && (
+            {profileData.university && (
               <p className="text-sm mb-2">
                 <span className="font-medium">University:</span>{" "}
-                {finalProfileData.university}
+                {profileData.university}
               </p>
             )}
-            {finalProfileData.major && (
+            {profileData.major && (
               <p className="text-sm mb-2">
-                <span className="font-medium">Major:</span>{" "}
-                {finalProfileData.major}
+                <span className="font-medium">Major:</span> {profileData.major}
               </p>
             )}
-            {finalProfileData.bio && (
-              <p className="mt-3 text-sm">{finalProfileData.bio}</p>
+            {profileData.bio && (
+              <p className="mt-3 text-sm">{profileData.bio}</p>
             )}
           </div>
         </div>

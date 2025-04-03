@@ -94,6 +94,19 @@ export async function POST(
           created_at: new Date().toISOString(),
         });
 
+      // Update follower and following counts
+      if (!followError) {
+        // Increment target user's follower count
+        await adminClient.rpc("increment_follower_count", {
+          user_id: targetUserId,
+        });
+
+        // Increment current user's following count
+        await adminClient.rpc("increment_following_count", {
+          user_id: user.id,
+        });
+      }
+
       if (followError) {
         console.error("Follow error:", followError);
         return NextResponse.json(
@@ -155,6 +168,19 @@ export async function POST(
         .delete()
         .eq("user_id", targetUserId)
         .eq("follower_id", user.id);
+
+      // Update follower and following counts
+      if (!unfollowError) {
+        // Decrement target user's follower count
+        await adminClient.rpc("decrement_follower_count", {
+          user_id: targetUserId,
+        });
+
+        // Decrement current user's following count
+        await adminClient.rpc("decrement_following_count", {
+          user_id: user.id,
+        });
+      }
 
       if (unfollowError) {
         console.error("Unfollow error:", unfollowError);
