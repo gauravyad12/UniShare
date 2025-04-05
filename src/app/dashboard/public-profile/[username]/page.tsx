@@ -117,14 +117,19 @@ export default function PublicProfilePage({
         setIsCurrentUserProfile(userData.user?.id === profileData.id);
 
         // Get user's public resources
-        const { data: resourcesData } = await supabase
+        const { data: resourcesData, error: resourcesError } = await supabase
           .from("resources")
           .select("*")
           .eq("author_id", profileData.id)
           .eq("is_approved", true)
           .order("created_at", { ascending: false });
 
-        setResources(resourcesData || []);
+        if (resourcesError) {
+          console.error("Error fetching resources:", resourcesError);
+        } else {
+          console.log("Resources fetched:", resourcesData);
+          setResources(resourcesData || []);
+        }
 
         // Get user's public study groups
         const { data: studyGroupsData } = await supabase
@@ -292,7 +297,7 @@ export default function PublicProfilePage({
 
         <TabsContent value="resources" className="mt-6">
           {resources.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8">
               {resources.map((resource) => (
                 <ResourceCard key={resource.id} resource={resource} />
               ))}
@@ -312,7 +317,7 @@ export default function PublicProfilePage({
 
         <TabsContent value="study-groups" className="mt-6">
           {studyGroups.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8">
               {studyGroups.map((group) => (
                 <StudyGroupCard key={group.id} group={group} />
               ))}

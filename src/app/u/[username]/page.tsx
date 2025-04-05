@@ -1,7 +1,7 @@
 "use client";
 
 import { createClient } from "@/utils/supabase/client";
-import { redirect } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +14,7 @@ export default function UserProfilePage({
 }: {
   params: { username: string };
 }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState<any>(null);
   const [resources, setResources] = useState<any[]>([]);
@@ -33,9 +34,11 @@ export default function UserProfilePage({
 
         // If logged in, redirect to dashboard public profile
         if (session) {
-          window.location.href = `/dashboard/public-profile/${params.username}`;
+          router.push(`/dashboard/public-profile/${params.username}`);
           return;
         }
+
+        // Continue with the public profile view for non-authenticated users
 
         // Clean the username parameter (remove @ if present and trim whitespace)
         const cleanUsername = params.username.startsWith("@")
@@ -68,7 +71,8 @@ export default function UserProfilePage({
           return;
         }
 
-        setProfileData(finalProfileData);
+        // Ensure we have a valid profile data object
+        setProfileData(finalProfileData || {});
 
         // Fetch public resources by this user
         const { data: resourcesData = [] } = await supabase
@@ -79,7 +83,7 @@ export default function UserProfilePage({
           .order("created_at", { ascending: false })
           .limit(3);
 
-        setResources(resourcesData);
+        setResources(resourcesData || []);
 
         // Fetch public study groups by this user
         const { data: studyGroupsData = [] } = await supabase
@@ -100,7 +104,7 @@ export default function UserProfilePage({
     };
 
     fetchData();
-  }, [params.username]);
+  }, [params.username, router]);
 
   if (loading) {
     return (
@@ -123,14 +127,14 @@ export default function UserProfilePage({
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Profile Header */}
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8">
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8 align-top">
           <Avatar className="w-24 h-24 border-2 border-primary">
             <AvatarImage
-              src={profileData.avatar_url || undefined}
-              alt={profileData.full_name || profileData.username}
+              src={profileData?.avatar_url || undefined}
+              alt={profileData?.full_name || profileData?.username || "User"}
             />
             <AvatarFallback className="text-2xl">
-              {(profileData.full_name || profileData.username || "")
+              {(profileData?.full_name || profileData?.username || "U")
                 .substring(0, 2)
                 .toUpperCase()}
             </AvatarFallback>
@@ -138,23 +142,23 @@ export default function UserProfilePage({
 
           <div className="text-center md:text-left">
             <h1 className="text-3xl font-bold">
-              {profileData.full_name || profileData.username}
+              {profileData?.full_name || profileData?.username || "User"}
             </h1>
             <p className="text-muted-foreground mb-2">
-              @{profileData.username}
+              @{profileData?.username || "username"}
             </p>
-            {profileData.university && (
+            {profileData?.university_name && (
               <p className="text-sm mb-2">
                 <span className="font-medium">University:</span>{" "}
-                {profileData.university}
+                {profileData.university_name}
               </p>
             )}
-            {profileData.major && (
+            {profileData?.major && (
               <p className="text-sm mb-2">
                 <span className="font-medium">Major:</span> {profileData.major}
               </p>
             )}
-            {profileData.bio && (
+            {profileData?.bio && (
               <p className="mt-3 text-sm">{profileData.bio}</p>
             )}
           </div>
@@ -170,7 +174,7 @@ export default function UserProfilePage({
           <TabsContent value="resources" className="mt-6">
             <h2 className="text-xl font-semibold mb-4">Public Resources</h2>
             {resources && resources.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-8">
                 {resources.map((resource) => (
                   <ResourceCard key={resource.id} resource={resource} />
                 ))}
@@ -194,7 +198,7 @@ export default function UserProfilePage({
           <TabsContent value="studyGroups" className="mt-6">
             <h2 className="text-xl font-semibold mb-4">Public Study Groups</h2>
             {studyGroups && studyGroups.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8">
                 {studyGroups.map((group) => (
                   <StudyGroupCard key={group.id} group={group} />
                 ))}

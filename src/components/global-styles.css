@@ -1,0 +1,35 @@
+/* Global animation for download button */
+@keyframes pulse-download {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.download-success-animation {
+  animation: pulse-download 1s ease-in-out;
+}
+
+/* Global download overlay animations */
+#global-download-overlay {
+  animation: slide-in 0.3s ease forwards;
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

@@ -75,8 +75,35 @@ export async function GET() {
 // Handle POST requests for client-side error logging
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    console.error("Client reported error:", body);
+    // Check if request has content before parsing JSON
+    const contentType = request.headers.get("content-type");
+    let body = {};
+    let hasContent = false;
+
+    if (contentType && contentType.includes("application/json")) {
+      try {
+        const text = await request.text();
+        if (text && text.trim()) {
+          body = JSON.parse(text);
+          hasContent = Object.keys(body).length > 0;
+        }
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError);
+        // Continue with empty body object
+      }
+    }
+
+    // Log the error with more context
+    if (hasContent) {
+      console.error("Client reported error:", body);
+    } else {
+      // Skip logging empty payloads entirely
+      // Only log at debug level if needed
+      if (process.env.NODE_ENV === "development") {
+        console.debug("Received empty error payload");
+      }
+    }
+
     return NextResponse.json({ status: "logged" });
   } catch (error) {
     console.error("Error logging client error:", error);

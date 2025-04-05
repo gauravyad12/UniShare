@@ -27,7 +27,12 @@ export async function GET(
       .eq("follower_id", user.id)
       .maybeSingle();
 
-    console.log("Follow status result:", { data, error });
+    // Determine follow status - only log the result if there's an actual issue
+    const isFollowing = Boolean(data); // Convert to boolean - null/undefined becomes false, object becomes true
+
+    if (error) {
+      console.error("Follow status error:", error);
+    }
 
     if (error) {
       console.error("Error checking follow status:", error);
@@ -65,13 +70,17 @@ export async function GET(
       );
     }
 
+    // Ensure we have valid counts and follow status
     const result = {
-      isFollowing: !!data,
+      isFollowing: Boolean(data),
       followersCount: followersCount || 0,
       followingCount: followingCount || 0,
     };
 
-    console.log("Returning follow status:", result);
+    // Only log if in development environment
+    if (process.env.NODE_ENV === "development") {
+      console.log("Returning follow status:", result);
+    }
     return NextResponse.json(result);
   } catch (error) {
     console.error("Error in follow status API:", error);

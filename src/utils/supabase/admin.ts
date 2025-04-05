@@ -47,6 +47,8 @@ export async function executeRawSql(adminClient, sql, params = []) {
     // Note: The function expects params as a JSONB array
     const jsonbParams = JSON.stringify(params);
 
+    console.log(`Executing SQL: ${sql} with params:`, params);
+
     // Call the execute_sql function with the correct parameter order
     // The function signature is execute_sql(query text, params jsonb)
     const { data, error } = await adminClient.rpc("execute_sql", {
@@ -54,7 +56,10 @@ export async function executeRawSql(adminClient, sql, params = []) {
       params: jsonbParams,
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error("SQL RPC error:", error);
+      throw error;
+    }
 
     // Check if the result contains an error field (from the function's exception handler)
     if (data && data.error) {

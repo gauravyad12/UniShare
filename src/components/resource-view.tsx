@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useToast } from "./ui/use-toast";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import {
@@ -20,6 +21,7 @@ import {
   Send,
   RefreshCw,
   Eye,
+  CheckCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
@@ -80,6 +82,7 @@ export default function ResourceView({
   isOwner?: boolean;
   currentUserId?: string;
 }) {
+  const { toast } = useToast();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,6 +100,8 @@ export default function ResourceView({
   const [commentError, setCommentError] = useState<string | null>(null);
   const [isRefreshingComments, setIsRefreshingComments] = useState(false);
   const commentsEndRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   // Fetch comments and update the count
   const fetchComments = async () => {
@@ -216,6 +221,74 @@ export default function ResourceView({
     });
   };
 
+  // Create and manage download overlay
+  const createDownloadOverlay = (title: string) => {
+    // Remove any existing overlay first
+    const existingOverlay = document.getElementById("global-download-overlay");
+    if (existingOverlay) {
+      document.body.removeChild(existingOverlay);
+    }
+
+    // Create new overlay
+    const overlay = document.createElement("div");
+    overlay.id = "global-download-overlay";
+    overlay.style.position = "fixed";
+    overlay.style.bottom = "20px";
+    overlay.style.right = "20px";
+    overlay.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
+    overlay.style.color = "white";
+    overlay.style.padding = "12px 20px";
+    overlay.style.borderRadius = "8px";
+    overlay.style.zIndex = "9999";
+    overlay.style.display = "flex";
+    overlay.style.alignItems = "center";
+    overlay.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
+    overlay.style.transition = "all 0.3s ease";
+    overlay.innerHTML = `
+      <svg class="animate-spin mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span>Downloading ${title}...</span>
+    `;
+    document.body.appendChild(overlay);
+    return overlay;
+  };
+
+  // Update overlay to success state
+  const updateOverlaySuccess = (overlay: HTMLElement, title: string) => {
+    overlay.style.backgroundColor = "rgba(22, 163, 74, 0.9)";
+    overlay.innerHTML = `
+      <svg class="mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+      </svg>
+      <span>${title} downloaded successfully!</span>
+    `;
+
+    // Remove overlay after 3 seconds
+    setTimeout(() => {
+      if (document.body.contains(overlay)) {
+        overlay.style.opacity = "0";
+        setTimeout(() => {
+          if (document.body.contains(overlay)) {
+            document.body.removeChild(overlay);
+          }
+        }, 300);
+      }
+    }, 3000);
+  };
+
+  // Update overlay to error state
+  const updateOverlayError = (overlay: HTMLElement) => {
+    overlay.style.backgroundColor = "rgba(220, 38, 38, 0.9)";
+    overlay.innerHTML = `
+      <svg class="mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <span>Download failed. Trying alternative method...</span>
+    `;
+  };
+
   // Initialize comments and setup
   useEffect(() => {
     // Fetch comments when the component mounts
@@ -323,6 +396,12 @@ export default function ResourceView({
     const unsubscribe = setupRealtimeSubscription();
 
     return () => {
+      // Clean up any download overlay
+      const overlay = document.getElementById("global-download-overlay");
+      if (overlay && document.body.contains(overlay)) {
+        document.body.removeChild(overlay);
+      }
+
       // Restore the original body styles when component unmounts
       document.body.style.cssText = originalBodyStyle;
       document.body.className = originalBodyClassName;
@@ -440,99 +519,148 @@ export default function ResourceView({
   }, [comments]);
 
   const handleDownload = async () => {
-    setIsLoading(true);
-    setError(null);
+    // Determine if we're handling an external link or a file
+    const isExternalLink = !!resource.external_link;
+    const isFileResource = !!resource.file_url;
 
-    try {
-      // Determine if we're handling an external link or a file
-      const isExternalLink = !!resource.external_link;
-      const isFileResource = !!resource.file_url;
+    if (!isExternalLink && !isFileResource) {
+      toast({
+        title: "Download Failed",
+        description: "No downloadable content available",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
 
-      if (!isExternalLink && !isFileResource) {
-        throw new Error("No downloadable content available");
-      }
-
-      // Record the download in a more resilient way
-      const recordDownload = () => {
-        // Create a hidden image to make a silent request
-        // This approach avoids console errors completely
-        const img = new Image();
-        const timestamp = new Date().getTime();
-        img.src = `/api/resources/${resource.id}/download?t=${timestamp}`;
-        img.style.display = "none";
-        img.onload = img.onerror = () => {
-          // Remove the image after it loads or errors
-          if (document.body.contains(img)) {
-            document.body.removeChild(img);
-          }
-        };
-        document.body.appendChild(img);
-      };
-
-      // Call the record function but don't await it
-      recordDownload();
-
-      // Handle external link
-      if (isExternalLink && resource.external_link) {
-        try {
-          // Use a safer way to open links
-          const newWindow = window.open();
-          if (newWindow) {
-            newWindow.opener = null; // For security
-            newWindow.location.href = resource.external_link;
-            newWindow.focus();
-          } else {
-            // Fallback if popup is blocked
-            window.location.href = resource.external_link;
-          }
-          router.refresh();
-          return;
-        } catch (linkError) {
-          console.error("Error opening external link:", linkError);
-          setError(
+    // Handle external link
+    if (isExternalLink && resource.external_link) {
+      try {
+        // Use a safer way to open links
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.opener = null; // For security
+          newWindow.location.href = resource.external_link;
+          newWindow.focus();
+        } else {
+          // Fallback if popup is blocked
+          window.location.href = resource.external_link;
+        }
+        router.refresh();
+        return;
+      } catch (linkError) {
+        console.error("Error opening external link:", linkError);
+        toast({
+          title: "Link Error",
+          description:
             "Failed to open external link. It may be blocked by your browser.",
-          );
-        }
+          variant: "destructive",
+          duration: 3000,
+        });
+        return;
       }
+    }
 
-      // Handle file download
-      if (isFileResource && resource.file_url) {
-        try {
-          // Create a hidden anchor element for more reliable downloads
-          const link = document.createElement("a");
-          link.href = resource.file_url;
-          link.target = "_blank";
-          link.rel = "noopener noreferrer";
-          link.download = resource.title || "download"; // Use resource title as filename if available
+    // Handle file download
+    if (isFileResource && resource.file_url) {
+      // Set downloading state
+      setIsDownloading(true);
+      setError(null);
 
-          // Append to body, click, and remove
-          document.body.appendChild(link);
-          link.click();
+      // Create download overlay
+      const overlay = createDownloadOverlay(resource.title);
+
+      // Use the Blob API to download the file directly
+      fetch(`/api/resources/${resource.id}/download`, {
+        method: "GET",
+        headers: {
+          Accept: "application/pdf",
+        },
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error("Download failed");
+          return response.blob();
+        })
+        .then((blob) => {
+          // Create a blob URL and trigger download
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.style.display = "none";
+          a.href = url;
+          a.download = `${resource.title || "download"}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+
+          // Clean up immediately
+          window.URL.revokeObjectURL(url);
+          if (document.body.contains(a)) {
+            document.body.removeChild(a);
+          }
+
+          // Show success state and toast notification
+          setDownloadSuccess(true);
+          setIsDownloading(false);
+
+          // Update overlay to success state
+          updateOverlaySuccess(overlay, resource.title);
+
+          // Show toast notification
+          toast({
+            title: "Download Complete",
+            description: `${resource.title} has been downloaded successfully.`,
+            duration: 3000,
+          });
+
+          // Reset success state after 3 seconds
           setTimeout(() => {
-            // Use setTimeout to ensure the click event has time to fire
-            if (document.body.contains(link)) {
-              document.body.removeChild(link);
-            }
-          }, 100);
+            setDownloadSuccess(false);
+          }, 3000);
+        })
+        .catch((error) => {
+          console.error("Download error:", error);
+          setIsDownloading(false);
 
-          router.refresh();
-        } catch (fileError) {
-          console.error("Error downloading file:", fileError);
-          setError("Failed to download file. Please try again later.");
-        }
-      }
-    } catch (err: any) {
-      console.error("Download error:", err);
-      // Only show errors related to the actual download, not the recording
-      if (err.name !== "AbortError") {
-        setError(
-          typeof err.message === "string"
-            ? err.message
-            : "An error occurred while downloading",
-        );
-      }
-    } finally {
-      setIsLoading(false);
+          // Update overlay to error state
+          updateOverlayError(overlay);
+
+          // Show error toast
+          toast({
+            title: "Download Failed",
+            description:
+              "There was a problem downloading the file. Trying alternative method...",
+            variant: "destructive",
+            duration: 3000,
+          });
+
+          // Fallback to the API endpoint as a last resort
+          try {
+            const link = document.createElement("a");
+            link.href = `/api/resources/${resource.id}/download`;
+            link.download = `${resource.title || "download"}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+
+            // Clean up
+            setTimeout(() => {
+              if (document.body.contains(link)) {
+                document.body.removeChild(link);
+              }
+
+              // Update overlay to success state
+              updateOverlaySuccess(overlay, resource.title);
+
+              // Show success toast for fallback method
+              toast({
+                title: "Download Complete",
+                description: `${resource.title} has been downloaded using alternative method.`,
+                duration: 3000,
+              });
+            }, 1000);
+          } catch (fallbackError) {
+            console.error("Fallback download error:", fallbackError);
+            window.open(`/api/resources/${resource.id}/download`, "_blank");
+          }
+        });
     }
   };
 
@@ -796,20 +924,30 @@ export default function ResourceView({
               )}
             <Button
               onClick={handleDownload}
-              disabled={isLoading}
+              disabled={isDownloading}
               size="sm"
               className="flex-shrink-0"
             >
-              {resource.external_link ? (
-                <>
-                  <ExternalLink className="h-4 w-4 mr-1" />
+              {isDownloading ? (
+                <span className="flex items-center justify-center w-full">
+                  <Download className="animate-bounce h-4 w-4 mr-2" />
+                  Downloading...
+                </span>
+              ) : downloadSuccess ? (
+                <span className="flex items-center justify-center w-full">
+                  <CheckCircle className="text-green-500 h-4 w-4 mr-2" />
+                  Downloaded
+                </span>
+              ) : resource.external_link ? (
+                <span className="flex items-center justify-center w-full">
+                  <ExternalLink className="h-4 w-4 mr-2" />
                   Visit Link
-                </>
+                </span>
               ) : (
-                <>
-                  <Download className="h-4 w-4 mr-1" />
+                <span className="flex items-center justify-center w-full">
+                  <Download className="h-4 w-4 mr-2" />
                   Download
-                </>
+                </span>
               )}
             </Button>
           </div>

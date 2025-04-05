@@ -154,6 +154,10 @@ export async function POST(request: NextRequest) {
     // Add avatar_url if it exists
     if (avatar_url) {
       profileData.avatar_url = avatar_url;
+    } else {
+      // Ensure avatar_url is explicitly set to null if not provided
+      // This prevents issues when accessing this property later
+      profileData.avatar_url = null;
     }
 
     let updateMethod;

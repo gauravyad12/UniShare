@@ -8,7 +8,18 @@ import {
 } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Download, MessageSquare, Star, ThumbsUp } from "lucide-react";
+import {
+  Download,
+  MessageSquare,
+  Star,
+  ThumbsUp,
+  ExternalLink,
+  CheckCircle,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useToast } from "./ui/use-toast";
+import { createClient } from "@/utils/supabase/client";
 
 interface ResourceCardProps {
   resource: {
@@ -47,6 +58,20 @@ export default function ResourceCard({
   onView,
   onDownload,
 }: ResourceCardProps) {
+  const { toast } = useToast();
+  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getSession();
+      setIsAuthenticated(!!data.session);
+    };
+
+    checkAuth();
+  }, []);
+
   // Calculate average rating if available
   const averageRating =
     resource.ratings && resource.ratings.length > 0
@@ -82,6 +107,229 @@ export default function ResourceCard({
         return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const handleViewClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (onView) {
+      onView(resource.id);
+    } else {
+      const isPublicProfile =
+        window.location.pathname.includes("/u/") ||
+        window.location.pathname.includes("/public-profile/");
+
+      if (isPublicProfile && !isAuthenticated) {
+        router.push(
+          `/sign-in?redirect=/dashboard/resources?view=${resource.id}`,
+        );
+      } else {
+        router.push(`/dashboard/resources?view=${resource.id}`);
+      }
+    }
+  };
+
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
+
+  // Create and manage download overlay
+  const createDownloadOverlay = (title: string) => {
+    // Remove any existing overlay first
+    const existingOverlay = document.getElementById("global-download-overlay");
+    if (existingOverlay) {
+      document.body.removeChild(existingOverlay);
+    }
+
+    // Create new overlay
+    const overlay = document.createElement("div");
+    overlay.id = "global-download-overlay";
+    overlay.style.position = "fixed";
+    overlay.style.bottom = "20px";
+    overlay.style.right = "20px";
+    overlay.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
+    overlay.style.color = "white";
+    overlay.style.padding = "12px 20px";
+    overlay.style.borderRadius = "8px";
+    overlay.style.zIndex = "9999";
+    overlay.style.display = "flex";
+    overlay.style.alignItems = "center";
+    overlay.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
+    overlay.style.transition = "all 0.3s ease";
+    overlay.innerHTML = `
+      <svg class="animate-spin mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span>Downloading ${title}...</span>
+    `;
+    document.body.appendChild(overlay);
+    return overlay;
+  };
+
+  // Update overlay to success state
+  const updateOverlaySuccess = (overlay: HTMLElement, title: string) => {
+    overlay.style.backgroundColor = "rgba(22, 163, 74, 0.9)";
+    overlay.innerHTML = `
+      <svg class="mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+      </svg>
+      <span>${title} downloaded successfully!</span>
+    `;
+
+    // Remove overlay after 3 seconds
+    setTimeout(() => {
+      if (document.body.contains(overlay)) {
+        overlay.style.opacity = "0";
+        setTimeout(() => {
+          if (document.body.contains(overlay)) {
+            document.body.removeChild(overlay);
+          }
+        }, 300);
+      }
+    }, 3000);
+  };
+
+  // Update overlay to error state
+  const updateOverlayError = (overlay: HTMLElement) => {
+    overlay.style.backgroundColor = "rgba(220, 38, 38, 0.9)";
+    overlay.innerHTML = `
+      <svg class="mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <span>Download failed. Trying alternative method...</span>
+    `;
+  };
+
+  // Clean up any overlays when component unmounts
+  useEffect(() => {
+    return () => {
+      const overlay = document.getElementById("global-download-overlay");
+      if (overlay && document.body.contains(overlay)) {
+        document.body.removeChild(overlay);
+      }
+    };
+  }, []);
+
+  const handleDownloadClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (onDownload) {
+      onDownload(resource.id);
+    } else {
+      const isPublicProfile =
+        window.location.pathname.includes("/u/") ||
+        window.location.pathname.includes("/public-profile/");
+
+      if (isPublicProfile && !isAuthenticated) {
+        router.push(
+          `/sign-in?redirect=/dashboard/resources?view=${resource.id}`,
+        );
+      } else {
+        if (resource.resource_type === "link") {
+          router.push(`/dashboard/resources?view=${resource.id}`);
+        } else {
+          // Set downloading state
+          setIsDownloading(true);
+
+          // Create download overlay
+          const overlay = createDownloadOverlay(resource.title);
+
+          // Use the Blob API to download the file directly
+          fetch(`/api/resources/${resource.id}/download`, {
+            method: "GET",
+            headers: {
+              Accept: "application/pdf",
+            },
+          })
+            .then((response) => {
+              if (!response.ok) throw new Error("Download failed");
+              return response.blob();
+            })
+            .then((blob) => {
+              // Create a blob URL and trigger download
+              const url = window.URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.style.display = "none";
+              a.href = url;
+              a.download = `${resource.title || "download"}.pdf`;
+              document.body.appendChild(a);
+              a.click();
+
+              // Clean up immediately
+              window.URL.revokeObjectURL(url);
+              if (document.body.contains(a)) {
+                document.body.removeChild(a);
+              }
+
+              // Show success state and toast notification
+              setDownloadSuccess(true);
+              setIsDownloading(false);
+
+              // Update overlay to success state
+              updateOverlaySuccess(overlay, resource.title);
+
+              // Show toast notification
+              toast({
+                title: "Download Complete",
+                description: `${resource.title} has been downloaded successfully.`,
+                duration: 3000,
+              });
+
+              // Reset success state after 3 seconds
+              setTimeout(() => {
+                setDownloadSuccess(false);
+              }, 3000);
+            })
+            .catch((error) => {
+              console.error("Download error:", error);
+              setIsDownloading(false);
+
+              // Update overlay to error state
+              updateOverlayError(overlay);
+
+              // Show error toast
+              toast({
+                title: "Download Failed",
+                description:
+                  "There was a problem downloading the file. Trying alternative method...",
+                variant: "destructive",
+                duration: 3000,
+              });
+
+              // Fallback to the API endpoint as a last resort
+              try {
+                const link = document.createElement("a");
+                link.href = `/api/resources/${resource.id}/download`;
+                link.download = `${resource.title || "download"}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+
+                // Clean up
+                setTimeout(() => {
+                  if (document.body.contains(link)) {
+                    document.body.removeChild(link);
+                  }
+
+                  // Update overlay to success state
+                  updateOverlaySuccess(overlay, resource.title);
+
+                  // Show success toast for fallback method
+                  toast({
+                    title: "Download Complete",
+                    description: `${resource.title} has been downloaded using alternative method.`,
+                    duration: 3000,
+                  });
+                }, 1000);
+              } catch (fallbackError) {
+                console.error("Fallback download error:", fallbackError);
+                window.open(`/api/resources/${resource.id}/download`, "_blank");
+              }
+            });
+        }
+      }
     }
   };
 
@@ -145,18 +393,35 @@ export default function ResourceCard({
         </div>
 
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onView && onView(resource.id)}
-          >
+          <Button variant="outline" size="sm" onClick={handleViewClick}>
             View
           </Button>
           <Button
             size="sm"
-            onClick={() => onDownload && onDownload(resource.id)}
+            onClick={handleDownloadClick}
+            disabled={isDownloading}
           >
-            {resource.resource_type === "link" ? "View Link" : "Download"}
+            {isDownloading ? (
+              <span className="flex items-center justify-center w-full">
+                <Download className="animate-bounce h-4 w-4 mr-2" />
+                Downloading...
+              </span>
+            ) : downloadSuccess ? (
+              <span className="flex items-center justify-center w-full">
+                <CheckCircle className="text-green-500 h-4 w-4 mr-2" />
+                Downloaded
+              </span>
+            ) : resource.resource_type === "link" ? (
+              <span className="flex items-center justify-center w-full">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View Link
+              </span>
+            ) : (
+              <span className="flex items-center justify-center w-full">
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </span>
+            )}
           </Button>
         </div>
       </CardFooter>

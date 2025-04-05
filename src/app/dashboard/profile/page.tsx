@@ -306,7 +306,7 @@ export default function ProfilePage() {
       // Include avatar_url in the form data if it exists
       const updatedFormData = {
         ...formData,
-        avatar_url: profile?.avatar_url,
+        avatar_url: profile?.avatar_url || null,
       };
 
       console.log("Saving profile data:", updatedFormData);

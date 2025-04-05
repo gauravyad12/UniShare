@@ -87,24 +87,31 @@ async function handleDownload(
         `,
     });
 
-    // Use a simplified approach to record downloads
-    // First, directly increment the downloads count without checking anything else
-    await silentTry(async () => {
-      // Try the RPC method first
-      const { error: rpcError } = await supabase.rpc("increment_column_value", {
-        p_table_name: "resources",
-        p_column_name: "downloads",
-        p_record_id: resourceId,
-        p_increment_by: 1,
-      });
+    // Check if this is a direct download request or just a record request
+    const isRecordOnly = request.url.includes("t=");
 
-      // If RPC fails, fall back to direct SQL update
-      if (rpcError) {
-        await supabase.rpc("execute_sql", {
-          query: `UPDATE resources SET downloads = COALESCE(downloads, 0) + 1 WHERE id = '${resourceId}'`,
-        });
-      }
-    });
+    // Only increment the download count for actual download requests, not record-only requests
+    if (!isRecordOnly) {
+      await silentTry(async () => {
+        // Try the RPC method first
+        const { error: rpcError } = await supabase.rpc(
+          "increment_column_value",
+          {
+            p_table_name: "resources",
+            p_column_name: "downloads",
+            p_record_id: resourceId,
+            p_increment_by: 1,
+          },
+        );
+
+        // If RPC fails, fall back to direct SQL update
+        if (rpcError) {
+          await supabase.rpc("execute_sql", {
+            query: `UPDATE resources SET downloads = COALESCE(downloads, 0) + 1 WHERE id = '${resourceId}'`,
+          });
+        }
+      });
+    }
 
     // Only try to record the download in resource_downloads if we have a real user
     if (user) {
@@ -122,6 +129,34 @@ async function handleDownload(
           },
         );
       });
+    }
+
+    // Get the resource to find the file URL
+    const { data: resource, error: resourceError } = await supabase
+      .from("resources")
+      .select("file_url, title")
+      .eq("id", resourceId)
+      .single();
+
+    if (resourceError || !resource) {
+      return NextResponse.json(
+        { error: "Resource not found" },
+        { status: 404 },
+      );
+    }
+
+    // If file_url exists, redirect to it for direct download
+    if (resource.file_url) {
+      // Set headers to force download
+      const headers = new Headers();
+      headers.set("Content-Type", "application/pdf");
+      headers.set(
+        "Content-Disposition",
+        `attachment; filename="${resource.title || "download"}.pdf"`,
+      );
+
+      // Redirect to the actual file URL
+      return NextResponse.redirect(resource.file_url, { headers });
     }
 
     return NextResponse.json({ success: true });

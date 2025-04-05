@@ -140,3 +140,19 @@
   --primary: 142.1 76.2% 36.3%;
   --ring: 142.1 76.2% 36.3%;
 }
+
+/* Download overlay animations */
+@keyframes slide-in {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+#global-download-overlay {
+  animation: slide-in 0.3s ease forwards;
+}
