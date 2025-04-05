@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       updateMethod = supabase.from("user_settings").insert({
         user_id: userData.user.id,
         theme_preference: theme,
+        color_scheme: "default",
         email_notifications: true,
         study_group_notifications: true,
         resource_notifications: true,

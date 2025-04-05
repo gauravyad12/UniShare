@@ -22,10 +22,15 @@ export async function GET(request: Request) {
 
       if (!profileData) {
         console.log("Creating profile for user:", data.user.id);
-        // Create user profile
-        const { error: profileError } = await supabase
-          .from("user_profiles")
-          .insert({
+        // Create user profile using admin client to bypass RLS
+        const { createAdminClient } = await import(
+          "../../../../../utils/supabase/admin"
+        );
+        const adminClient = createAdminClient();
+
+        let profileError = null;
+        if (adminClient) {
+          const { error } = await adminClient.from("user_profiles").insert({
             id: data.user.id,
             full_name: data.user.user_metadata?.full_name || "",
             username: data.user.user_metadata?.username
@@ -33,6 +38,19 @@ export async function GET(request: Request) {
               : null,
             created_at: new Date().toISOString(),
           });
+          profileError = error;
+        } else {
+          // Fallback to regular client if admin client creation fails
+          const { error } = await supabase.from("user_profiles").insert({
+            id: data.user.id,
+            full_name: data.user.user_metadata?.full_name || "",
+            username: data.user.user_metadata?.username
+              ? data.user.user_metadata.username.toLowerCase()
+              : null,
+            created_at: new Date().toISOString(),
+          });
+          profileError = error;
+        }
 
         if (profileError) {
           console.error("Error creating user profile:", profileError);
@@ -48,16 +66,35 @@ export async function GET(request: Request) {
 
       if (!settingsData) {
         console.log("Creating settings for user:", data.user.id);
-        // Create user settings
-        const { error: settingsError } = await supabase
-          .from("user_settings")
-          .insert({
+        // Create user settings using admin client to bypass RLS
+        // Use the admin client we created earlier or create a new one if needed
+        const adminClient =
+          adminClient ||
+          (
+            await import("../../../../../utils/supabase/admin")
+          ).createAdminClient();
+
+        let settingsError = null;
+        if (adminClient) {
+          const { error } = await adminClient.from("user_settings").insert({
             user_id: data.user.id,
             email_notifications: true,
             profile_visibility: true,
             theme_preference: "system",
             created_at: new Date().toISOString(),
           });
+          settingsError = error;
+        } else {
+          // Fallback to regular client if admin client creation fails
+          const { error } = await supabase.from("user_settings").insert({
+            user_id: data.user.id,
+            email_notifications: true,
+            profile_visibility: true,
+            theme_preference: "system",
+            created_at: new Date().toISOString(),
+          });
+          settingsError = error;
+        }
 
         if (settingsError) {
           console.error("Error creating user settings:", settingsError);

@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
       updateMethod = supabase.from("user_settings").insert({
         user_id: userData.user.id,
         theme_preference: theme,
+        color_scheme: "default",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });

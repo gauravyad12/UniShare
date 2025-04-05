@@ -261,9 +261,13 @@ export async function signUpAction(formData: FormData) {
       }
 
       // Create user profile with university info from invite code (store username in lowercase)
-      const { error: profileError } = await supabase
-        .from("user_profiles")
-        .insert({
+      // Use admin client to bypass RLS
+      const { createAdminClient } = await import("@/utils/supabase/admin");
+      const adminClient = createAdminClient();
+
+      let profileError = null;
+      if (adminClient) {
+        const { error } = await adminClient.from("user_profiles").insert({
           id: user.id,
           full_name: fullName,
           username: username ? username.toLowerCase() : null,
@@ -273,17 +277,33 @@ export async function signUpAction(formData: FormData) {
           created_at: new Date().toISOString(),
           is_verified: false,
         });
+        profileError = error;
+      } else {
+        // Fallback to regular client if admin client creation fails
+        const { error } = await supabase.from("user_profiles").insert({
+          id: user.id,
+          full_name: fullName,
+          username: username ? username.toLowerCase() : null,
+          university_id: universityToUse.id,
+          university_name: universityToUse.name || "University",
+          invite_code_id: inviteData.id,
+          created_at: new Date().toISOString(),
+          is_verified: false,
+        });
+        profileError = error;
+      }
 
       if (profileError) {
         console.error("Error creating user profile:", profileError);
       }
 
       // Create user settings for the new user
-      // With RLS disabled, we can use the regular client
+      // Use admin client to bypass RLS
       try {
-        const { error: settingsError } = await supabase
-          .from("user_settings")
-          .insert({
+        let settingsError = null;
+        if (adminClient) {
+          // Use the admin client we created earlier
+          const { error } = await adminClient.from("user_settings").insert({
             user_id: user.id,
             email_notifications: true,
             study_group_notifications: true,
@@ -295,6 +315,23 @@ export async function signUpAction(formData: FormData) {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           });
+          settingsError = error;
+        } else {
+          // Fallback to regular client if admin client creation failed
+          const { error } = await supabase.from("user_settings").insert({
+            user_id: user.id,
+            email_notifications: true,
+            study_group_notifications: true,
+            resource_notifications: true,
+            profile_visibility: true,
+            theme_preference: "system",
+            color_scheme: "default",
+            font_size: 2,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+          settingsError = error;
+        }
 
         if (settingsError) {
           console.error("Error creating user settings:", settingsError);

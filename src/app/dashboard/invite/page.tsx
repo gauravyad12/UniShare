@@ -238,8 +238,12 @@ export default function InvitePage() {
           url: inviteUrl,
         });
       } catch (error) {
-        console.error("Error sharing:", error);
-        copyToClipboard(inviteUrl);
+        // Handle AbortError (user cancelled) and NotAllowedError (permission denied)
+        if (error.name !== "AbortError") {
+          console.error("Error sharing:", error);
+          // Fall back to clipboard copy only for non-abort errors
+          copyToClipboard(inviteUrl);
+        }
       }
     } else {
       copyToClipboard(inviteUrl);
