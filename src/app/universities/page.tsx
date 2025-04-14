@@ -2,6 +2,7 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import { createClient } from "@/utils/supabase/server";
 import { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "UniShare | Supported Universities",
@@ -140,12 +141,12 @@ export default async function Universities() {
             bring UniShare to your campus, let us know and we'll work with your
             university administration to make it happen.
           </p>
-          <a
-            href="#"
+          <Link
+            href="/contact"
             className="inline-flex items-center px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
           >
             Request Your University
-          </a>
+          </Link>
         </div>
       </main>
 
