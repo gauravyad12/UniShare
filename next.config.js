@@ -18,27 +18,24 @@ const nextConfig = {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   },
-  // Disable SWC minification to prevent module resolution issues
-  swcMinify: false,
+  // Enable SWC minification
+  swcMinify: true,
   // Disable React strict mode to prevent double rendering
   reactStrictMode: false,
   // IMPORTANT: DO NOT use distDir or output with Next.js 14+ as it causes 404 errors
   // Enable middleware
   skipMiddlewareUrlNormalize: false,
   skipTrailingSlashRedirect: false,
-  // Increase timeout to prevent Bad Gateway errors
+  // Configure experimental features
   experimental: {
     serverComponentsExternalPackages: [],
     serverActions: {
       bodySizeLimit: "4mb",
     },
-    // Increase timeouts
-    timeoutInMs: 120000, // 120 seconds
     // Disable some features that might cause issues
     optimizeCss: false,
     optimizePackageImports: [],
-    // Adjust memory settings
-    isrMemoryCacheSize: 0,
+    // Configure page data size
     largePageDataBytes: 128 * 1000, // 128KB
   },
   // Disable powered by header
@@ -72,8 +69,8 @@ const nextConfig = {
   },
 };
 
-// Configure SWC plugins for Tempo
-if (process.env.NEXT_PUBLIC_TEMPO) {
+// Configure SWC plugins for Tempo - only in development
+if (process.env.NEXT_PUBLIC_TEMPO && process.env.NODE_ENV === 'development') {
   // Preserve existing experimental settings
   const currentExperimental = nextConfig.experimental || {};
 

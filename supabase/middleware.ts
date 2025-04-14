@@ -2,6 +2,13 @@ import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
 export const updateSession = async (request: NextRequest) => {
+  // SECURITY FIX: Block requests with x-middleware-subrequest header to prevent authorization bypass
+  // See: https://github.com/advisories/GHSA-f82v-jwr5-mffw
+  if (request.headers.get('x-middleware-subrequest')) {
+    console.warn('Blocked potential middleware authorization bypass attempt');
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+
   // This `try/catch` block is only here for the interactive tutorial.
   // Feel free to remove once you have Supabase connected.
   try {

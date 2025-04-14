@@ -3,6 +3,13 @@ import type { NextRequest } from "next/server";
 
 // This middleware helps with handling Bad Gateway errors
 export function middleware(request: NextRequest) {
+  // SECURITY FIX: Block requests with x-middleware-subrequest header to prevent authorization bypass
+  // See: https://github.com/advisories/GHSA-f82v-jwr5-mffw
+  if (request.headers.get('x-middleware-subrequest')) {
+    console.warn('Blocked potential middleware authorization bypass attempt');
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+
   // Get the pathname from the URL
   const pathname = request.nextUrl.pathname;
 

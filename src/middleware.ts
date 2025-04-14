@@ -4,6 +4,12 @@ import { createClient } from "./utils/supabase/middleware";
 
 export async function middleware(req: NextRequest) {
   try {
+    // SECURITY FIX: Block requests with x-middleware-subrequest header to prevent authorization bypass
+    // See: https://github.com/advisories/GHSA-f82v-jwr5-mffw
+    if (req.headers.get('x-middleware-subrequest')) {
+      console.warn('Blocked potential middleware authorization bypass attempt');
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
     // Skip middleware for static assets, API routes, and error pages
     const { pathname } = req.nextUrl;
     if (
