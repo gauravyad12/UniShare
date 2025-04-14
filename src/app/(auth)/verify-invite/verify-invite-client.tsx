@@ -40,8 +40,22 @@ export default function VerifyInviteClient() {
   // Clear cookie if requested via query param
   useEffect(() => {
     if (clearCookie === "true") {
-      // Clear the cookie client-side
-      document.cookie = "verified_invite_code=; path=/; max-age=0";
+      // Clear the cookie using the API
+      const clearCookieViaApi = async () => {
+        try {
+          await fetch("/api/invite/verify", {
+            method: "DELETE",
+          });
+          console.log("Cleared invite code cookie via API");
+        } catch (error) {
+          console.error("Error clearing cookie via API:", error);
+          // Fallback to client-side cookie clearing
+          document.cookie = "verified_invite_code=; path=/; max-age=0";
+          console.log("Cleared invite code cookie client-side as fallback");
+        }
+      };
+
+      clearCookieViaApi();
     }
   }, [clearCookie]);
 
@@ -70,6 +84,13 @@ export default function VerifyInviteClient() {
   // Check if we already have a verified invite code in cookies
   useEffect(() => {
     const checkExistingCode = () => {
+      // Don't redirect if we have a no_redirect parameter
+      const noRedirect = searchParams.get("no_redirect");
+      if (noRedirect === "true") {
+        console.log("Skipping redirect due to no_redirect parameter");
+        return;
+      }
+
       // Check for cookie
       const cookies = document.cookie.split("; ");
       const inviteCodeCookie = cookies.find((cookie) =>
@@ -81,6 +102,7 @@ export default function VerifyInviteClient() {
       if (inviteCodeCookie && !sessionStorage.getItem("preventRedirectLoop")) {
         // Set a flag to prevent redirect loops
         sessionStorage.setItem("preventRedirectLoop", "true");
+        console.log("Found valid invite code cookie, redirecting to sign-up");
         // We have a verified code, redirect to sign-up
         router.push("/sign-up");
       }
@@ -92,7 +114,7 @@ export default function VerifyInviteClient() {
     return () => {
       sessionStorage.removeItem("preventRedirectLoop");
     };
-  }, [router]);
+  }, [router, searchParams]);
 
   const handleVerifyInvite = async (
     e: React.FormEvent | null,
@@ -110,60 +132,45 @@ export default function VerifyInviteClient() {
     }
 
     try {
-      const supabase = createClient();
-
-      // Call the edge function to verify the invite code
       console.log("Verifying invite code:", code);
 
-      try {
-        // Add a small delay before invoking the function to prevent race condition
-        await new Promise((resolve) => setTimeout(resolve, 100));
+      // Call the server-side API route to verify the invite code
+      const response = await fetch("/api/invite/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ inviteCode: code }),
+      });
 
-        const { data, error } = await supabase.functions.invoke(
-          "supabase-functions-verify-invite-code",
-          {
-            body: { inviteCode: code },
-          },
-        );
+      const data = await response.json();
+      console.log("API response:", data);
 
-        console.log("Edge function response:", { data, error });
-
-        if (error) {
-          console.error("Edge function error:", error);
-          setError(error.message || "Failed to verify invite code");
-          setIsLoading(false);
-          return;
-        }
-
-        if (!data?.valid) {
-          setError(data?.error || "Invalid invite code");
-          setIsLoading(false);
-          return;
-        }
-
-        // Store the verified invite code in a cookie (client-side)
-        document.cookie = `verified_invite_code=${code}; path=/; max-age=3600`;
-
-        // Store in session storage as backup
-        sessionStorage.setItem("verifiedInviteCode", code);
-
-        // Set a flag to prevent redirect loops
-        sessionStorage.setItem("preventRedirectLoop", "true");
-
-        // Redirect to sign-up page
-        router.push("/sign-up");
-        return;
-      } catch (invokeError) {
-        console.error("Failed to invoke edge function:", invokeError);
-        setError(
-          "Failed to connect to verification service. Please try again later.",
-        );
+      if (!response.ok) {
+        console.error("API error:", data);
+        setError(data.error || "Failed to verify invite code");
         setIsLoading(false);
         return;
       }
 
-      // This section is now handled inside the try block
+      if (!data.valid) {
+        setError(data.error || "Invalid invite code");
+        setIsLoading(false);
+        return;
+      }
+
+      // The cookie is set by the API response
+      // Store in session storage as backup
+      sessionStorage.setItem("verifiedInviteCode", code);
+
+      // Set a flag to prevent redirect loops
+      sessionStorage.setItem("preventRedirectLoop", "true");
+
+      // Redirect to sign-up page
+      router.push("/sign-up");
+      return;
     } catch (err) {
+      console.error("Error verifying invite code:", err);
       setError("An unexpected error occurred. Please try again.");
       setIsLoading(false);
     }

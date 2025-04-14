@@ -35,8 +35,9 @@ export default async function SignUpPage({
   const hasInviteCode = !!inviteCodeCookie;
 
   // If no invite code, redirect to verify-invite page
+  // Add a no_redirect parameter to prevent potential loops
   if (!hasInviteCode) {
-    return redirect("/verify-invite");
+    return redirect("/verify-invite?no_redirect=true");
   }
 
   // Verify the invite code is valid
@@ -49,10 +50,10 @@ export default async function SignUpPage({
     );
   }
 
-  // Verify invite code is valid
+  // Verify invite code is valid with more comprehensive checks
   const { data: inviteData, error: inviteError } = await supabase
     .from("invite_codes")
-    .select("*")
+    .select("id, code, university_id, is_active, max_uses, current_uses, expires_at")
     .ilike("code", inviteCode) // Case-insensitive matching
     .eq("is_active", true)
     .single();
@@ -61,6 +62,20 @@ export default async function SignUpPage({
   if (inviteError || !inviteData) {
     return redirect(
       "/verify-invite?error=Invalid or expired invite code&clear_cookie=true",
+    );
+  }
+
+  // Check if invite code has reached max uses
+  if (inviteData.max_uses > 0 && inviteData.current_uses >= inviteData.max_uses) {
+    return redirect(
+      "/verify-invite?error=This invite code has reached its maximum usage limit&clear_cookie=true",
+    );
+  }
+
+  // Check if invite code has expired
+  if (inviteData.expires_at && new Date(inviteData.expires_at) < new Date()) {
+    return redirect(
+      "/verify-invite?error=This invite code has expired&clear_cookie=true",
     );
   }
 
