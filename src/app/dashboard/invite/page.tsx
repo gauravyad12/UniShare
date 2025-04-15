@@ -58,6 +58,9 @@ export default function InvitePage() {
     requiredInvites: 5,
   });
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [inviteCodesCount, setInviteCodesCount] = useState(0);
+  const [maxInviteCodesReached, setMaxInviteCodesReached] = useState(false);
+  const MAX_INVITE_CODES = 3;
 
   useEffect(() => {
     const fetchInviteCode = async () => {
@@ -76,6 +79,20 @@ export default function InvitePage() {
           .single();
 
         setUserProfile(profileData);
+
+        // Get all invite codes created by the user to count them
+        const { data: allInviteCodes, error: countError } = await supabase
+          .from("invite_codes")
+          .select("id")
+          .eq("created_by", userData.user.id);
+
+        if (countError) {
+          console.error("Error counting invite codes:", countError);
+        } else {
+          const count = allInviteCodes?.length || 0;
+          setInviteCodesCount(count);
+          setMaxInviteCodesReached(count >= MAX_INVITE_CODES);
+        }
 
         // Check if user already has an invite code
         const { data: inviteData } = await supabase
@@ -136,6 +153,16 @@ export default function InvitePage() {
   };
 
   const generateInviteCode = async () => {
+    // Check if the user has already reached the maximum number of invite codes
+    if (maxInviteCodesReached) {
+      toast({
+        title: "Limit Reached",
+        description: `You have reached the maximum limit of ${MAX_INVITE_CODES} invite codes.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setGenerating(true);
 
@@ -150,6 +177,11 @@ export default function InvitePage() {
       const data = await response.json();
 
       if (!response.ok) {
+        // Check if this is the max invite codes error
+        if (data.maxReached) {
+          setMaxInviteCodesReached(true);
+          setInviteCodesCount(MAX_INVITE_CODES);
+        }
         throw new Error(data.error || "Failed to generate invite code");
       }
 
@@ -157,6 +189,15 @@ export default function InvitePage() {
       setInviteCode(newCode);
       setInviteUsage({ current: 0, max: 5 });
       setInviteUrl(`${window.location.origin}/verify-invite?code=${newCode}`);
+
+      // Increment the invite codes count
+      setInviteCodesCount(prevCount => {
+        const newCount = prevCount + 1;
+        if (newCount >= MAX_INVITE_CODES) {
+          setMaxInviteCodesReached(true);
+        }
+        return newCount;
+      });
 
       toast({
         title: "Success",
@@ -331,8 +372,11 @@ export default function InvitePage() {
               </CardTitle>
               <CardDescription>
                 Share this code with friends from your university to invite them
-                to join
+                to join. You can create up to {MAX_INVITE_CODES} invite codes.
               </CardDescription>
+              <div className="text-xs text-muted-foreground mt-1">
+                You have created {inviteCodesCount} of {MAX_INVITE_CODES} possible invite codes
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {inviteCode ? (
@@ -401,7 +445,11 @@ export default function InvitePage() {
                   <p className="mb-4">
                     You don't have an active invite code yet
                   </p>
-                  <Button onClick={generateInviteCode} disabled={generating}>
+                  <Button
+                    onClick={generateInviteCode}
+                    disabled={generating || maxInviteCodesReached}
+                    title={maxInviteCodesReached ? "Maximum limit of " + MAX_INVITE_CODES + " invite codes reached" : ""}
+                  >
                     {generating ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -411,6 +459,11 @@ export default function InvitePage() {
                       <>Generate Invite Code</>
                     )}
                   </Button>
+                  {maxInviteCodesReached && (
+                    <p className="text-xs text-destructive mt-2">
+                      You have reached the maximum limit of {MAX_INVITE_CODES} invite codes.
+                    </p>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -419,8 +472,9 @@ export default function InvitePage() {
                 <Button
                   variant="outline"
                   onClick={generateInviteCode}
-                  disabled={generating}
+                  disabled={generating || maxInviteCodesReached}
                   className="flex-1"
+                  title={maxInviteCodesReached ? "Maximum limit of " + MAX_INVITE_CODES + " invite codes reached" : ""}
                 >
                   {generating ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

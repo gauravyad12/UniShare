@@ -32,6 +32,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check how many invite codes the user has already created
+    const { data: existingCodes, error: countError } = await supabase
+      .from("invite_codes")
+      .select("id")
+      .eq("created_by", userData.user.id);
+
+    if (countError) {
+      console.error("Error counting existing invite codes:", countError);
+      return NextResponse.json(
+        { error: "Failed to check existing invite codes" },
+        { status: 500 },
+      );
+    }
+
+    // Limit users to 3 invite codes (each with 5 uses = 15 total invites)
+    if (existingCodes && existingCodes.length >= 3) {
+      return NextResponse.json(
+        {
+          error: "You have reached the maximum limit of 3 invite codes. Each user can only create 3 invite codes.",
+          maxReached: true
+        },
+        { status: 400 },
+      );
+    }
+
     // Generate a random 6-character alphanumeric code
     const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let newCode = "";
