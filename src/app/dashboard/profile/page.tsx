@@ -157,17 +157,10 @@ export default function ProfilePage() {
     setIsCheckingUsername(true);
 
     try {
-      // First check for bad words
-      const badWordsResponse = await fetch("/api/email/validate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ checkBadWords: true, username }),
-      });
+      // First check for bad words using our utility
+      const { containsBadWords } = await import('@/utils/badWords');
 
-      if (!badWordsResponse.ok) {
-        const badWordsData = await badWordsResponse.json();
+      if (containsBadWords(username)) {
         setUsernameStatus("invalid");
         setIsCheckingUsername(false);
         return;
@@ -213,6 +206,18 @@ export default function ProfilePage() {
       }
     }
 
+    // Special handling for graduation year
+    if (id === "graduationYear") {
+      // Only allow numeric input
+      const numericValue = value.replace(/[^0-9]/g, '');
+
+      setFormData({
+        ...formData,
+        graduation_year: numericValue,
+      });
+      return;
+    }
+
     setFormData({
       ...formData,
       [id === "fullName"
@@ -221,11 +226,9 @@ export default function ProfilePage() {
           ? "username"
           : id === "major"
             ? "major"
-            : id === "graduationYear"
-              ? "graduation_year"
-              : id === "bio"
-                ? "bio"
-                : id]: value,
+            : id === "bio"
+              ? "bio"
+              : id]: value,
     });
   };
 
@@ -274,26 +277,25 @@ export default function ProfilePage() {
       }
     }
 
-    // Check for bad words in bio
-    if (formData.bio) {
-      try {
-        const bioCheckResponse = await fetch("/api/email/validate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ checkBadWords: true, username: formData.bio }),
-        });
+    // Import the bad words utility
+    const { containsBadWords } = await import('@/utils/badWords');
 
-        if (!bioCheckResponse.ok) {
-          errors.bio = "Bio contains inappropriate language.";
-          hasErrors = true;
-        }
-      } catch (error) {
-        console.error("Error checking bio for bad words:", error);
-        errors.bio = "Error validating bio content.";
-        hasErrors = true;
-      }
+    // Check for bad words in full name
+    if (formData.full_name && containsBadWords(formData.full_name)) {
+      errors.fullName = "Full name contains inappropriate language.";
+      hasErrors = true;
+    }
+
+    // Check for bad words in bio
+    if (formData.bio && containsBadWords(formData.bio)) {
+      errors.bio = "Bio contains inappropriate language.";
+      hasErrors = true;
+    }
+
+    // Check for bad words in major
+    if (formData.major && containsBadWords(formData.major)) {
+      errors.major = "Major contains inappropriate language.";
+      hasErrors = true;
     }
 
     if (hasErrors) {
@@ -576,7 +578,23 @@ export default function ProfilePage() {
                     id="graduationYear"
                     type="number"
                     value={formData.graduation_year}
-                    onChange={handleInputChange}
+                    onChange={(e) => {
+                      // Only allow numeric input
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      setFormData({
+                        ...formData,
+                        graduation_year: value
+                      });
+                    }}
+                    onKeyDown={(e) => {
+                      // Prevent non-numeric keys except for backspace, delete, tab, etc.
+                      if (!/[0-9]/.test(e.key) &&
+                          !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    min="1900"
+                    max={new Date().getFullYear() + 10}
                     placeholder="Expected graduation year"
                     className={
                       formErrors.graduationYear ? "border-red-500" : ""
@@ -597,7 +615,11 @@ export default function ProfilePage() {
                   value={formData.major}
                   onChange={handleInputChange}
                   placeholder="Your major or field of study"
+                  className={formErrors.major ? "border-red-500" : ""}
                 />
+                {formErrors.major && (
+                  <p className="text-xs text-red-500">{formErrors.major}</p>
+                )}
               </div>
 
               <div className="space-y-2">

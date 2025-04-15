@@ -47,6 +47,33 @@ export async function POST(
     // Get the updated data from the request
     const data = await request.json();
 
+    // Check for bad words in text fields
+    const { containsBadWords } = await import('@/utils/badWords');
+
+    // Check title
+    if (data.title && containsBadWords(data.title)) {
+      return NextResponse.json(
+        { error: "Title contains inappropriate language" },
+        { status: 400 },
+      );
+    }
+
+    // Check description
+    if (data.description && containsBadWords(data.description)) {
+      return NextResponse.json(
+        { error: "Description contains inappropriate language" },
+        { status: 400 },
+      );
+    }
+
+    // Check course code
+    if (data.course_code && containsBadWords(data.course_code)) {
+      return NextResponse.json(
+        { error: "Course code contains inappropriate language" },
+        { status: 400 },
+      );
+    }
+
     // Update the resource
     const { error: updateError } = await supabase
       .from("resources")

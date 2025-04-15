@@ -38,6 +38,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check for bad words in text fields
+    const { containsBadWords } = await import('@/utils/badWords');
+
+    // Check title
+    if (containsBadWords(title)) {
+      return NextResponse.json(
+        { error: "Title contains inappropriate language" },
+        { status: 400 },
+      );
+    }
+
+    // Check description
+    if (description && containsBadWords(description)) {
+      return NextResponse.json(
+        { error: "Description contains inappropriate language" },
+        { status: 400 },
+      );
+    }
+
+    // Check course code
+    if (courseCode && containsBadWords(courseCode)) {
+      return NextResponse.json(
+        { error: "Course code contains inappropriate language" },
+        { status: 400 },
+      );
+    }
+
     // Get user profile to get university_id
     const { data: userProfile } = await supabase
       .from("user_profiles")

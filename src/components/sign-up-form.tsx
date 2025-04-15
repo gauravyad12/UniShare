@@ -31,6 +31,7 @@ export default function SignUpForm({ message }: SignUpFormProps) {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [standardUserExists, setStandardUserExists] = useState<boolean>(false);
 
   const usernameCheckTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -187,6 +188,31 @@ export default function SignUpForm({ message }: SignUpFormProps) {
     emailError,
   ]);
 
+  // Check if Standard User university exists
+  useEffect(() => {
+    const checkStandardUser = async () => {
+      try {
+        // Use the email validation API to check if Standard User exists
+        const response = await fetch('/api/email/validate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ checkStandardUser: true }),
+        });
+
+        const data = await response.json();
+        setStandardUserExists(data.standardUserExists || false);
+        console.log('Standard User university exists:', data.standardUserExists);
+      } catch (error) {
+        console.error('Error checking Standard User university:', error);
+        setStandardUserExists(false);
+      }
+    };
+
+    checkStandardUser();
+  }, []);
+
   // Check for domain not supported error in message prop
   useEffect(() => {
     if (message.error) {
@@ -195,13 +221,11 @@ export default function SignUpForm({ message }: SignUpFormProps) {
         message.error.includes("Your university/domain isn't supported") ||
         message.error.includes("This email domain is not supported") ||
         message.error.includes("Your email domain is not supported") ||
-        message.error.includes(
-          "Your email domain or university is not supported",
-        )
+        message.error.includes("Your email domain or university is not supported") ||
+        message.error.includes("Please use a university email") ||
+        message.error.includes("Please use a university email or a common email provider")
       ) {
-        setEmailError(
-          "Your email domain or university is not supported. Please contact support.",
-        );
+        setEmailError(message.error);
         setFormError(null); // Clear the form error to avoid duplicate messages
       } else if (message.error.includes("Invalid email format")) {
         setEmailError(
@@ -211,51 +235,51 @@ export default function SignUpForm({ message }: SignUpFormProps) {
     }
   }, [message]);
 
-  // Check for bad words in username
-  const checkForBadWords = async (username: string) => {
+  // Check for bad words in text
+  const checkForBadWords = async (text: string, fieldName: string = 'Text') => {
     try {
-      // First check if username is valid format
-      const validUsernameRegex = /^[a-zA-Z0-9_-]+$/;
-      if (!validUsernameRegex.test(username)) {
-        return {
-          hasBadWord: true,
-          error:
-            "Username can only contain letters, numbers, underscores, and hyphens",
-        };
+      // For username, check if it's valid format
+      if (fieldName === 'Username') {
+        const validUsernameRegex = /^[a-zA-Z0-9_-]+$/;
+        if (!validUsernameRegex.test(text)) {
+          return {
+            hasBadWord: true,
+            error:
+              "Username can only contain letters, numbers, underscores, and hyphens",
+          };
+        }
+
+        // Check for minimum length
+        if (text.length < 3) {
+          return {
+            hasBadWord: true,
+            error: "Username must be at least 3 characters long",
+          };
+        }
       }
 
-      // Check for minimum length
-      if (username.length < 3) {
-        return {
-          hasBadWord: true,
-          error: "Username must be at least 3 characters long",
-        };
-      }
-
-      // Check for bad words
-      const lowerUsername = username.toLowerCase();
-
-      // Get bad words from server
-      const response = await fetch("/api/email/validate", {
+      // Check for bad words using our API
+      const response = await fetch("/api/validate/bad-words", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ checkBadWords: true, username: lowerUsername }),
+        body: JSON.stringify({ text, fieldName }),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
+      const data = await response.json();
+
+      if (!response.ok || !data.valid) {
         return {
           hasBadWord: true,
-          error: data.error || "Username contains inappropriate language",
+          error: data.error || `${fieldName} contains inappropriate language`,
         };
       }
 
       return { hasBadWord: false, error: null };
     } catch (error) {
-      console.error("Error checking for bad words:", error);
-      return { hasBadWord: false, error: "Error checking username" };
+      console.error(`Error checking for bad words in ${fieldName}:`, error);
+      return { hasBadWord: false, error: `Error checking ${fieldName.toLowerCase()}` };
     }
   };
 
@@ -286,6 +310,14 @@ export default function SignUpForm({ message }: SignUpFormProps) {
       return;
     }
 
+    // 1.1 Check for bad words in full name
+    const fullNameBadWordsCheck = await checkForBadWords(fullNameValue, 'Full name');
+    if (fullNameBadWordsCheck.hasBadWord) {
+      setFullNameError(fullNameBadWordsCheck.error || "Full name contains inappropriate language");
+      setIsSubmitting(false);
+      return;
+    }
+
     // 2. Check username
     const usernameValidationError = validateUsername(usernameValue);
     if (usernameValidationError) {
@@ -295,7 +327,7 @@ export default function SignUpForm({ message }: SignUpFormProps) {
     }
 
     // 3. Check for bad words in username
-    const badWordsCheck = await checkForBadWords(usernameValue);
+    const badWordsCheck = await checkForBadWords(usernameValue, 'Username');
     if (badWordsCheck.hasBadWord) {
       setUsernameStatus("invalid");
       setUsernameError(
@@ -444,7 +476,9 @@ export default function SignUpForm({ message }: SignUpFormProps) {
             <p className="text-xs text-red-500">{emailError}</p>
           ) : (
             <p className="text-xs text-muted-foreground">
-              Must be a valid university email address
+              {standardUserExists
+                ? "Use a university email or common email provider (gmail, outlook, etc.)"
+                : "Use a university email"}
             </p>
           )}
         </div>
@@ -567,9 +601,10 @@ export default function SignUpForm({ message }: SignUpFormProps) {
         !message.error.includes("university/domain isn't supported") &&
         !message.error.includes("This email domain is not supported") &&
         !message.error.includes("Your email domain is not supported") &&
-        !message.error.includes(
-          "Your email domain or university is not supported",
-        )) ||
+        !message.error.includes("Your email domain or university is not supported") &&
+        !message.error.includes("Please use a university email") &&
+        !message.error.includes("Please use a university email or a common email provider")
+        ) ||
         message.success) && <FormMessage message={message} />}
     </form>
   );

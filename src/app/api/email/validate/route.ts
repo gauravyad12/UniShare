@@ -4,9 +4,37 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(request: NextRequest) {
   try {
     const requestData = await request.json();
-    const { domain, checkBadWords, username, email } = requestData;
+    const { domain, checkBadWords, username, email, checkStandardUser } = requestData;
 
     const supabase = createClient();
+
+    // Check if Standard User university exists
+    if (checkStandardUser) {
+      try {
+        const { data: universities, error } = await supabase
+          .from("universities")
+          .select("id, name")
+          .eq("name", "Standard User");
+
+        if (error) {
+          console.error("Error checking for Standard User university:", error);
+          return NextResponse.json({ standardUserExists: false, error: error.message });
+        }
+
+        const standardUserExists = Array.isArray(universities) && universities.length > 0;
+        console.log(`Standard User university exists: ${standardUserExists}`);
+
+        if (standardUserExists) {
+          const standardUser = universities[0];
+          console.log(`Found Standard User university: ID=${standardUser.id}, Name=${standardUser.name}`);
+        }
+
+        return NextResponse.json({ standardUserExists });
+      } catch (error) {
+        console.error("Error in checkStandardUser:", error);
+        return NextResponse.json({ standardUserExists: false, error: "Internal server error" });
+      }
+    }
 
     // Check for bad words in username
     if (checkBadWords && username) {
@@ -93,49 +121,84 @@ export async function POST(request: NextRequest) {
       return matches;
     });
 
-    // Common email domains that should be supported
-    const commonDomains = [
-      "gmail.com",
-      "outlook.com",
-      "hotmail.com",
-      "yahoo.com",
-      "icloud.com",
-    ];
+    // If we found a university with a matching domain, use it
+    if (universityData) {
+      console.log(`Found matching university: ${universityData.name}`);
+      return NextResponse.json({
+        valid: true,
+        university: {
+          id: universityData.id,
+          name: universityData.name,
+          domain: universityData.domain,
+        },
+      });
+    }
 
-    console.log(
-      `Domain check: ${domainToCheck}, matched university: ${universityData?.name || "none"}, in common domains: ${commonDomains.includes(domainToCheck)}`,
+    // If no university matched, check if "Standard User" university exists
+    // IMPORTANT: We're looking for the exact name "Standard User" - no hardcoded alternatives
+    const standardUserUniversity = universities?.find((u) =>
+      u.name === "Standard User"
     );
 
-    if (!universityData && !commonDomains.includes(domainToCheck)) {
+    if (!standardUserUniversity) {
+      console.log("Standard User university not found - common domains will not be accepted");
       return NextResponse.json(
         {
           valid: false,
-          error:
-            "Your email domain or university is not supported. Please contact support.",
+          error: "Your email domain is not supported. Please use a university email.",
         },
         { status: 200 }, // Use 200 status with valid:false instead of 400
       );
     }
 
-    // If no university matched but it's a common domain, use the General Users university
-    const universityToUse =
-      universityData ||
-      universities?.find(
-        (u) =>
-          u.name === "General Users" ||
-          (u.domain && u.domain.toLowerCase().includes("gmail.com")) ||
-          (u.domain && u.domain.toLowerCase().includes("icloud.com")),
+    // Get all common domains from the database
+    const { data: commonDomainsData, error: commonDomainsError } = await supabase
+      .from("common_domains")
+      .select("domain");
+
+    if (commonDomainsError) {
+      console.error("Error fetching common domains:", commonDomainsError);
+      return NextResponse.json(
+        { error: "Error checking common email domains" },
+        { status: 500 },
       );
+    }
 
-    console.log(`University to use: ${universityToUse?.name || "None found"}`);
+    // Check if the domain is in the common_domains table
+    const isCommonDomain = commonDomainsData?.some(
+      (item) => item.domain.toLowerCase() === domainToCheck.toLowerCase()
+    );
 
-    if (!universityToUse) {
+    console.log(
+      `Domain check: ${domainToCheck}, is common domain: ${isCommonDomain}`,
+    );
+
+    if (!isCommonDomain) {
       return NextResponse.json(
         {
           valid: false,
-          error: "Could not find appropriate university for your email",
+          error: "Your email domain is not supported. Please use a university email or a common email provider.",
         },
         { status: 200 }, // Use 200 status with valid:false instead of 400
+      );
+    }
+
+    // If it's a common domain, use the Standard User university
+    console.log(`Using Standard User university for common domain: ${domainToCheck}`);
+    const universityToUse = standardUserUniversity;
+
+    // Log the university details for debugging
+    console.log(`Standard User university details: ID=${universityToUse.id}, Name=${universityToUse.name}`);
+
+    // Double check that Standard User university exists
+    if (!universityToUse || universityToUse.name !== "Standard User") {
+      console.log("Standard User university not properly configured");
+      return NextResponse.json(
+        {
+          valid: false,
+          error: "System configuration error. Common email domains are not currently supported.",
+        },
+        { status: 200 },
       );
     }
 

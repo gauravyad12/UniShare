@@ -158,6 +158,16 @@ export async function POST(
       );
     }
 
+    // Check for bad words in comment
+    const { containsBadWords } = await import('@/utils/badWords');
+
+    if (containsBadWords(comment)) {
+      return NextResponse.json(
+        { error: "Comment contains inappropriate language" },
+        { status: 400 },
+      );
+    }
+
     // Check if the resource exists
     const { data: resource, error: resourceError } = await supabase
       .from("resources")

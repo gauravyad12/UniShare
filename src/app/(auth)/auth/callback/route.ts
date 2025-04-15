@@ -28,14 +28,33 @@ export async function GET(request: Request) {
         );
         const adminClient = createAdminClient();
 
+        // Check if username already exists
+        let username = data.user.user_metadata?.username
+          ? data.user.user_metadata.username.toLowerCase()
+          : null;
+
+        if (username) {
+          const { data: existingUsername } = await supabase
+            .from("user_profiles")
+            .select("id")
+            .neq("id", data.user.id)
+            .ilike("username", username)
+            .limit(1);
+
+          if (existingUsername && existingUsername.length > 0) {
+            // Username already exists, append a random suffix
+            const randomSuffix = Math.random().toString(36).substring(2, 8);
+            username = `${username}_${randomSuffix}`;
+            console.log(`Username already exists, using ${username} instead`);
+          }
+        }
+
         let profileError = null;
         if (adminClient) {
           const { error } = await adminClient.from("user_profiles").insert({
             id: data.user.id,
             full_name: data.user.user_metadata?.full_name || "",
-            username: data.user.user_metadata?.username
-              ? data.user.user_metadata.username.toLowerCase()
-              : null,
+            username: username,
             created_at: new Date().toISOString(),
           });
           profileError = error;
@@ -44,9 +63,7 @@ export async function GET(request: Request) {
           const { error } = await supabase.from("user_profiles").insert({
             id: data.user.id,
             full_name: data.user.user_metadata?.full_name || "",
-            username: data.user.user_metadata?.username
-              ? data.user.user_metadata.username.toLowerCase()
-              : null,
+            username: username,
             created_at: new Date().toISOString(),
           });
           profileError = error;

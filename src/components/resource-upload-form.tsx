@@ -15,6 +15,7 @@ import {
 import { Upload, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { containsBadWords } from "@/utils/badWords";
 
 export default function ResourceUploadForm() {
   const router = useRouter();

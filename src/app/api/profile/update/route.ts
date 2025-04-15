@@ -74,6 +74,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check for bad words in text fields
+    const { containsBadWords, getFirstBadWord } = await import('@/utils/badWords');
+
+    // Check full name
+    if (containsBadWords(full_name)) {
+      return NextResponse.json(
+        { error: "Full name contains inappropriate language" },
+        { status: 400 },
+      );
+    }
+
+    // Check username
+    if (containsBadWords(username)) {
+      return NextResponse.json(
+        { error: "Username contains inappropriate language" },
+        { status: 400 },
+      );
+    }
+
+    // Check bio
+    if (bio && containsBadWords(bio)) {
+      return NextResponse.json(
+        { error: "Bio contains inappropriate language" },
+        { status: 400 },
+      );
+    }
+
+    // Check major
+    if (major && containsBadWords(major)) {
+      return NextResponse.json(
+        { error: "Major contains inappropriate language" },
+        { status: 400 },
+      );
+    }
+
     // Validate graduation year
     if (graduation_year) {
       const year = parseInt(graduation_year);

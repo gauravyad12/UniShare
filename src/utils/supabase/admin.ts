@@ -38,38 +38,42 @@ export function createAdminClient() {
 }
 
 /**
- * Execute a raw SQL query using the admin client.
- * This is useful for operations that can't be done through the regular API.
+ * Increment a column value in a table using the admin client.
+ * This is a specialized function for incrementing the invite code usage count.
  */
 export async function executeRawSql(adminClient, sql, params = []) {
   try {
-    // Convert params array to jsonb format expected by the function
-    // Note: The function expects params as a JSONB array
-    const jsonbParams = JSON.stringify(params);
+    console.log(`Incrementing invite code usage for ID: ${params[0]}`);
 
-    console.log(`Executing SQL: ${sql} with params:`, params);
+    // First get the current value
+    const { data: currentData, error: selectError } = await adminClient
+      .from('invite_codes')
+      .select('current_uses')
+      .eq('id', params[0])
+      .single();
 
-    // Call the execute_sql function with the correct parameter order
-    // The function signature is execute_sql(query text, params jsonb)
-    const { data, error } = await adminClient.rpc("execute_sql", {
-      query: sql,
-      params: jsonbParams,
-    });
-
-    if (error) {
-      console.error("SQL RPC error:", error);
-      throw error;
+    if (selectError) {
+      console.error("Error fetching current invite code usage:", selectError);
+      throw selectError;
     }
 
-    // Check if the result contains an error field (from the function's exception handler)
-    if (data && data.error) {
-      console.error("SQL execution returned error:", data.error);
-      return { data: null, error: new Error(data.error) };
+    // Increment the value
+    const currentUses = currentData?.current_uses || 0;
+    const { data, error: updateError } = await adminClient
+      .from('invite_codes')
+      .update({ current_uses: currentUses + 1 })
+      .eq('id', params[0])
+      .select('id, current_uses');
+
+    if (updateError) {
+      console.error("Error updating invite code usage:", updateError);
+      throw updateError;
     }
 
+    console.log(`Successfully updated invite code usage to ${currentUses + 1}`);
     return { data, error: null };
   } catch (error) {
-    console.error("Raw SQL execution error:", error);
+    console.error("Error incrementing invite code usage:", error);
     return { data: null, error };
   }
 }
