@@ -230,7 +230,7 @@ export default async function Dashboard() {
           </CardContent>
           <CardFooter>
             <Button asChild variant="outline" size="sm" className="w-full">
-              <Link href="/dashboard/study-groups">Find Groups</Link>
+              <Link href="/dashboard/study-groups?tab=all">Find Groups</Link>
             </Button>
           </CardFooter>
         </Card>

@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET messages for a study group
@@ -8,6 +9,7 @@ export async function GET(
 ) {
   try {
     const supabase = createClient();
+    const adminClient = createAdminClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -24,15 +26,23 @@ export async function GET(
       );
     }
 
-    // Check if user is a member of the study group
-    const { data: membership, error: membershipError } = await supabase
+    // Check if user is a member of the study group using admin client to bypass RLS
+    const { data: membership, error: membershipError } = await adminClient
       .from("study_group_members")
       .select("*")
       .eq("study_group_id", groupId)
       .eq("user_id", user.id)
       .single();
 
-    if (membershipError || !membership) {
+    if (membershipError) {
+      console.error("Error checking membership:", membershipError);
+      return NextResponse.json(
+        { error: "Failed to verify study group membership" },
+        { status: 500 }
+      );
+    }
+
+    if (!membership) {
       return NextResponse.json(
         { error: "You are not a member of this study group" },
         { status: 403 }
@@ -45,9 +55,9 @@ export async function GET(
     const before = searchParams.get("before");
     const after = searchParams.get("after");
 
-    // Build query
-    let query = supabase
-      .from("group_chat_messages_with_profiles")
+    // Build query for messages using admin client to bypass RLS
+    let query = adminClient
+      .from("group_chat_messages")
       .select("*")
       .eq("study_group_id", groupId)
       .order("created_at", { ascending: false })
@@ -64,6 +74,37 @@ export async function GET(
     // Execute query
     const { data: messages, error } = await query;
 
+    // Get profile information for each message
+    const messagesWithProfiles = [];
+    if (messages && messages.length > 0) {
+      // Get unique sender IDs
+      const senderIds = [...new Set(messages.map(msg => msg.sender_id))];
+
+      // Fetch profiles for all senders in one query using admin client
+      const { data: profiles } = await adminClient
+        .from("user_profiles")
+        .select("id, full_name, username, avatar_url")
+        .in("id", senderIds);
+
+      // Create a map of profiles by ID for quick lookup
+      const profileMap = {};
+      if (profiles) {
+        profiles.forEach(profile => {
+          profileMap[profile.id] = profile;
+        });
+      }
+
+      // Combine messages with profiles
+      messagesWithProfiles.push(
+        ...messages.map(msg => ({
+          ...msg,
+          full_name: profileMap[msg.sender_id]?.full_name,
+          username: profileMap[msg.sender_id]?.username,
+          avatar_url: profileMap[msg.sender_id]?.avatar_url
+        }))
+      );
+    }
+
     if (error) {
       console.error("Error fetching messages:", error);
       return NextResponse.json(
@@ -74,16 +115,16 @@ export async function GET(
 
     // If we queried with 'after', reverse the results to maintain descending order
     const sortedMessages = after
-      ? [...messages].reverse()
-      : messages;
+      ? [...messagesWithProfiles].reverse()
+      : messagesWithProfiles;
 
     // Mark messages as read
     if (sortedMessages.length > 0) {
       // Get all message IDs that aren't already marked as read by this user
       const messageIds = sortedMessages.map(message => message.id);
 
-      // Check which messages are already read
-      const { data: existingReadStatus } = await supabase
+      // Check which messages are already read using admin client
+      const { data: existingReadStatus } = await adminClient
         .from("message_read_status")
         .select("message_id")
         .eq("user_id", user.id)
@@ -100,12 +141,12 @@ export async function GET(
           read_at: new Date().toISOString()
         }));
 
-        await supabase.from("message_read_status").insert(readStatusRecords);
+        await adminClient.from("message_read_status").insert(readStatusRecords);
       }
     }
 
     // Get the total count of messages in this group
-    const { count, error: countError } = await supabase
+    const { count, error: countError } = await adminClient
       .from("group_chat_messages")
       .select("*", { count: "exact", head: true })
       .eq("study_group_id", groupId);
@@ -135,6 +176,7 @@ export async function POST(
 ) {
   try {
     const supabase = createClient();
+    const adminClient = createAdminClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -151,15 +193,23 @@ export async function POST(
       );
     }
 
-    // Check if user is a member of the study group
-    const { data: membership, error: membershipError } = await supabase
+    // Check if user is a member of the study group using admin client to bypass RLS
+    const { data: membership, error: membershipError } = await adminClient
       .from("study_group_members")
       .select("*")
       .eq("study_group_id", groupId)
       .eq("user_id", user.id)
       .single();
 
-    if (membershipError || !membership) {
+    if (membershipError) {
+      console.error("Error checking membership:", membershipError);
+      return NextResponse.json(
+        { error: "Failed to verify study group membership" },
+        { status: 500 }
+      );
+    }
+
+    if (!membership) {
       return NextResponse.json(
         { error: "You are not a member of this study group" },
         { status: 403 }
@@ -186,8 +236,8 @@ export async function POST(
       );
     }
 
-    // Insert the message
-    const { data: message, error } = await supabase
+    // Insert the message using admin client to bypass RLS
+    const { data: message, error } = await adminClient
       .from("group_chat_messages")
       .insert({
         study_group_id: groupId,
@@ -206,8 +256,8 @@ export async function POST(
       );
     }
 
-    // Get the sender's profile information
-    const { data: profile } = await supabase
+    // Get the sender's profile information using admin client
+    const { data: profile } = await adminClient
       .from("user_profiles")
       .select("full_name, username, avatar_url")
       .eq("id", user.id)

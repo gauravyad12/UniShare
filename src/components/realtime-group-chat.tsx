@@ -57,7 +57,7 @@ export default function RealtimeGroupChat({
   useEffect(() => {
     fetchMessages();
     fetchPinnedMessages();
-    
+
     // Set up realtime subscription
     const channel = supabase
       .channel(`group-chat-${groupId}`)
@@ -120,13 +120,13 @@ export default function RealtimeGroupChat({
 
   const isNearBottom = () => {
     if (!scrollAreaRef.current) return false;
-    
+
     const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
     if (!scrollElement) return false;
-    
+
     const { scrollTop, scrollHeight, clientHeight } = scrollElement;
     const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-    
+
     // Consider "near bottom" if within 100px of the bottom
     return distanceFromBottom < 100;
   };
@@ -140,39 +140,56 @@ export default function RealtimeGroupChat({
   const handleNewMessage = async (newMsg: ChatMessage) => {
     // If the message is from the current user, we already added it optimistically
     if (newMsg.sender_id === currentUserId) return;
-    
-    // Get the user profile for the sender
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('full_name, username, avatar_url')
-      .eq('id', newMsg.sender_id)
-      .single();
-    
-    const messageWithProfile = {
-      ...newMsg,
-      full_name: profile?.full_name,
-      username: profile?.username,
-      avatar_url: profile?.avatar_url
-    };
-    
-    setMessages(prev => [messageWithProfile, ...prev]);
-    
-    // If the message is pinned, add it to pinned messages
-    if (newMsg.is_pinned) {
-      setPinnedMessages(prev => [messageWithProfile, ...prev]);
+
+    // Fetch the complete message with profile info from the API
+    try {
+      const response = await fetch(`/api/study-groups/${groupId}/messages/${newMsg.id}`);
+      const data = await response.json();
+
+      if (response.ok && data.message) {
+        setMessages(prev => [data.message, ...prev]);
+
+        // If the message is pinned, add it to pinned messages
+        if (data.message.is_pinned) {
+          setPinnedMessages(prev => [data.message, ...prev]);
+        }
+      } else {
+        // Fallback to direct fetch if API fails
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('full_name, username, avatar_url')
+          .eq('id', newMsg.sender_id)
+          .single();
+
+        const messageWithProfile = {
+          ...newMsg,
+          full_name: profile?.full_name,
+          username: profile?.username,
+          avatar_url: profile?.avatar_url
+        };
+
+        setMessages(prev => [messageWithProfile, ...prev]);
+
+        // If the message is pinned, add it to pinned messages
+        if (newMsg.is_pinned) {
+          setPinnedMessages(prev => [messageWithProfile, ...prev]);
+        }
+      }
+
+      // Update read status if we're actively viewing
+      updateReadStatus();
+    } catch (err) {
+      console.error("Error handling new message:", err);
     }
-    
-    // Update read status if we're actively viewing
-    updateReadStatus();
   };
 
   const handleMessageUpdate = (updatedMsg: ChatMessage) => {
-    setMessages(prev => 
-      prev.map(msg => 
+    setMessages(prev =>
+      prev.map(msg =>
         msg.id === updatedMsg.id ? { ...msg, ...updatedMsg } : msg
       )
     );
-    
+
     // Update pinned messages
     if (updatedMsg.is_pinned) {
       // Add to pinned if not already there
@@ -198,61 +215,33 @@ export default function RealtimeGroupChat({
       setIsLoading(true);
       setError(null);
 
-      let query = supabase
-        .from('group_chat_messages')
-        .select(`
-          id,
-          study_group_id,
-          sender_id,
-          content,
-          is_pinned,
-          created_at,
-          updated_at,
-          user_profiles!group_chat_messages_sender_id_fkey(
-            full_name,
-            username,
-            avatar_url
-          )
-        `)
-        .eq('study_group_id', groupId)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      // Use the API endpoint instead of direct Supabase query
+      const url = new URL(`/api/study-groups/${groupId}/messages`, window.location.origin);
+      const limit = 50;
+      url.searchParams.append("limit", limit.toString());
 
       if (before) {
-        query = query.lt('created_at', before);
+        url.searchParams.append("before", before);
       }
 
-      const { data, error: fetchError } = await query;
+      const response = await fetch(url.toString());
+      const data = await response.json();
 
-      if (fetchError) {
-        throw new Error(fetchError.message);
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch messages");
       }
-
-      // Transform the data to match our ChatMessage interface
-      const formattedMessages = data.map(msg => ({
-        id: msg.id,
-        study_group_id: msg.study_group_id,
-        sender_id: msg.sender_id,
-        content: msg.content,
-        is_pinned: msg.is_pinned,
-        created_at: msg.created_at,
-        updated_at: msg.updated_at,
-        full_name: msg.user_profiles?.full_name,
-        username: msg.user_profiles?.username,
-        avatar_url: msg.user_profiles?.avatar_url
-      }));
 
       if (before) {
         // Append older messages
-        setMessages(prev => [...prev, ...formattedMessages]);
+        setMessages(prev => [...prev, ...data.messages]);
       } else {
         // Replace all messages
-        setMessages(formattedMessages);
+        setMessages(data.messages);
       }
-      
+
       // Check if there are more messages to load
-      setHasMore(formattedMessages.length === 50);
-      
+      setHasMore(data.hasMore);
+
       // Update read status
       updateReadStatus();
     } catch (err: any) {
@@ -270,45 +259,16 @@ export default function RealtimeGroupChat({
 
   const fetchPinnedMessages = async () => {
     try {
-      const { data, error: fetchError } = await supabase
-        .from('group_chat_messages')
-        .select(`
-          id,
-          study_group_id,
-          sender_id,
-          content,
-          is_pinned,
-          created_at,
-          updated_at,
-          user_profiles!group_chat_messages_sender_id_fkey(
-            full_name,
-            username,
-            avatar_url
-          )
-        `)
-        .eq('study_group_id', groupId)
-        .eq('is_pinned', true)
-        .order('created_at', { ascending: false });
+      // Use the API endpoint for pinned messages
+      const url = new URL(`/api/study-groups/${groupId}/messages/pinned`, window.location.origin);
+      const response = await fetch(url.toString());
+      const data = await response.json();
 
-      if (fetchError) {
-        throw new Error(fetchError.message);
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch pinned messages");
       }
 
-      // Transform the data to match our ChatMessage interface
-      const formattedMessages = data.map(msg => ({
-        id: msg.id,
-        study_group_id: msg.study_group_id,
-        sender_id: msg.sender_id,
-        content: msg.content,
-        is_pinned: msg.is_pinned,
-        created_at: msg.created_at,
-        updated_at: msg.updated_at,
-        full_name: msg.user_profiles?.full_name,
-        username: msg.user_profiles?.username,
-        avatar_url: msg.user_profiles?.avatar_url
-      }));
-
-      setPinnedMessages(formattedMessages);
+      setPinnedMessages(data.pinnedMessages || []);
     } catch (err) {
       console.error("Error fetching pinned messages:", err);
     }
@@ -325,7 +285,7 @@ export default function RealtimeGroupChat({
         .single();
 
       const now = new Date().toISOString();
-      
+
       if (existingStatus) {
         // Update existing read status
         await supabase
@@ -349,7 +309,7 @@ export default function RealtimeGroupChat({
 
   const loadMoreMessages = () => {
     if (isLoadingMore || !hasMore || messages.length === 0) return;
-    
+
     setIsLoadingMore(true);
     const oldestMessage = messages[messages.length - 1];
     fetchMessages(oldestMessage.created_at);
@@ -359,11 +319,11 @@ export default function RealtimeGroupChat({
     const target = e.target as HTMLDivElement;
     const scrollElement = target.querySelector('[data-radix-scroll-area-viewport]');
     if (!scrollElement) return;
-    
+
     // Load more when scrolled near the bottom
     const { scrollTop, scrollHeight, clientHeight } = scrollElement;
     const distanceFromTop = scrollTop;
-    
+
     if (distanceFromTop < 100 && hasMore && !isLoadingMore) {
       loadMoreMessages();
     }
@@ -371,7 +331,7 @@ export default function RealtimeGroupChat({
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
-    
+
     try {
       setIsSending(true);
       setError(null);
@@ -411,8 +371,8 @@ export default function RealtimeGroupChat({
       }
 
       // Update the temporary message with the real one
-      setMessages(prev => 
-        prev.map(msg => 
+      setMessages(prev =>
+        prev.map(msg =>
           msg.id === tempId ? { ...msg, id: message.id } : msg
         )
       );
@@ -539,8 +499,8 @@ export default function RealtimeGroupChat({
       )}
 
       {/* Messages */}
-      <ScrollArea 
-        className="flex-1 pr-4" 
+      <ScrollArea
+        className="flex-1 pr-4"
         ref={scrollAreaRef}
         onScroll={handleScroll}
       >
@@ -551,12 +511,12 @@ export default function RealtimeGroupChat({
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        
+
         <div className="space-y-4">
           {messages.map((message, index) => {
             const isCurrentUser = message.sender_id === currentUserId;
             const showAvatar = index === 0 || messages[index - 1]?.sender_id !== message.sender_id;
-            
+
             return (
               <div key={message.id} className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
                 <div className={`flex ${isCurrentUser ? 'flex-row-reverse' : 'flex-row'} max-w-[80%] gap-2`}>
@@ -566,14 +526,14 @@ export default function RealtimeGroupChat({
                       <AvatarFallback>{getInitials(message.full_name, message.username)}</AvatarFallback>
                     </Avatar>
                   )}
-                  
+
                   <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`}>
                     {showAvatar && (
                       <div className={`text-xs text-muted-foreground mb-1 ${isCurrentUser ? 'text-right' : 'text-left'}`}>
                         {isCurrentUser ? 'You' : (message.full_name || message.username || "Unknown User")}
                       </div>
                     )}
-                    
+
                     <div className="flex items-start gap-2">
                       {isCurrentUser && (
                         <div className="flex flex-col items-end gap-1">
@@ -594,7 +554,7 @@ export default function RealtimeGroupChat({
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
-                          
+
                           {isAdmin && (
                             <TooltipProvider>
                               <Tooltip>
@@ -616,11 +576,11 @@ export default function RealtimeGroupChat({
                           )}
                         </div>
                       )}
-                      
-                      <div 
+
+                      <div
                         className={`rounded-lg px-3 py-2 ${
-                          isCurrentUser 
-                            ? 'bg-primary text-primary-foreground' 
+                          isCurrentUser
+                            ? 'bg-primary text-primary-foreground'
                             : 'bg-muted'
                         } ${message.is_pinned ? 'border-l-4 border-primary' : ''}`}
                       >
@@ -629,7 +589,7 @@ export default function RealtimeGroupChat({
                           {formatMessageTime(message.created_at)}
                         </div>
                       </div>
-                      
+
                       {!isCurrentUser && isAdmin && (
                         <div className="flex flex-col items-start gap-1">
                           <TooltipProvider>
@@ -649,7 +609,7 @@ export default function RealtimeGroupChat({
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
-                          
+
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -671,7 +631,7 @@ export default function RealtimeGroupChat({
                       )}
                     </div>
                   </div>
-                  
+
                   {showAvatar && isCurrentUser && (
                     <Avatar className="h-8 w-8 mt-1">
                       <AvatarImage src={message.avatar_url || ""} alt={message.full_name || message.username || "User"} />
@@ -682,18 +642,18 @@ export default function RealtimeGroupChat({
               </div>
             );
           })}
-          
+
           {messages.length === 0 && !isLoading && (
             <div className="text-center py-8 text-muted-foreground">
               <p>No messages yet. Start the conversation!</p>
             </div>
           )}
-          
+
           {hasMore && (
             <div className="py-2 text-center">
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={loadMoreMessages}
                 disabled={isLoadingMore}
               >
@@ -708,7 +668,7 @@ export default function RealtimeGroupChat({
               </Button>
             </div>
           )}
-          
+
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
@@ -724,8 +684,8 @@ export default function RealtimeGroupChat({
             className="min-h-[80px] resize-none"
             disabled={isSending}
           />
-          <Button 
-            onClick={handleSendMessage} 
+          <Button
+            onClick={handleSendMessage}
             disabled={!newMessage.trim() || isSending}
             className="mb-1"
           >

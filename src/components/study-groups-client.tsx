@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,7 +17,8 @@ import { Calendar, Plus, Search, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import StudyGroupCard from "@/components/study-group-card";
 
-export default function StudyGroupsClient() {
+export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
+  console.log('StudyGroupsClient rendering with tab:', tab);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -26,6 +28,41 @@ export default function StudyGroupsClient() {
       try {
         const response = await fetch('/api/study-groups/list');
         const result = await response.json();
+
+        // Check if the user is the creator of any study groups and add them to myStudyGroups
+        if (result.studyGroups && result.studyGroups.length > 0) {
+          const supabase = createClient();
+          const { data: { user } } = await supabase.auth.getUser();
+
+          if (user) {
+            // Find groups created by the current user
+            const createdGroups = result.studyGroups.filter(group => group.created_by === user.id);
+
+            // Add created groups to myStudyGroups if they're not already there
+            if (createdGroups.length > 0) {
+              const createdGroupIds = createdGroups.map(group => group.id);
+
+              // Add creator's group IDs to userGroupIds if not already there
+              const updatedUserGroupIds = [...new Set([...result.userGroupIds, ...createdGroupIds])];
+
+              // Add created groups to myStudyGroups if not already there
+              const existingMyGroupIds = result.myStudyGroups?.map(group => group.id) || [];
+              const newGroups = createdGroups.filter(group => !existingMyGroupIds.includes(group.id));
+              const updatedMyStudyGroups = [...(result.myStudyGroups || []), ...newGroups];
+
+              result.userGroupIds = updatedUserGroupIds;
+              result.myStudyGroups = updatedMyStudyGroups;
+            }
+          }
+        }
+
+        // Log the data for debugging
+        console.log('Study groups data:', {
+          studyGroups: result.studyGroups?.length || 0,
+          userGroupIds: result.userGroupIds?.length || 0,
+          myStudyGroups: result.myStudyGroups?.length || 0
+        });
+
         setData(result);
       } catch (error) {
         console.error('Error fetching study groups:', error);
@@ -80,7 +117,7 @@ export default function StudyGroupsClient() {
         </div>
       </header>
 
-      <Tabs defaultValue="all" className="w-full">
+      <Tabs defaultValue={tab} className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="all">All Groups</TabsTrigger>
           <TabsTrigger value="my-groups">My Groups</TabsTrigger>
@@ -92,7 +129,7 @@ export default function StudyGroupsClient() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {studyGroups.map((group: any) => (
                 <div key={group.id} className="cursor-pointer" onClick={() => {
-                  router.push(`/dashboard/study-groups/${group.id}`);
+                  router.push(`/dashboard/study-groups?view=${group.id}`);
                 }}>
                   <StudyGroupCard
                     group={group}
@@ -123,7 +160,7 @@ export default function StudyGroupsClient() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {myStudyGroups.map((group: any) => (
                 <div key={group.id} className="cursor-pointer" onClick={() => {
-                  router.push(`/dashboard/study-groups/${group.id}`);
+                  router.push(`/dashboard/study-groups?view=${group.id}`);
                 }}>
                   <StudyGroupCard
                     key={group.id}

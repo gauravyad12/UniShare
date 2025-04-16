@@ -75,9 +75,14 @@ export default function StudyGroupCard({
   });
 
   // Member count with default
-  const memberCount = group.member_count || group._count?.members || 0;
+  const memberCount = group.member_count || 0;
   const meetingCount = group._count?.meetings || 0;
   const messageCount = group.message_count || 0;
+
+  // Log the member count for debugging
+  useEffect(() => {
+    console.log('Member count for group', group.id, ':', memberCount);
+  }, [group.id, memberCount]);
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
@@ -141,7 +146,7 @@ export default function StudyGroupCard({
               size="sm"
               asChild
             >
-              <Link href={`/dashboard/study-groups/${group.id}`}>
+              <Link href={`/dashboard/study-groups?view=${group.id}`}>
                 View Details
               </Link>
             </Button>
