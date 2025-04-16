@@ -1,3 +1,7 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { createClient } from "@/utils/supabase/client";
 import {
   Card,
   CardContent,
@@ -8,7 +12,9 @@ import {
 } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Calendar, Users, Lock, Unlock } from "lucide-react";
+import { Calendar, Users, Lock, Unlock, MessageSquare } from "lucide-react";
+import Link from "next/link";
+import RealtimeUnreadBadge from "./realtime-unread-badge";
 
 interface StudyGroupCardProps {
   group: {
@@ -19,20 +25,48 @@ interface StudyGroupCardProps {
     is_private: boolean;
     max_members: number;
     created_at: string;
+    member_count?: number;
+    message_count?: number;
+    last_message_at?: string;
     _count?: {
       members: number;
       meetings: number;
     };
   };
+  isMember?: boolean;
   onJoin?: (id: string) => void;
   onView?: (id: string) => void;
 }
 
 export default function StudyGroupCard({
   group,
+  isMember = false,
   onJoin,
   onView,
 }: StudyGroupCardProps) {
+  const [userId, setUserId] = useState<string>("");
+
+  // Log the group data for debugging
+  useEffect(() => {
+    console.log('Study group card rendered:', {
+      id: group.id,
+      name: group.name,
+      is_private: group.is_private,
+      isMember
+    });
+  }, [group, isMember]);
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    };
+
+    fetchUserId();
+  }, []);
   // Format date
   const formattedDate = new Date(group.created_at).toLocaleDateString("en-US", {
     year: "numeric",
@@ -41,8 +75,9 @@ export default function StudyGroupCard({
   });
 
   // Member count with default
-  const memberCount = group._count?.members || 0;
+  const memberCount = group.member_count || group._count?.members || 0;
   const meetingCount = group._count?.meetings || 0;
+  const messageCount = group.message_count || 0;
 
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
@@ -79,9 +114,16 @@ export default function StudyGroupCard({
           <div className="flex items-center text-sm text-gray-500">
             <Users className="h-4 w-4 mr-1" />
             <span>
-              {memberCount} / {group.max_members} members
+              {memberCount} / {group.max_members || "∞"} members
             </span>
           </div>
+
+          {messageCount > 0 && (
+            <div className="flex items-center text-sm text-gray-500">
+              <MessageSquare className="h-4 w-4 mr-1" />
+              <span>{messageCount}</span>
+            </div>
+          )}
 
           {meetingCount > 0 && (
             <div className="flex items-center text-sm text-gray-500">
@@ -92,16 +134,49 @@ export default function StudyGroupCard({
         </div>
       </CardContent>
       <CardFooter className="flex justify-end pt-2 border-t gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onView && onView(group.id)}
-        >
-          View Details
-        </Button>
-        <Button size="sm" onClick={() => onJoin && onJoin(group.id)}>
-          Join Group
-        </Button>
+        {isMember ? (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+            >
+              <Link href={`/dashboard/study-groups/${group.id}`}>
+                View Details
+              </Link>
+            </Button>
+            <Button
+              size="sm"
+              asChild
+              className="relative"
+            >
+              <Link href={`/dashboard/study-groups/${group.id}/chat`}>
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Chat
+                {userId && (
+                  <RealtimeUnreadBadge
+                    groupId={group.id}
+                    userId={userId}
+                    className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs"
+                  />
+                )}
+              </Link>
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onView && onView(group.id)}
+            >
+              View Details
+            </Button>
+            <Button size="sm" onClick={() => onJoin && onJoin(group.id)}>
+              Join Group
+            </Button>
+          </>
+        )}
       </CardFooter>
     </Card>
   );

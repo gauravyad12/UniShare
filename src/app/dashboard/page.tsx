@@ -71,10 +71,36 @@ export default async function Dashboard() {
     .select("*", { count: "exact", head: true })
     .eq("university_id", userProfile?.university_id);
 
-  const { count: studyGroupCount } = await supabase
-    .from("study_groups")
-    .select("*", { count: "exact", head: true })
-    .eq("university_id", userProfile?.university_id);
+  // Get count of public study groups using a stored procedure
+  console.log('Fetching study group count for university:', userProfile?.university_id);
+
+  // Create a function to count public study groups
+  const { data: countResult, error: countFunctionError } = await supabase
+    .rpc('count_public_study_groups', {
+      p_university_id: userProfile?.university_id
+    });
+
+  let studyGroupCount = 0;
+
+  if (countFunctionError) {
+    console.error("Error fetching study group count:", countFunctionError);
+
+    // Fallback: Use the get_public_study_groups function and count the results
+    const { data: publicGroups, error: publicGroupsError } = await supabase
+      .rpc('get_public_study_groups', {
+        p_university_id: userProfile?.university_id
+      });
+
+    if (publicGroupsError) {
+      console.error("Error fetching public study groups:", publicGroupsError);
+    } else {
+      studyGroupCount = publicGroups?.length || 0;
+      console.log('Study group count (fallback):', studyGroupCount);
+    }
+  } else {
+    studyGroupCount = countResult;
+    console.log('Study group count:', studyGroupCount);
+  }
 
   // Get user's study groups
   const { data: userStudyGroups } = await supabase
@@ -153,7 +179,7 @@ export default async function Dashboard() {
             variant="outline"
             className="h-auto py-4 flex flex-col items-center justify-center gap-2"
           >
-            <Link href="/dashboard/study-groups?create=true">
+            <Link href="/dashboard/study-groups/create">
               <Users className="h-6 w-6" />
               <span>Create Study Group</span>
             </Link>
@@ -200,7 +226,7 @@ export default async function Dashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{studyGroupCount || 0}</p>
-            <p className="text-sm text-muted-foreground">Active study groups</p>
+            <p className="text-sm text-muted-foreground">Public study groups</p>
           </CardContent>
           <CardFooter>
             <Button asChild variant="outline" size="sm" className="w-full">

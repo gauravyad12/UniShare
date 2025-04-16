@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { containsBadWords, getFirstBadWord } from "@/utils/badWords";
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,8 +9,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ valid: true });
     }
 
-    const badWord = getFirstBadWord(text);
-    
+    // Import the bad words utility dynamically to use the async version
+    const { getFirstBadWord } = await import('@/utils/badWords');
+
+    // Check for bad words
+    const badWord = await getFirstBadWord(text);
+
     if (badWord) {
       return NextResponse.json({
         valid: false,

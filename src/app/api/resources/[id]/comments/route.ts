@@ -161,7 +161,7 @@ export async function POST(
     // Check for bad words in comment
     const { containsBadWords } = await import('@/utils/badWords');
 
-    if (containsBadWords(comment)) {
+    if (await containsBadWords(comment)) {
       return NextResponse.json(
         { error: "Comment contains inappropriate language" },
         { status: 400 },

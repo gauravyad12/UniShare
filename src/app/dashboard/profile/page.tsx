@@ -160,7 +160,7 @@ export default function ProfilePage() {
       // First check for bad words using our utility
       const { containsBadWords } = await import('@/utils/badWords');
 
-      if (containsBadWords(username)) {
+      if (await containsBadWords(username)) {
         setUsernameStatus("invalid");
         setIsCheckingUsername(false);
         return;
@@ -281,19 +281,19 @@ export default function ProfilePage() {
     const { containsBadWords } = await import('@/utils/badWords');
 
     // Check for bad words in full name
-    if (formData.full_name && containsBadWords(formData.full_name)) {
+    if (formData.full_name && await containsBadWords(formData.full_name)) {
       errors.fullName = "Full name contains inappropriate language.";
       hasErrors = true;
     }
 
     // Check for bad words in bio
-    if (formData.bio && containsBadWords(formData.bio)) {
+    if (formData.bio && await containsBadWords(formData.bio)) {
       errors.bio = "Bio contains inappropriate language.";
       hasErrors = true;
     }
 
     // Check for bad words in major
-    if (formData.major && containsBadWords(formData.major)) {
+    if (formData.major && await containsBadWords(formData.major)) {
       errors.major = "Major contains inappropriate language.";
       hasErrors = true;
     }

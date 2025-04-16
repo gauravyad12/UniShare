@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     const { containsBadWords, getFirstBadWord } = await import('@/utils/badWords');
 
     // Check full name
-    if (containsBadWords(full_name)) {
+    if (await containsBadWords(full_name)) {
       return NextResponse.json(
         { error: "Full name contains inappropriate language" },
         { status: 400 },
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check username
-    if (containsBadWords(username)) {
+    if (await containsBadWords(username)) {
       return NextResponse.json(
         { error: "Username contains inappropriate language" },
         { status: 400 },
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check bio
-    if (bio && containsBadWords(bio)) {
+    if (bio && await containsBadWords(bio)) {
       return NextResponse.json(
         { error: "Bio contains inappropriate language" },
         { status: 400 },
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check major
-    if (major && containsBadWords(major)) {
+    if (major && await containsBadWords(major)) {
       return NextResponse.json(
         { error: "Major contains inappropriate language" },
         { status: 400 },

@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     const { containsBadWords } = await import('@/utils/badWords');
 
     // Check title
-    if (containsBadWords(title)) {
+    if (await containsBadWords(title)) {
       return NextResponse.json(
         { error: "Title contains inappropriate language" },
         { status: 400 },
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check description
-    if (description && containsBadWords(description)) {
+    if (description && await containsBadWords(description)) {
       return NextResponse.json(
         { error: "Description contains inappropriate language" },
         { status: 400 },
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check course code
-    if (courseCode && containsBadWords(courseCode)) {
+    if (courseCode && await containsBadWords(courseCode)) {
       return NextResponse.json(
         { error: "Course code contains inappropriate language" },
         { status: 400 },

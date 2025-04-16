@@ -258,21 +258,14 @@ export default function SignUpForm({ message }: SignUpFormProps) {
         }
       }
 
-      // Check for bad words using our API
-      const response = await fetch("/api/validate/bad-words", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ text, fieldName }),
-      });
+      // Check for bad words directly using the utility
+      const { containsBadWords } = await import('@/utils/badWords');
+      const hasBadWord = await containsBadWords(text);
 
-      const data = await response.json();
-
-      if (!response.ok || !data.valid) {
+      if (hasBadWord) {
         return {
           hasBadWord: true,
-          error: data.error || `${fieldName} contains inappropriate language`,
+          error: `${fieldName} contains inappropriate language`,
         };
       }
 

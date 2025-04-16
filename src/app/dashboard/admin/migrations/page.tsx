@@ -13,9 +13,8 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle, Play } from "lucide-react";
+import { AlertCircle, CheckCircle, Play, RefreshCw } from "lucide-react";
 import LoadingSpinner from "@/components/loading-spinner";
-
 interface Migration {
   filename: string;
   path: string;
@@ -100,12 +99,12 @@ export default function MigrationsPage() {
       setResult(null);
       setError(null);
 
-      const response = await fetch("/api/migrations/run", {
+      const response = await fetch("/api/migrations/apply", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ migrationFile: migrationPath }),
+        body: JSON.stringify({ filePath: migrationPath }),
       });
 
       const data = await response.json();
@@ -212,7 +211,7 @@ export default function MigrationsPage() {
                   >
                     {runningMigration === migration.path ? (
                       <>
-                        <span className="animate-spin mr-2">⟳</span>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                         Running...
                       </>
                     ) : (

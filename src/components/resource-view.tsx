@@ -987,7 +987,9 @@ export default function ResourceView({
               rows={3}
             />
             {commentError && (
-              <p className="text-red-500 text-sm mb-2">{commentError}</p>
+              <div className="bg-destructive/15 text-destructive px-4 py-2 rounded-md text-sm mb-2">
+                {commentError}
+              </div>
             )}
             <div className="flex justify-end">
               <Button

@@ -15,7 +15,7 @@ import {
 import { Upload, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { containsBadWords } from "@/utils/badWords";
+// Import badWords dynamically to use the async version
 
 export default function ResourceUploadForm() {
   const router = useRouter();
@@ -31,29 +31,9 @@ export default function ResourceUploadForm() {
   const [validating, setValidating] = useState(false);
   const [badWords, setBadWords] = useState<string[]>([]);
 
-  // Fetch bad words on component mount
-  useEffect(() => {
-    const fetchBadWords = async () => {
-      const supabase = createClient();
-      const { data, error } = await supabase.from("bad_words").select("word");
+  // We'll use the dynamic import of badWords utility instead of maintaining our own list
 
-      if (!error && data) {
-        setBadWords(data.map((item) => item.word.toLowerCase()));
-      }
-    };
-
-    fetchBadWords();
-  }, []);
-
-  // Check for bad words in text
-  const containsBadWords = (text: string): boolean => {
-    if (!text || badWords.length === 0) return false;
-
-    const lowerText = text.toLowerCase();
-    return badWords.some((word) => lowerText.includes(word));
-  };
-
-  const validateForm = (): boolean => {
+  const validateForm = async (): Promise<boolean> => {
     setError(null);
 
     // Check title
@@ -75,13 +55,20 @@ export default function ResourceUploadForm() {
     }
 
     // Check for bad words in title and description
-    if (containsBadWords(title)) {
+    const { containsBadWords } = await import('@/utils/badWords');
+
+    if (await containsBadWords(title)) {
       setError("Title contains inappropriate language");
       return false;
     }
 
-    if (containsBadWords(description)) {
+    if (await containsBadWords(description)) {
       setError("Description contains inappropriate language");
+      return false;
+    }
+
+    if (courseCode && await containsBadWords(courseCode)) {
+      setError("Course code contains inappropriate language");
       return false;
     }
 
@@ -105,7 +92,8 @@ export default function ResourceUploadForm() {
     setError(null);
 
     // Validate form
-    if (!validateForm()) {
+    const isValid = await validateForm();
+    if (!isValid) {
       setIsLoading(false);
       return;
     }
@@ -173,7 +161,7 @@ export default function ResourceUploadForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="bg-red-100 text-red-800 p-3 rounded-md text-sm">
+        <div className="bg-destructive/15 text-destructive px-4 py-2 rounded-md text-sm">
           {error}
         </div>
       )}
@@ -187,6 +175,7 @@ export default function ResourceUploadForm() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
+          className={error && error.includes("Title") ? "border-red-500" : ""}
         />
       </div>
 
@@ -200,6 +189,7 @@ export default function ResourceUploadForm() {
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
           required
+          className={error && error.includes("Description") ? "border-red-500" : ""}
         />
       </div>
 
@@ -234,6 +224,7 @@ export default function ResourceUploadForm() {
             value={courseCode}
             onChange={(e) => setCourseCode(e.target.value)}
             required
+            className={error && error.includes("Course code") ? "border-red-500" : ""}
           />
         </div>
       </div>
@@ -247,6 +238,7 @@ export default function ResourceUploadForm() {
             value={externalLink}
             onChange={(e) => setExternalLink(e.target.value)}
             required
+            className={error && error.includes("URL") ? "border-red-500" : ""}
           />
         </div>
       ) : (
