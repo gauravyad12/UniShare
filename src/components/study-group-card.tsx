@@ -144,18 +144,16 @@ export default function StudyGroupCard({
             <Button
               variant="outline"
               size="sm"
-              asChild
+              onClick={() => onView && onView(group.id)}
             >
-              <Link href={`/dashboard/study-groups?view=${group.id}`}>
-                View Details
-              </Link>
+              View Details
             </Button>
             <Button
               size="sm"
               asChild
               className="relative"
             >
-              <Link href={`/dashboard/study-groups/${group.id}/chat`}>
+              <Link href={`/dashboard/study-groups?view=${group.id}&chat=true`}>
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Chat
                 {userId && (

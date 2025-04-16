@@ -128,12 +128,11 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
           {studyGroups && studyGroups.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {studyGroups.map((group: any) => (
-                <div key={group.id} className="cursor-pointer" onClick={() => {
-                  router.push(`/dashboard/study-groups?view=${group.id}`);
-                }}>
+                <div key={group.id}>
                   <StudyGroupCard
                     group={group}
                     isMember={userGroupIds.includes(group.id)}
+                    onView={(id) => router.push(`/dashboard/study-groups?view=${id}`)}
                   />
                 </div>
               ))}
@@ -159,13 +158,12 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
           {myStudyGroups && myStudyGroups.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {myStudyGroups.map((group: any) => (
-                <div key={group.id} className="cursor-pointer" onClick={() => {
-                  router.push(`/dashboard/study-groups?view=${group.id}`);
-                }}>
+                <div key={group.id}>
                   <StudyGroupCard
                     key={group.id}
                     group={group}
                     isMember={true}
+                    onView={(id) => router.push(`/dashboard/study-groups?view=${id}`)}
                   />
                 </div>
               ))}

@@ -137,7 +137,7 @@ export default async function StudyGroupPage({ params, searchParams }: PageProps
           <div className="flex items-center gap-2">
             {isMember ? (
               <Button asChild className="relative">
-                <Link href={`/dashboard/study-groups/${groupId}/chat`}>
+                <Link href={`/dashboard/study-groups?view=${groupId}&chat=true`}>
                   <MessageSquare className="mr-2 h-4 w-4" />
                   Group Chat
                   <RealtimeUnreadBadgeWrapper
