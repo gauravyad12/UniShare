@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,14 +14,27 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Plus, Search, Users } from "lucide-react";
+import { Calendar, Plus, Search, Users, Loader2, Link as LinkIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import StudyGroupCard from "@/components/study-group-card";
 
 export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
+  const { toast } = useToast();
   console.log('StudyGroupsClient rendering with tab:', tab);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [joinDialogOpen, setJoinDialogOpen] = useState(false);
+  const [inviteCode, setInviteCode] = useState("");
+  const [joiningGroup, setJoiningGroup] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -196,15 +210,112 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
 
   console.log('Updated user group IDs:', allUserGroupIds);
 
+  // Function to handle joining a group with an invitation code
+  const handleJoinGroup = async () => {
+    if (!inviteCode.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter an invitation code",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setJoiningGroup(true);
+
+      const response = await fetch("/api/study-groups/invitations/use", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ code: inviteCode.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to join study group");
+      }
+
+      toast({
+        title: "Success!",
+        description: data.message || "You have successfully joined the study group",
+      });
+
+      // Close the dialog
+      setJoinDialogOpen(false);
+      setInviteCode("");
+
+      // Redirect to the study group page
+      router.push(`/dashboard/study-groups?view=${data.studyGroupId}`);
+    } catch (error) {
+      console.error("Error joining study group:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to join study group",
+        variant: "destructive",
+      });
+    } finally {
+      setJoiningGroup(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
       <header className="flex flex-col gap-4">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Study Groups</h1>
-          <Button onClick={() => router.push('/dashboard/study-groups/create')}>
-            <Users className="mr-2 h-4 w-4" />
-            Create Group
-          </Button>
+          <div className="flex gap-2">
+            <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <LinkIcon className="mr-2 h-4 w-4" /> Join with Code
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Join Private Study Group</DialogTitle>
+                  <DialogDescription>
+                    Enter an invitation code to join a private study group.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <label htmlFor="inviteCode" className="text-right">
+                      Invitation Code
+                    </label>
+                    <Input
+                      id="inviteCode"
+                      placeholder="Enter code"
+                      className="col-span-3"
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleJoinGroup} disabled={joiningGroup || !inviteCode.trim()}>
+                    {joiningGroup ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Joining...
+                      </>
+                    ) : (
+                      <>
+                        <Users className="mr-2 h-4 w-4" />
+                        Join Group
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <Button onClick={() => router.push('/dashboard/study-groups/create')}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Group
+            </Button>
+          </div>
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

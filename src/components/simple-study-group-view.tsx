@@ -10,7 +10,6 @@ import {
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -30,6 +29,7 @@ import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "./ui/use-toast";
 import StudyGroupManagement from "./study-group-management";
+import StudyGroupInvitations from "./study-group-invitations";
 
 interface SimpleStudyGroupViewProps {
   group: any;
@@ -403,6 +403,9 @@ export default function SimpleStudyGroupView({
             <TabsList>
               <TabsTrigger value="resources">Resources</TabsTrigger>
               <TabsTrigger value="meetings">Meetings</TabsTrigger>
+              {group.is_private && (
+                <TabsTrigger value="invitations">Invitations</TabsTrigger>
+              )}
             </TabsList>
             <TabsContent value="resources" className="mt-4">
               <div>
@@ -450,6 +453,14 @@ export default function SimpleStudyGroupView({
                 <p className="text-muted-foreground">No upcoming meetings scheduled.</p>
               </div>
             </TabsContent>
+            {group.is_private && (
+              <TabsContent value="invitations" className="mt-4">
+                <StudyGroupInvitations
+                  groupId={group.id}
+                  isAdmin={isAdmin || isCreator}
+                />
+              </TabsContent>
+            )}
           </Tabs>
         </CardContent>
       </Card>
