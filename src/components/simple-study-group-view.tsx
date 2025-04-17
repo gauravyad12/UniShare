@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "./ui/use-toast";
+import StudyGroupManagement from "./study-group-management";
 
 interface SimpleStudyGroupViewProps {
   group: any;
@@ -98,6 +99,7 @@ export default function SimpleStudyGroupView({
       if (membersError) {
         console.error('Error fetching members:', membersError);
       } else {
+        console.log('Members data structure:', membersData);
         setMembers(membersData || []);
       }
 
@@ -224,34 +226,60 @@ export default function SimpleStudyGroupView({
 
   return (
     <Card className="relative w-full max-w-5xl mx-auto my-8 border-2 border-primary/20 px-2 sm:px-4 md:px-6">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute right-2 top-2 z-10"
-        onClick={handleClose}
-      >
-        <X className="h-4 w-4" />
-      </Button>
+      <div className="absolute right-2 top-2 z-10 flex items-center gap-1">
+        {(isAdmin || isCreator) && (
+          <StudyGroupManagement
+            groupId={group.id}
+            isAdmin={isAdmin}
+            isCreator={isCreator}
+            members={members}
+            group={group}
+            onMembersUpdated={() => {
+              // Refresh the members list
+              const fetchMembers = async () => {
+                const supabase = createClient();
+                const { data: membersData } = await supabase
+                  .rpc('get_study_group_members', {
+                    p_group_id: group.id
+                  });
+                if (membersData) {
+                  setMembers(membersData);
+                }
+              };
+              fetchMembers();
+            }}
+          />
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleClose}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
 
       <CardHeader className="pb-2">
-        <div className="flex items-center gap-2 mb-2 pr-8"> {/* Added right padding for X button */}
-          <h1 className="text-2xl font-bold">{group.name}</h1>
-          <Badge variant={group.is_private ? "secondary" : "outline"}>
-            {group.is_private ? (
-              <>
-                <Lock className="h-3 w-3 mr-1" />
-                Private
-              </>
-            ) : (
-              <>
-                <Unlock className="h-3 w-3 mr-1" />
-                Open
-              </>
+        <div className="flex items-center mb-2"> {/* Removed right padding since X button is now separate */}
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">{group.name}</h1>
+            <Badge variant={group.is_private ? "secondary" : "outline"}>
+              {group.is_private ? (
+                <>
+                  <Lock className="h-3 w-3 mr-1" />
+                  Private
+                </>
+              ) : (
+                <>
+                  <Unlock className="h-3 w-3 mr-1" />
+                  Open
+                </>
+              )}
+            </Badge>
+            {group.course_code && (
+              <Badge variant="outline">{group.course_code}</Badge>
             )}
-          </Badge>
-          {group.course_code && (
-            <Badge variant="outline">{group.course_code}</Badge>
-          )}
+          </div>
         </div>
         <CardDescription className="mb-4">
           Created on {formattedDate}

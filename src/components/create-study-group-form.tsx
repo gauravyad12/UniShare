@@ -36,6 +36,13 @@ export default function CreateStudyGroupForm({
     isPrivate: false,
     maxMembers: "10",
   });
+
+  // Character limits for each field
+  const charLimits = {
+    name: 50,
+    description: 500,
+    courseCode: 20,
+  };
   const [formErrors, setFormErrors] = useState<{
     name?: string;
     description?: string;
@@ -46,6 +53,13 @@ export default function CreateStudyGroupForm({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+
+    // Check if the value exceeds the character limit
+    const fieldName = name as keyof typeof charLimits;
+    if (charLimits[fieldName] && value.length > charLimits[fieldName]) {
+      return; // Don't update if exceeding the limit
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
 
     // Always check for bad words when a field changes
@@ -168,8 +182,8 @@ export default function CreateStudyGroupForm({
 
       // Add a small delay before redirecting to ensure database operations complete
       setTimeout(() => {
-        // Redirect to the new study group page
-        router.push(`/dashboard/study-groups/${data.studyGroup.id}`);
+        // Redirect to the new study group page using URL parameters
+        router.push(`/dashboard/study-groups?view=${data.studyGroup.id}`);
         router.refresh();
       }, 1000);
     } catch (err: any) {
@@ -186,7 +200,10 @@ export default function CreateStudyGroupForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="name">Group Name *</Label>
+        <div className="flex justify-between">
+          <Label htmlFor="name">Group Name *</Label>
+          <span className="text-xs text-muted-foreground">{formData.name.length}/{charLimits.name}</span>
+        </div>
         <Input
           id="name"
           name="name"
@@ -194,6 +211,7 @@ export default function CreateStudyGroupForm({
           value={formData.name}
           onChange={handleChange}
           required
+          maxLength={charLimits.name}
           className={formErrors.name ? "border-red-500" : ""}
         />
         {formErrors.name && (
@@ -202,7 +220,10 @@ export default function CreateStudyGroupForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <div className="flex justify-between">
+          <Label htmlFor="description">Description</Label>
+          <span className="text-xs text-muted-foreground">{formData.description.length}/{charLimits.description}</span>
+        </div>
         <Textarea
           id="description"
           name="description"
@@ -210,6 +231,7 @@ export default function CreateStudyGroupForm({
           value={formData.description}
           onChange={handleChange}
           rows={4}
+          maxLength={charLimits.description}
           className={formErrors.description ? "border-red-500" : ""}
         />
         {formErrors.description && (
@@ -218,13 +240,17 @@ export default function CreateStudyGroupForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="courseCode">Course Code (Optional)</Label>
+        <div className="flex justify-between">
+          <Label htmlFor="courseCode">Course Code (Optional)</Label>
+          <span className="text-xs text-muted-foreground">{formData.courseCode.length}/{charLimits.courseCode}</span>
+        </div>
         <Input
           id="courseCode"
           name="courseCode"
           placeholder="e.g., MATH101"
           value={formData.courseCode}
           onChange={handleChange}
+          maxLength={charLimits.courseCode}
           className={formErrors.courseCode ? "border-red-500" : ""}
         />
         {formErrors.courseCode && (

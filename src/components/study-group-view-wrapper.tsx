@@ -219,7 +219,7 @@ export default function StudyGroupViewWrapper({
           <div className="flex items-center gap-2">
             {isMember ? (
               <Button asChild className="relative">
-                <Link href={`/dashboard/study-groups/${group.id}/chat`}>
+                <Link href={`/dashboard/study-groups?view=${group.id}&chat=true`}>
                   <MessageSquare className="mr-2 h-4 w-4" />
                   Group Chat
                   {userId && (
@@ -382,7 +382,7 @@ export default function StudyGroupViewWrapper({
         </Button>
         {isMember && (
           <Button asChild>
-            <Link href={`/dashboard/study-groups/${group.id}`}>
+            <Link href={`/dashboard/study-groups?view=${group.id}`}>
               View Full Page
             </Link>
           </Button>

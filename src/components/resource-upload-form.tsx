@@ -31,6 +31,14 @@ export default function ResourceUploadForm() {
   const [validating, setValidating] = useState(false);
   const [badWords, setBadWords] = useState<string[]>([]);
 
+  // Character limits for each field
+  const charLimits = {
+    title: 100,
+    description: 500,
+    courseCode: 20,
+    externalLink: 500
+  };
+
   // We'll use the dynamic import of badWords utility instead of maintaining our own list
 
   const validateForm = async (): Promise<boolean> => {
@@ -167,26 +175,42 @@ export default function ResourceUploadForm() {
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="title">Title</Label>
+        <div className="flex justify-between">
+          <Label htmlFor="title">Title</Label>
+          <span className="text-xs text-muted-foreground">{title.length}/{charLimits.title}</span>
+        </div>
         <Input
           id="title"
           name="title"
           placeholder="Resource title"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => {
+            if (e.target.value.length <= charLimits.title) {
+              setTitle(e.target.value);
+            }
+          }}
+          maxLength={charLimits.title}
           required
           className={error && error.includes("Title") ? "border-red-500" : ""}
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <div className="flex justify-between">
+          <Label htmlFor="description">Description</Label>
+          <span className="text-xs text-muted-foreground">{description.length}/{charLimits.description}</span>
+        </div>
         <Textarea
           id="description"
           name="description"
           placeholder="Describe this resource"
           value={description}
-          onChange={(e) => setDescription(e.target.value)}
+          onChange={(e) => {
+            if (e.target.value.length <= charLimits.description) {
+              setDescription(e.target.value);
+            }
+          }}
+          maxLength={charLimits.description}
           rows={3}
           required
           className={error && error.includes("Description") ? "border-red-500" : ""}
@@ -216,13 +240,21 @@ export default function ResourceUploadForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="course_code">Course Code</Label>
+          <div className="flex justify-between">
+            <Label htmlFor="course_code">Course Code</Label>
+            <span className="text-xs text-muted-foreground">{courseCode.length}/{charLimits.courseCode}</span>
+          </div>
           <Input
             id="course_code"
             name="course_code"
             placeholder="e.g. CS101"
             value={courseCode}
-            onChange={(e) => setCourseCode(e.target.value)}
+            onChange={(e) => {
+              if (e.target.value.length <= charLimits.courseCode) {
+                setCourseCode(e.target.value);
+              }
+            }}
+            maxLength={charLimits.courseCode}
             required
             className={error && error.includes("Course code") ? "border-red-500" : ""}
           />
@@ -231,12 +263,20 @@ export default function ResourceUploadForm() {
 
       {resourceType === "link" ? (
         <div className="space-y-2">
-          <Label htmlFor="external_link">External URL</Label>
+          <div className="flex justify-between">
+            <Label htmlFor="external_link">External URL</Label>
+            <span className="text-xs text-muted-foreground">{externalLink.length}/{charLimits.externalLink}</span>
+          </div>
           <Input
             id="external_link"
             placeholder="https://example.com"
             value={externalLink}
-            onChange={(e) => setExternalLink(e.target.value)}
+            onChange={(e) => {
+              if (e.target.value.length <= charLimits.externalLink) {
+                setExternalLink(e.target.value);
+              }
+            }}
+            maxLength={charLimits.externalLink}
             required
             className={error && error.includes("URL") ? "border-red-500" : ""}
           />

@@ -20,8 +20,45 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File;
     const externalLink = formData.get("external_link") as string;
 
+    // Character limits
+    const charLimits = {
+      title: 100,
+      description: 500,
+      courseCode: 20,
+      externalLink: 500
+    };
+
     if (!title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    }
+
+    // Check character limits
+    if (title.length > charLimits.title) {
+      return NextResponse.json(
+        { error: `Title must be ${charLimits.title} characters or less` },
+        { status: 400 }
+      );
+    }
+
+    if (description && description.length > charLimits.description) {
+      return NextResponse.json(
+        { error: `Description must be ${charLimits.description} characters or less` },
+        { status: 400 }
+      );
+    }
+
+    if (courseCode && courseCode.length > charLimits.courseCode) {
+      return NextResponse.json(
+        { error: `Course code must be ${charLimits.courseCode} characters or less` },
+        { status: 400 }
+      );
+    }
+
+    if (externalLink && externalLink.length > charLimits.externalLink) {
+      return NextResponse.json(
+        { error: `External URL must be ${charLimits.externalLink} characters or less` },
+        { status: 400 }
+      );
     }
 
     if (resourceType !== "link" && !file) {

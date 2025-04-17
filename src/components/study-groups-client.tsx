@@ -26,42 +26,127 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
   useEffect(() => {
     async function fetchData() {
       try {
-        const response = await fetch('/api/study-groups/list');
-        const result = await response.json();
+        // Get the Supabase client for direct queries if needed
+        const supabase = createClient();
 
-        // Check if the user is the creator of any study groups and add them to myStudyGroups
-        if (result.studyGroups && result.studyGroups.length > 0) {
-          const supabase = createClient();
-          const { data: { user } } = await supabase.auth.getUser();
+        // Fetch public study groups
+        const publicResponse = await fetch('/api/study-groups/list');
+        const publicResult = await publicResponse.json();
 
-          if (user) {
-            // Find groups created by the current user
-            const createdGroups = result.studyGroups.filter(group => group.created_by === user.id);
+        // Fetch user's study groups (including private ones) from dedicated endpoint
+        let myGroups = [];
+        try {
+          const myGroupsResponse = await fetch('/api/study-groups/my-groups');
+          const myGroupsResult = await myGroupsResponse.json();
+          myGroups = myGroupsResult.myGroups || [];
+          console.log('API returned groups:', myGroups.length);
+        } catch (err) {
+          console.error('Error fetching from my-groups API:', err);
+        }
 
-            // Add created groups to myStudyGroups if they're not already there
-            if (createdGroups.length > 0) {
-              const createdGroupIds = createdGroups.map(group => group.id);
+        if (myGroups.length === 0) {
+          console.log('API returned no groups, trying direct query');
 
-              // Add creator's group IDs to userGroupIds if not already there
-              const updatedUserGroupIds = [...new Set([...result.userGroupIds, ...createdGroupIds])];
+          try {
+            // Get the current user
+            const { data: { user } } = await supabase.auth.getUser();
 
-              // Add created groups to myStudyGroups if not already there
-              const existingMyGroupIds = result.myStudyGroups?.map(group => group.id) || [];
-              const newGroups = createdGroups.filter(group => !existingMyGroupIds.includes(group.id));
-              const updatedMyStudyGroups = [...(result.myStudyGroups || []), ...newGroups];
+            if (user) {
+              console.log('Direct query: User authenticated', user.id);
 
-              result.userGroupIds = updatedUserGroupIds;
-              result.myStudyGroups = updatedMyStudyGroups;
+              try {
+                // Get all study group IDs the user is a member of
+                const { data: memberGroups, error: memberError } = await supabase
+                  .from("study_group_members")
+                  .select("study_group_id")
+                  .eq("user_id", user.id);
+
+                if (memberError) {
+                  console.error('Direct query: Error fetching memberships:', memberError);
+                } else {
+                  const memberGroupIds = memberGroups?.map(g => g.study_group_id) || [];
+                  console.log('Direct query found memberships:', memberGroupIds);
+
+                  // Fetch full details of all these groups
+                  if (memberGroupIds.length > 0) {
+                    try {
+                      // Try to get all groups at once
+                      const { data: directGroups, error: groupsError } = await supabase
+                        .from("study_groups")
+                        .select("*")
+                        .in("id", memberGroupIds)
+                        .order("created_at", { ascending: false });
+
+                      if (groupsError) {
+                        console.error('Direct query: Error fetching groups:', groupsError);
+                      } else if (directGroups && directGroups.length > 0) {
+                        console.log('Direct query found groups:', directGroups.length);
+                        myGroups = directGroups;
+                      }
+                    } catch (err) {
+                      console.error('Direct query: Exception fetching groups:', err);
+                    }
+
+                    // If still no groups, try one by one
+                    if (myGroups.length === 0) {
+                      console.log('Trying to fetch groups one by one');
+                      const oneByOneGroups = [];
+
+                      for (const groupId of memberGroupIds) {
+                        try {
+                          const { data: group } = await supabase
+                            .from("study_groups")
+                            .select("*")
+                            .eq("id", groupId)
+                            .single();
+
+                          if (group) {
+                            oneByOneGroups.push(group);
+                            console.log(`Found group: ${group.id} - ${group.name} (private: ${group.is_private})`);
+                          }
+                        } catch (err) {
+                          console.error(`Error fetching group ${groupId}:`, err);
+                        }
+                      }
+
+                      if (oneByOneGroups.length > 0) {
+                        console.log('Found groups one by one:', oneByOneGroups.length);
+                        myGroups = oneByOneGroups;
+                      }
+                    }
+                  }
+                }
+              } catch (err) {
+                console.error('Direct query: Exception in membership fetch:', err);
+              }
             }
+          } catch (err) {
+            console.error('Direct query: Exception getting user:', err);
           }
         }
 
+        // Combine the results
+        const result = {
+          studyGroups: publicResult.studyGroups || [],
+          userGroupIds: publicResult.userGroupIds || [],
+          myStudyGroups: myGroups
+        };
+
         // Log the data for debugging
-        console.log('Study groups data:', {
-          studyGroups: result.studyGroups?.length || 0,
-          userGroupIds: result.userGroupIds?.length || 0,
-          myStudyGroups: result.myStudyGroups?.length || 0
+        console.log('Combined study groups data:', {
+          studyGroups: result.studyGroups.length,
+          userGroupIds: result.userGroupIds.length,
+          myStudyGroups: result.myStudyGroups.length,
+          privateGroups: result.myStudyGroups.filter((g: any) => g.is_private).length
         });
+
+        // Log details of private groups
+        const privateGroups = result.myStudyGroups.filter((g: any) => g.is_private);
+        if (privateGroups.length > 0) {
+          console.log('Private groups found:', privateGroups.map((g: any) => ({ id: g.id, name: g.name })));
+        } else {
+          console.log('No private groups found');
+        }
 
         setData(result);
       } catch (error) {
@@ -98,6 +183,19 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
 
   const { studyGroups = [], userGroupIds = [], myStudyGroups = [] } = data || {};
 
+  // Log the actual data being used for rendering
+  console.log('Rendering with data:', {
+    studyGroups: studyGroups.map(g => ({ id: g.id, name: g.name, is_private: g.is_private })),
+    myStudyGroups: myStudyGroups.map(g => ({ id: g.id, name: g.name, is_private: g.is_private })),
+    userGroupIds
+  });
+
+  // Make sure userGroupIds includes all IDs from myStudyGroups
+  const myGroupIds = myStudyGroups.map((group: any) => group.id);
+  const allUserGroupIds = [...new Set([...userGroupIds, ...myGroupIds])];
+
+  console.log('Updated user group IDs:', allUserGroupIds);
+
   return (
     <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
       <header className="flex flex-col gap-4">
@@ -131,7 +229,7 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
                 <div key={group.id}>
                   <StudyGroupCard
                     group={group}
-                    isMember={userGroupIds.includes(group.id)}
+                    isMember={allUserGroupIds.includes(group.id)}
                     onView={(id) => router.push(`/dashboard/study-groups?view=${id}`)}
                   />
                 </div>
@@ -157,16 +255,24 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
         <TabsContent value="my-groups" className="space-y-4">
           {myStudyGroups && myStudyGroups.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {myStudyGroups.map((group: any) => (
-                <div key={group.id}>
-                  <StudyGroupCard
-                    key={group.id}
-                    group={group}
-                    isMember={true}
-                    onView={(id) => router.push(`/dashboard/study-groups?view=${id}`)}
-                  />
-                </div>
-              ))}
+              {/* Log each group as it's being rendered */}
+              {myStudyGroups.map((group: any) => {
+                console.log('Rendering group in My Groups tab:', {
+                  id: group.id,
+                  name: group.name,
+                  is_private: group.is_private
+                });
+                return (
+                  <div key={group.id}>
+                    <StudyGroupCard
+                      key={group.id}
+                      group={group}
+                      isMember={true}
+                      onView={(id) => router.push(`/dashboard/study-groups?view=${id}`)}
+                    />
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <Card className="bg-muted/40">
