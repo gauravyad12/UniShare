@@ -26,6 +26,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get all invite codes created by the user
+    const { data: inviteCodes, error: inviteCodesError } = await supabase
+      .from("invite_codes")
+      .select("id, code, current_uses, max_uses")
+      .eq("created_by", userData.user.id);
+
+    if (inviteCodesError) {
+      console.error("Error fetching invite codes:", inviteCodesError);
+      return NextResponse.json(
+        { error: "Failed to fetch invite codes" },
+        { status: 500 },
+      );
+    }
+
     // Get verification status
     const { data: verificationData, error: verificationError } = await supabase
       .from("user_profiles")
@@ -37,18 +51,32 @@ export async function GET(request: NextRequest) {
       console.error("Error fetching verification status:", verificationError);
     }
 
-    // Count successful invites
-    const successfulInvites = invitations.filter(
+    // Calculate total uses across all invite codes
+    const totalInviteUses = inviteCodes?.reduce((total, code) => total + (code.current_uses || 0), 0) || 0;
+
+    // Count successful invites from sent_invitations (for backward compatibility)
+    const successfulSentInvites = invitations.filter(
       (inv) => inv.status === "used",
     ).length;
+
+    // Use the higher count between total uses and successful sent invites
+    // This ensures we count both direct uses and sent invitation uses
+    const successfulInvites = Math.max(totalInviteUses, successfulSentInvites);
+
+    // Calculate if the user has reached the maximum allowed invites
+    const requiredInvites = 5;
+    const hasReachedMaxInvites = successfulInvites >= requiredInvites;
 
     return NextResponse.json({
       success: true,
       invitations,
+      inviteCodes,
       verificationStatus: {
         isVerified: verificationData?.is_verified || false,
         successfulInvites,
-        requiredInvites: 5,
+        requiredInvites,
+        hasReachedMaxInvites,
+        totalInviteUses
       },
     });
   } catch (error) {

@@ -56,6 +56,8 @@ export default function InvitePage() {
     isVerified: false,
     successfulInvites: 0,
     requiredInvites: 5,
+    hasReachedMaxInvites: false,
+    totalInviteUses: 0
   });
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [inviteCodesCount, setInviteCodesCount] = useState(0);
@@ -144,11 +146,46 @@ export default function InvitePage() {
             requiredInvites: 5,
           },
         );
+
+        // Check if user should be verified
+        if (data.verificationStatus?.successfulInvites >= data.verificationStatus?.requiredInvites &&
+            !data.verificationStatus?.isVerified) {
+          // Call the verify API to update verification status
+          verifyProfile();
+        }
       } else {
         console.error("Error fetching invitations:", data.error);
       }
     } catch (error) {
       console.error("Error fetching sent invitations:", error);
+    }
+  };
+
+  const verifyProfile = async () => {
+    try {
+      const response = await fetch("/api/profile/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.verified) {
+        // Update local state
+        setVerificationStatus(prev => ({
+          ...prev,
+          isVerified: true
+        }));
+
+        toast({
+          title: "Congratulations!",
+          description: "Your profile has been verified!",
+        });
+      }
+    } catch (error) {
+      console.error("Error verifying profile:", error);
     }
   };
 
@@ -158,6 +195,16 @@ export default function InvitePage() {
       toast({
         title: "Limit Reached",
         description: `You have reached the maximum limit of ${MAX_INVITE_CODES} invite codes.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if the user has already reached the maximum number of successful invites
+    if (verificationStatus.hasReachedMaxInvites) {
+      toast({
+        title: "Limit Reached",
+        description: `You have already reached the maximum limit of 5 successful invites.`,
         variant: "destructive",
       });
       return;
@@ -311,7 +358,7 @@ export default function InvitePage() {
             Verification Progress
           </CardTitle>
           <CardDescription>
-            Invite 5 friends who sign up to get verified status on your profile
+            Invite 5 friends who sign up to get verified status on your profile.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -343,10 +390,20 @@ export default function InvitePage() {
                 <div className="text-muted-foreground">
                   {verificationStatus.successfulInvites >=
                   verificationStatus.requiredInvites ? (
-                    <span>
-                      You've reached the required invites! Your profile will be
-                      verified soon.
-                    </span>
+                    <div className="flex flex-col gap-2">
+                      <span>
+                        You've reached the required invites! Your profile will be
+                        verified soon.
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={verifyProfile}
+                        className="self-start"
+                      >
+                        Verify Now
+                      </Button>
+                    </div>
                   ) : (
                     <span>
                       Invite{" "}
@@ -447,8 +504,12 @@ export default function InvitePage() {
                   </p>
                   <Button
                     onClick={generateInviteCode}
-                    disabled={generating || maxInviteCodesReached}
-                    title={maxInviteCodesReached ? "Maximum limit of " + MAX_INVITE_CODES + " invite codes reached" : ""}
+                    disabled={generating || maxInviteCodesReached || verificationStatus.hasReachedMaxInvites}
+                    title={maxInviteCodesReached
+                      ? "Maximum limit of " + MAX_INVITE_CODES + " invite codes reached"
+                      : verificationStatus.hasReachedMaxInvites
+                      ? "You have already reached the maximum limit of 5 successful invites"
+                      : ""}
                   >
                     {generating ? (
                       <>
@@ -459,9 +520,13 @@ export default function InvitePage() {
                       <>Generate Invite Code</>
                     )}
                   </Button>
-                  {maxInviteCodesReached && (
+                  {(maxInviteCodesReached || verificationStatus.hasReachedMaxInvites) && (
                     <p className="text-xs text-destructive mt-2">
-                      You have reached the maximum limit of {MAX_INVITE_CODES} invite codes.
+                      {maxInviteCodesReached
+                        ? `You have reached the maximum limit of ${MAX_INVITE_CODES} invite codes.`
+                        : verificationStatus.hasReachedMaxInvites
+                        ? "You have already reached the maximum limit of 5 successful invites."
+                        : ""}
                     </p>
                   )}
                 </div>
@@ -472,9 +537,13 @@ export default function InvitePage() {
                 <Button
                   variant="outline"
                   onClick={generateInviteCode}
-                  disabled={generating || maxInviteCodesReached}
+                  disabled={generating || maxInviteCodesReached || verificationStatus.hasReachedMaxInvites}
                   className="flex-1"
-                  title={maxInviteCodesReached ? "Maximum limit of " + MAX_INVITE_CODES + " invite codes reached" : ""}
+                  title={maxInviteCodesReached
+                    ? "Maximum limit of " + MAX_INVITE_CODES + " invite codes reached"
+                    : verificationStatus.hasReachedMaxInvites
+                    ? "You have already reached the maximum limit of 5 successful invites"
+                    : ""}
                 >
                   {generating ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

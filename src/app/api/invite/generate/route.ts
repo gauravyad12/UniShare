@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     // Check how many invite codes the user has already created
     const { data: existingCodes, error: countError } = await supabase
       .from("invite_codes")
-      .select("id")
+      .select("id, current_uses")
       .eq("created_by", userData.user.id);
 
     if (countError) {
@@ -43,6 +43,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Failed to check existing invite codes" },
         { status: 500 },
+      );
+    }
+
+    // Calculate total successful invites across all codes
+    const totalInviteUses = existingCodes?.reduce((total, code) => total + (code.current_uses || 0), 0) || 0;
+
+    // Check if the user has already reached the maximum number of successful invites (5)
+    if (totalInviteUses >= 5) {
+      return NextResponse.json(
+        {
+          error: "You have already reached the maximum limit of 5 successful invites. You cannot create more invite codes.",
+          maxReached: true,
+          totalInviteUses
+        },
+        { status: 400 },
       );
     }
 

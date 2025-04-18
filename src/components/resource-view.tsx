@@ -168,6 +168,13 @@ export default function ResourceView({
         // Update comment count from server response
         setCommentCount(data.count);
         console.log("New comment count after adding:", data.count);
+
+        // Scroll to the comments section after adding a new comment
+        setTimeout(() => {
+          if (commentsEndRef.current) {
+            commentsEndRef.current.scrollIntoView({ behavior: "smooth" });
+          }
+        }, 300); // Small delay to ensure the comment is rendered
       } else {
         setCommentError(data.error || "Failed to post comment");
       }
@@ -289,6 +296,9 @@ export default function ResourceView({
 
   // Initialize comments and setup
   useEffect(() => {
+    // Scroll to the top of the page when the component mounts
+    window.scrollTo(0, 0);
+
     // Fetch comments when the component mounts
     fetchComments();
 
@@ -509,12 +519,8 @@ export default function ResourceView({
     };
   }, [resource.id]);
 
-  // Scroll to the bottom of the comments when a new comment is added
-  useEffect(() => {
-    if (commentsEndRef.current) {
-      commentsEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [comments]);
+  // We'll only scroll to comments when a user explicitly adds a new comment
+  // No automatic scrolling on page load or when comments are fetched
 
   const handleDownload = async () => {
     // Determine if we're handling an external link or a file
