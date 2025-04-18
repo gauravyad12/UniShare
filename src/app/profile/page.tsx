@@ -122,7 +122,7 @@ export default function UserProfilePage() {
     };
 
     fetchProfileData();
-  }, [usernameParam]);
+  }, [usernameParam, searchParams]);
 
   if (loading) {
     return (

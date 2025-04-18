@@ -43,15 +43,49 @@ export default function SimpleGroupChat({
   const [userId, setUserId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [subscription, setSubscription] = useState<any>(null);
-  const [isMember, setIsMember] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   console.log('SimpleGroupChat rendering with group:', group);
 
   // Scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > 0) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
   }, [messages]);
+
+  // Set up polling for new messages
+  useEffect(() => {
+    if (!group.id || !userId) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const supabase = createClient();
+        const { data: messagesData, error: messagesError } = await supabase
+          .rpc('get_messages_with_profiles', {
+            p_group_id: group.id,
+            p_user_id: userId,
+            p_limit: 100
+          });
+
+        if (messagesError) {
+          console.error('Error polling messages:', messagesError);
+        } else if (messagesData && messagesData.length > 0) {
+          // Only update if we have new messages
+          if (messagesData.length !== messages.length) {
+            console.log('New messages found during polling, updating...');
+            setMessages(messagesData);
+          }
+        }
+      } catch (error) {
+        console.error('Error in message polling:', error);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [group.id, userId, messages.length]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -77,42 +111,70 @@ export default function SimpleGroupChat({
         console.log('Is user the creator?', isCreator, 'Creator ID:', group.created_by, 'User ID:', user.id);
 
         if (isCreator) {
-          setIsMember(true);
           console.log('User is the creator of this group');
         } else {
-          const { data: membership } = await supabase
-            .from("study_group_members")
-            .select("*")
-            .eq("study_group_id", group.id)
-            .eq("user_id", user.id)
-            .single();
+          // Use the stored procedure to check membership
+          try {
+            const { data: membershipData, error: membershipError } = await supabase
+              .rpc('check_study_group_membership', {
+                p_group_id: group.id,
+                p_user_id: user.id
+              });
 
-          const isUserMember = !!membership;
-          setIsMember(isUserMember);
-          console.log('User membership status:', isUserMember);
+            console.log('Membership check result:', membershipData);
+            console.log('Membership check error:', membershipError);
 
-          // If user is not a member or creator, redirect to study groups page
-          if (!isUserMember) {
-            toast({
-              title: "Access Denied",
-              description: "You must be a member of this study group to view the chat.",
-              variant: "destructive",
-            });
-            router.push('/dashboard/study-groups');
-            return;
+            const isUserMember = membershipData && membershipData.length > 0 && membershipData[0].is_member;
+            console.log('User membership status:', isUserMember);
+
+            // If user is not a member or creator, redirect to study groups page
+            if (!isUserMember) {
+              toast({
+                title: "Access Denied",
+                description: "You must be a member of this study group to view the chat.",
+                variant: "destructive",
+              });
+              router.push('/dashboard/study-groups');
+              return;
+            }
+          } catch (error) {
+            console.error('Error checking membership:', error);
+
+            // Fallback to checking user's study groups
+            const { data: userGroups } = await supabase
+              .rpc('get_user_study_groups', {
+                p_user_id: user.id
+              });
+
+            const isUserMember = userGroups && userGroups.some((g: { id: string }) => g.id === group.id);
+            console.log('User membership status (fallback):', isUserMember);
+
+            if (!isUserMember) {
+              toast({
+                title: "Access Denied",
+                description: "You must be a member of this study group to view the chat.",
+                variant: "destructive",
+              });
+              router.push('/dashboard/study-groups');
+              return;
+            }
           }
         }
 
-        // Get messages using the API endpoint
+        // Get messages using the stored procedure directly
         try {
-          const response = await fetch(`/api/study-groups/${group.id}/messages?limit=100&ascending=true`);
-          const data = await response.json();
+          const { data: messagesData, error: messagesError } = await supabase
+            .rpc('get_messages_with_profiles', {
+              p_group_id: group.id,
+              p_user_id: user.id,
+              p_limit: 100
+            });
 
-          if (!response.ok) {
-            throw new Error(data.error || "Failed to fetch messages");
+          if (messagesError) {
+            console.error('Error fetching messages:', messagesError);
+          } else {
+            setMessages(messagesData || []);
           }
-
-          setMessages(data.messages || []);
         } catch (error) {
           console.error('Error fetching messages:', error);
         }
@@ -128,22 +190,25 @@ export default function SimpleGroupChat({
             filter: `study_group_id=eq.${group.id}`
           }, async (payload: any) => {
             console.log('Received new message:', payload.new);
-            // Fetch the complete message with profile info using the API
+            // Fetch all messages to get the latest with profile info
             try {
-              const response = await fetch(`/api/study-groups/${group.id}/messages/${payload.new.id}`);
-              const data = await response.json();
+              const { data: messagesData, error: messagesError } = await supabase
+                .rpc('get_messages_with_profiles', {
+                  p_group_id: group.id,
+                  p_user_id: user.id,
+                  p_limit: 100
+                });
 
-              if (response.ok && data.message) {
-                console.log('Found message with profile:', data.message);
-                // Add the new message to the state
-                setMessages(prevMessages => [...prevMessages, data.message]);
-              } else {
-                console.log('Using fallback for message without profile');
+              if (messagesError) {
+                console.error('Error fetching messages:', messagesError);
                 // Fallback if the API fails
                 setMessages(prevMessages => [...prevMessages, payload.new]);
+              } else if (messagesData) {
+                console.log('Refreshed messages with profiles');
+                setMessages(messagesData);
               }
             } catch (error) {
-              console.error('Error fetching new message:', error);
+              console.error('Error fetching messages:', error);
               // Fallback if the API fails
               setMessages(prevMessages => [...prevMessages, payload.new]);
             }
@@ -176,11 +241,12 @@ export default function SimpleGroupChat({
       setSending(true);
       const supabase = createClient();
 
-      // Use the stored procedure to send the message
+      // Use the simplified stored procedure to send the message
       console.log('Sending message to group:', group.id);
       const { data, error } = await supabase
-        .rpc('send_group_chat_message', {
-          p_study_group_id: group.id,
+        .rpc('send_message_with_profile', {
+          p_group_id: group.id,
+          p_user_id: userId,
           p_content: newMessage.trim()
         });
       console.log('Message sent, response:', data);
@@ -192,22 +258,35 @@ export default function SimpleGroupChat({
       // Clear the input
       setNewMessage("");
 
-      // Manually fetch the new message if it was successful
-      if (data) {
-        const messageId = data;
-        console.log('Fetching newly sent message with ID:', messageId);
-        try {
-          const response = await fetch(`/api/study-groups/${group.id}/messages/${messageId}`);
-          const responseData = await response.json();
+      // The function returns the message with profile information
+      if (data && Array.isArray(data) && data.length > 0) {
+        console.log('Message sent with profile:', data[0]);
 
-          if (response.ok && responseData.message) {
-            console.log('Manually adding new message to chat:', responseData.message);
-            setMessages(prevMessages => [...prevMessages, responseData.message]);
+        // Add the message to the chat
+        setMessages(prevMessages => [...prevMessages, data[0]]);
+
+        // Scroll to the bottom
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      } else {
+        // Fallback: Fetch all messages again immediately
+        console.log('No message data returned, refreshing all messages');
+        try {
+          const { data: messagesData, error: messagesError } = await supabase
+            .rpc('get_messages_with_profiles', {
+              p_group_id: group.id,
+              p_user_id: userId,
+              p_limit: 100
+            });
+
+          if (messagesError) {
+            console.error('Error fetching messages:', messagesError);
           } else {
-            console.error('Error fetching new message:', responseData.error);
+            setMessages(messagesData || []);
           }
         } catch (error) {
-          console.error('Error fetching new message:', error);
+          console.error('Error fetching messages:', error);
         }
       }
     } catch (error) {
@@ -323,7 +402,7 @@ export default function SimpleGroupChat({
           {messages.length > 0 ? (
             <div className="space-y-3 pt-3">
               <AnimatePresence initial={false}>
-                {messages.map((message) => (
+                {[...messages].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map((message) => (
                   <motion.div
                     key={message.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -335,8 +414,8 @@ export default function SimpleGroupChat({
                     >
                   {message.sender_id !== userId && (
                     <Avatar className="h-8 w-8">
-                      {message.sender_avatar_url ? (
-                        <AvatarImage src={message.sender_avatar_url} />
+                      {message.avatar_url ? (
+                        <AvatarImage src={message.avatar_url} />
                       ) : (
                         <AvatarFallback>
                           <Users className="h-4 w-4" />
@@ -352,7 +431,7 @@ export default function SimpleGroupChat({
                       <span className="text-xs font-medium">
                         {message.sender_id === userId
                           ? 'You'
-                          : message.sender_name || message.sender_username || 'Unknown User'}
+                          : message.full_name || message.username || 'Unknown User'}
                       </span>
                       <span className="text-[10px] opacity-70 whitespace-nowrap">
                         {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}

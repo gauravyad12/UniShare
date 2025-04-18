@@ -22,9 +22,17 @@ import {
   X,
   FileText,
   Calendar,
-  Loader2
+  Loader2,
+  MoreVertical,
+  LogOut
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { useToast } from "./ui/use-toast";
@@ -48,6 +56,7 @@ export default function SimpleStudyGroupView({
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [joiningGroup, setJoiningGroup] = useState(false);
+  const [leavingGroup, setLeavingGroup] = useState(false);
 
   console.log('SimpleStudyGroupView rendering with group:', group);
 
@@ -129,17 +138,53 @@ export default function SimpleStudyGroupView({
 
     try {
       setJoiningGroup(true);
-      const supabase = createClient();
 
-      // Check if already a member
-      const { data: existingMember } = await supabase
-        .from("study_group_members")
-        .select("id")
-        .eq("study_group_id", group.id)
-        .eq("user_id", userId)
-        .maybeSingle();
+      // Use the API endpoint to join the group instead of direct database access
+      // This avoids the RLS recursion issue
+      const response = await fetch('/api/study-groups/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          groupId: group.id
+        })
+      });
 
-      if (existingMember) {
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Join group response error:', data);
+
+        // If the error is related to the stored procedure, try the direct join endpoint
+        if (data.error && data.error.includes('stored procedure')) {
+          console.log('Trying direct join endpoint as fallback');
+
+          const directResponse = await fetch('/api/study-groups/join-direct', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              groupId: group.id
+            })
+          });
+
+          const directData = await directResponse.json();
+
+          if (!directResponse.ok) {
+            console.error('Direct join response error:', directData);
+            throw new Error(directData.error || 'Failed to join group directly');
+          }
+
+          // If we get here, the direct join was successful
+          return directData;
+        }
+
+        throw new Error(data.error || 'Failed to join group');
+      }
+
+      if (data.alreadyMember) {
         toast({
           title: "Already a member",
           description: "You are already a member of this study group",
@@ -147,20 +192,6 @@ export default function SimpleStudyGroupView({
         });
         setJoiningGroup(false);
         return;
-      }
-
-      // Join the group
-      const { error } = await supabase
-        .from("study_group_members")
-        .insert({
-          study_group_id: group.id,
-          user_id: userId,
-          role: "member",
-          joined_at: new Date().toISOString(),
-        });
-
-      if (error) {
-        throw error;
       }
 
       toast({
@@ -183,9 +214,56 @@ export default function SimpleStudyGroupView({
       router.refresh();
     } catch (error) {
       console.error("Error joining group:", error);
+
+      // Try one more time with the direct endpoint if we haven't already
+      if (error instanceof Error && error.message.includes('Failed to join group') && !error.message.includes('directly')) {
+        try {
+          console.log('Trying direct join endpoint as last resort');
+
+          const directResponse = await fetch('/api/study-groups/join-direct', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              groupId: group.id
+            })
+          });
+
+          const directData = await directResponse.json();
+
+          if (!directResponse.ok) {
+            throw new Error(directData.error || 'Failed to join group directly');
+          }
+
+          // Success!
+          toast({
+            title: "Success!",
+            description: "You have joined the study group",
+            variant: "default",
+          });
+
+          setIsMember(true);
+          setMembers([...members, {
+            user_id: userId,
+            role: "member",
+            joined_at: new Date().toISOString(),
+            full_name: "You",
+            username: "you",
+            avatar_url: null
+          }]);
+
+          // Refresh the page to update the UI
+          router.refresh();
+          return;
+        } catch (directError) {
+          console.error("Error in direct join fallback:", directError);
+        }
+      }
+
       toast({
         title: "Error",
-        description: "Failed to join the study group. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to join the study group. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -198,6 +276,52 @@ export default function SimpleStudyGroupView({
     const url = new URL(window.location.href);
     url.searchParams.delete("view");
     router.push(url.pathname + url.search);
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!userId || !isMember) return;
+
+    try {
+      setLeavingGroup(true);
+
+      // Use the new leave endpoint instead of the DELETE endpoint
+      const response = await fetch('/api/study-groups/leave', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          groupId: group.id
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to leave the group');
+      }
+
+      toast({
+        title: "Success!",
+        description: "You have left the study group",
+        variant: "default",
+      });
+
+      setIsMember(false);
+      setMembers(members.filter(member => member.user_id !== userId));
+
+      // Refresh the page to update the UI
+      router.refresh();
+    } catch (error) {
+      console.error("Error leaving group:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to leave the study group. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLeavingGroup(false);
+    }
   };
 
   if (loading) {
@@ -285,28 +409,60 @@ export default function SimpleStudyGroupView({
           Created on {formattedDate}
         </CardDescription>
         <div className="flex items-center gap-2">
-          {isMember || isCreator ? (
-            <Button className="relative" onClick={() => {
-              // Create a chat URL parameter
-              const url = new URL(window.location.href);
-              url.searchParams.set("chat", "true");
-              router.push(url.toString());
-            }}>
-              <MessageSquare className="mr-2 h-4 w-4" />
-              Group Chat
-            </Button>
-          ) : (
-            <Button onClick={handleJoinGroup} disabled={joiningGroup}>
-              {joiningGroup ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Joining...
-                </>
-              ) : (
-                <>Join Group</>
-              )}
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {isMember || isCreator ? (
+              <>
+                <Button className="relative" onClick={() => {
+                  // Create a chat URL parameter
+                  const url = new URL(window.location.href);
+                  url.searchParams.set("chat", "true");
+                  router.push(url.toString());
+                }}>
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Group Chat
+                </Button>
+                {isMember && !isCreator && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        className="text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center"
+                        onClick={handleLeaveGroup}
+                        disabled={leavingGroup}
+                      >
+                        {leavingGroup ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <span>Leaving...</span>
+                          </>
+                        ) : (
+                          <>
+                            <LogOut className="mr-2 h-4 w-4" />
+                            <span>Leave Group</span>
+                          </>
+                        )}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </>
+            ) : (
+              <Button onClick={handleJoinGroup} disabled={joiningGroup}>
+                {joiningGroup ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Joining...
+                  </>
+                ) : (
+                  <>Join Group</>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
 

@@ -1,5 +1,4 @@
 import { createClient } from "@/utils/supabase/server";
-import { createAdminClient } from "@/utils/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
 // PATCH to update a member's role (promote/demote)
@@ -9,7 +8,6 @@ export async function PATCH(
 ) {
   try {
     const supabase = createClient();
-    const adminClient = createAdminClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -35,58 +33,47 @@ export async function PATCH(
       );
     }
 
-    // Check if the current user is the creator or an admin
-    const { data: studyGroup } = await adminClient
-      .from("study_groups")
-      .select("created_by")
-      .eq("id", groupId)
-      .single();
+    console.log('Using stored procedure to update member role');
+    console.log('Group ID:', groupId);
+    console.log('Admin ID:', user.id);
+    console.log('Target User ID:', targetUserId);
+    console.log('New Role:', role);
 
-    if (!studyGroup) {
-      return NextResponse.json(
-        { error: "Study group not found" },
-        { status: 404 }
-      );
-    }
+    // Use the stored procedure to update the member's role
+    const { data, error } = await supabase.rpc('manage_study_group_member', {
+      p_group_id: groupId,
+      p_admin_id: user.id,
+      p_target_user_id: targetUserId,
+      p_action: 'update_role',
+      p_new_role: role
+    });
 
-    const isCreator = studyGroup.created_by === user.id;
+    if (error) {
+      console.error('Error updating member role:', error);
 
-    if (!isCreator) {
-      // Check if user is an admin
-      const { data: membership } = await adminClient
-        .from("study_group_members")
-        .select("role")
-        .eq("study_group_id", groupId)
-        .eq("user_id", user.id)
-        .single();
-
-      const isAdmin = membership?.role === "admin";
-
-      if (!isAdmin) {
+      // Check for specific error messages
+      if (error.message.includes('Only the creator or admins')) {
         return NextResponse.json(
-          { error: "Only the creator or admins can manage members" },
+          { error: "Only the creator or admins can update member roles" },
           { status: 403 }
         );
+      } else if (error.message.includes('Cannot change the role')) {
+        return NextResponse.json(
+          { error: "Cannot change the role of the group creator" },
+          { status: 400 }
+        );
+      } else if (error.message.includes('Study group not found')) {
+        return NextResponse.json(
+          { error: "Study group not found" },
+          { status: 404 }
+        );
+      } else if (error.message.includes('Target user is not a member')) {
+        return NextResponse.json(
+          { error: "User is not a member of this study group" },
+          { status: 404 }
+        );
       }
-    }
 
-    // Don't allow changing the role of the creator
-    if (targetUserId === studyGroup.created_by && role !== "admin") {
-      return NextResponse.json(
-        { error: "Cannot change the role of the group creator" },
-        { status: 400 }
-      );
-    }
-
-    // Update the member's role
-    const { error: updateError } = await adminClient
-      .from("study_group_members")
-      .update({ role })
-      .eq("study_group_id", groupId)
-      .eq("user_id", targetUserId);
-
-    if (updateError) {
-      console.error("Error updating member role:", updateError);
       return NextResponse.json(
         { error: "Failed to update member role" },
         { status: 500 }
@@ -110,7 +97,6 @@ export async function DELETE(
 ) {
   try {
     const supabase = createClient();
-    const adminClient = createAdminClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -128,93 +114,54 @@ export async function DELETE(
       );
     }
 
-    // Check if the current user is the creator or an admin
-    const { data: studyGroup } = await adminClient
-      .from("study_groups")
-      .select("created_by, member_count")
-      .eq("id", groupId)
-      .single();
+    console.log('Using stored procedure to remove member');
+    console.log('Group ID:', groupId);
+    console.log('Admin ID:', user.id);
+    console.log('Target User ID:', targetUserId);
 
-    if (!studyGroup) {
-      return NextResponse.json(
-        { error: "Study group not found" },
-        { status: 404 }
-      );
-    }
+    // Use the stored procedure to remove the member
+    const { data, error } = await supabase.rpc('manage_study_group_member', {
+      p_group_id: groupId,
+      p_admin_id: user.id,
+      p_target_user_id: targetUserId,
+      p_action: 'remove'
+    });
 
-    // Don't allow removing the creator
-    if (targetUserId === studyGroup.created_by) {
-      return NextResponse.json(
-        { error: "Cannot remove the group creator" },
-        { status: 400 }
-      );
-    }
+    if (error) {
+      console.error('Error removing member:', error);
 
-    const isCreator = studyGroup.created_by === user.id;
-    let isAdmin = false;
-
-    if (!isCreator) {
-      // Check if user is an admin
-      const { data: membership } = await adminClient
-        .from("study_group_members")
-        .select("role")
-        .eq("study_group_id", groupId)
-        .eq("user_id", user.id)
-        .single();
-
-      isAdmin = membership?.role === "admin";
-
-      if (!isAdmin && targetUserId !== user.id) {
+      // Check for specific error messages
+      if (error.message.includes('Only the creator, admins, or the member')) {
         return NextResponse.json(
           { error: "Only the creator, admins, or the member themselves can remove a member" },
           { status: 403 }
         );
-      }
-    }
-
-    // Check if the target user is an admin and the current user is not the creator
-    if (!isCreator) {
-      const { data: targetMembership } = await adminClient
-        .from("study_group_members")
-        .select("role")
-        .eq("study_group_id", groupId)
-        .eq("user_id", targetUserId)
-        .single();
-
-      if (targetMembership?.role === "admin" && !isCreator) {
+      } else if (error.message.includes('Cannot remove the creator')) {
+        return NextResponse.json(
+          { error: "Cannot remove the group creator" },
+          { status: 400 }
+        );
+      } else if (error.message.includes('Study group not found')) {
+        return NextResponse.json(
+          { error: "Study group not found" },
+          { status: 404 }
+        );
+      } else if (error.message.includes('Target user is not a member')) {
+        return NextResponse.json(
+          { error: "User is not a member of this study group" },
+          { status: 404 }
+        );
+      } else if (error.message.includes('Admins cannot remove other admins') || error.message.includes('Only the creator can remove an admin')) {
         return NextResponse.json(
           { error: "Only the creator can remove an admin" },
           { status: 403 }
         );
       }
-    }
 
-    // Remove the member
-    const { error: deleteError } = await adminClient
-      .from("study_group_members")
-      .delete()
-      .eq("study_group_id", groupId)
-      .eq("user_id", targetUserId);
-
-    if (deleteError) {
-      console.error("Error removing member:", deleteError);
       return NextResponse.json(
         { error: "Failed to remove member" },
         { status: 500 }
       );
-    }
-
-    // Update member count
-    const { error: updateError } = await adminClient
-      .from("study_groups")
-      .update({
-        member_count: Math.max((studyGroup.member_count || 1) - 1, 0),
-      })
-      .eq("id", groupId);
-
-    if (updateError) {
-      console.error("Error updating member count:", updateError);
-      // Continue despite error - the member was removed successfully
     }
 
     return NextResponse.json({ success: true });

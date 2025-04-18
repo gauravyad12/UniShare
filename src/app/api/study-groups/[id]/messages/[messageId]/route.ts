@@ -27,13 +27,39 @@ export async function GET(
       );
     }
 
-    // Check if user is a member of the study group using admin client to bypass RLS
-    const { data: membership, error: membershipError } = await adminClient
-      .from("study_group_members")
-      .select("*")
-      .eq("study_group_id", groupId)
-      .eq("user_id", user.id)
-      .single();
+    // Check if user is a member of the study group using stored procedure
+    let membership = null;
+    let membershipError = null;
+
+    if (adminClient) {
+      // Try with admin client first
+      const result = await adminClient
+        .from("study_group_members")
+        .select("*")
+        .eq("study_group_id", groupId)
+        .eq("user_id", user.id)
+        .single();
+
+      membership = result.data;
+      membershipError = result.error;
+    }
+
+    // If admin client failed or is not available, use stored procedure
+    if (!adminClient || membershipError) {
+      console.log('Using stored procedure to check membership');
+      const { data, error } = await supabase.rpc('check_study_group_membership', {
+        p_group_id: groupId,
+        p_user_id: user.id
+      });
+
+      if (error) {
+        console.error('Error checking membership with stored procedure:', error);
+        membershipError = error;
+      } else if (data && data.length > 0 && data[0].is_member) {
+        membership = { role: data[0].role };
+        membershipError = null;
+      }
+    }
 
     if (membershipError) {
       console.error("Error checking membership:", membershipError);
@@ -50,13 +76,36 @@ export async function GET(
       );
     }
 
-    // Get the message using admin client to bypass RLS
-    const { data: message, error: messageError } = await adminClient
-      .from("group_chat_messages")
-      .select("*")
-      .eq("id", messageId)
-      .eq("study_group_id", groupId)
-      .single();
+    // Get the message using admin client or regular client
+    let message = null;
+    let messageError = null;
+
+    if (adminClient) {
+      // Try with admin client first
+      const result = await adminClient
+        .from("group_chat_messages")
+        .select("*")
+        .eq("id", messageId)
+        .eq("study_group_id", groupId)
+        .single();
+
+      message = result.data;
+      messageError = result.error;
+    }
+
+    // If admin client failed or is not available, use regular client
+    if (!adminClient || messageError) {
+      console.log('Using regular client to get message');
+      const { data, error } = await supabase
+        .from("group_chat_messages")
+        .select("*")
+        .eq("id", messageId)
+        .eq("study_group_id", groupId)
+        .single();
+
+      message = data;
+      messageError = error;
+    }
 
     if (messageError || !message) {
       return NextResponse.json(
@@ -65,12 +114,34 @@ export async function GET(
       );
     }
 
-    // Get the sender's profile information using admin client
-    const { data: profile, error: profileError } = await adminClient
-      .from("user_profiles")
-      .select("full_name, username, avatar_url")
-      .eq("id", message.sender_id)
-      .single();
+    // Get the sender's profile information
+    let profile = null;
+    let profileError = null;
+
+    if (adminClient) {
+      // Try with admin client first
+      const result = await adminClient
+        .from("user_profiles")
+        .select("full_name, username, avatar_url")
+        .eq("id", message.sender_id)
+        .single();
+
+      profile = result.data;
+      profileError = result.error;
+    }
+
+    // If admin client failed or is not available, use regular client
+    if (!adminClient || profileError) {
+      console.log('Using regular client to get profile');
+      const { data, error } = await supabase
+        .from("user_profiles")
+        .select("full_name, username, avatar_url")
+        .eq("id", message.sender_id)
+        .single();
+
+      profile = data;
+      profileError = error;
+    }
 
     if (profileError) {
       console.error("Error fetching profile:", profileError);

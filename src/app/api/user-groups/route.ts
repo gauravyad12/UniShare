@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     console.log('API: Using stored procedure to fetch user study groups');
     try {
       const { data: userGroups, error: procError } = await supabase
-        .rpc('get_user_study_groups_bypass_rls', {
+        .rpc('get_user_study_groups', {
           p_user_id: user.id
         });
 
@@ -45,21 +45,24 @@ export async function GET(request: Request) {
         // Get latest message for the group using stored procedure to bypass RLS
         console.log(`API: Fetching latest message for group ${group.id}`);
 
-        // Try using the stored procedure first
-        const { data: latestMessageProc, error: procError } = await supabase
-          .rpc('get_latest_group_message', {
+        // Try using the new stored procedure that includes profile information
+        const { data: messageWithProfileData, error: profileProcError } = await supabase
+          .rpc('get_latest_message_with_profile', {
             p_group_id: group.id
           });
 
-        let latestMessage = null;
+        let messageWithProfile = null;
 
-        if (procError) {
-          console.error(`API: Error using stored procedure for group ${group.id}:`, procError);
+        if (profileProcError) {
+          console.error(`API: Error using get_latest_message_with_profile for group ${group.id}:`, profileProcError);
 
-          // Fall back to direct query if stored procedure fails
+          // Fall back to direct query with join if stored procedure fails
           const { data: directMessage, error: messageError } = await supabase
             .from('group_chat_messages')
-            .select('*')
+            .select(`
+              *,
+              sender:sender_id(id, full_name, username, avatar_url)
+            `)
             .eq('study_group_id', group.id)
             .order('created_at', { ascending: false })
             .limit(1)
@@ -69,44 +72,35 @@ export async function GET(request: Request) {
             console.error(`API: Error fetching latest message for group ${group.id}:`, messageError);
           } else if (directMessage) {
             console.log(`API: Found latest message via direct query for group ${group.id}:`, directMessage.content);
-            latestMessage = directMessage;
+
+            messageWithProfile = {
+              ...directMessage,
+              sender_name: directMessage.sender?.full_name || directMessage.sender?.username || 'Unknown',
+              avatar_url: directMessage.sender?.avatar_url
+            };
+
+            console.log(`API: Message with profile for group ${group.id}:`, {
+              content: messageWithProfile.content,
+              sender_name: messageWithProfile.sender_name
+            });
           } else {
             console.log(`API: No messages found for group ${group.id}`);
           }
-        } else if (latestMessageProc && latestMessageProc.length > 0) {
-          console.log(`API: Found latest message via stored procedure for group ${group.id}:`, latestMessageProc[0].content);
-          latestMessage = latestMessageProc[0];
-        } else {
-          console.log(`API: No messages found for group ${group.id} via stored procedure`);
-        }
-
-        let messageWithProfile = null;
-
-        if (latestMessage) {
-          // Get the sender's profile information
-          console.log(`API: Fetching profile for sender ${latestMessage.sender_id}`);
-          const { data: profile, error: profileError } = await supabase
-            .from('user_profiles')
-            .select('full_name, username, avatar_url')
-            .eq('id', latestMessage.sender_id)
-            .single();
-
-          if (profileError) {
-            console.error(`API: Error fetching profile for sender ${latestMessage.sender_id}:`, profileError);
-          } else {
-            console.log(`API: Found profile for sender ${latestMessage.sender_id}:`, profile);
-          }
+        } else if (messageWithProfileData && messageWithProfileData.length > 0) {
+          console.log(`API: Found latest message with profile via stored procedure for group ${group.id}:`, messageWithProfileData[0].content);
 
           messageWithProfile = {
-            ...latestMessage,
-            sender_name: profile?.full_name || profile?.username || 'Unknown',
-            avatar_url: profile?.avatar_url
+            ...messageWithProfileData[0],
+            sender_name: messageWithProfileData[0].full_name || messageWithProfileData[0].username || 'Unknown',
+            avatar_url: messageWithProfileData[0].avatar_url
           };
 
           console.log(`API: Message with profile for group ${group.id}:`, {
             content: messageWithProfile.content,
             sender_name: messageWithProfile.sender_name
           });
+        } else {
+          console.log(`API: No messages found for group ${group.id} via stored procedure`);
         }
 
         return {

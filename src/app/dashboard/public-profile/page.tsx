@@ -13,10 +13,11 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserCircle, BookOpen, Users, Loader2, Calendar } from "lucide-react";
+import { UserCircle, BookOpen, Users, Loader2, Calendar, CheckCircle } from "lucide-react";
 import { FollowButton } from "@/components/follow-button";
-import { ResourceCard } from "@/components/resource-card";
-import { StudyGroupCard } from "@/components/study-group-card";
+// Import custom components
+import ResourceCard from "@/components/resource-card";
+import StudyGroupCard from "@/components/study-group-card";
 
 export default function PublicProfilePage() {
   const searchParams = useSearchParams();

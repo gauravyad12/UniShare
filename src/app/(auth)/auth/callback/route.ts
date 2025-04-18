@@ -1,4 +1,4 @@
-import { createClient } from "../../../../../supabase/server";
+import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
         console.log("Creating profile for user:", data.user.id);
         // Create user profile using admin client to bypass RLS
         const { createAdminClient } = await import(
-          "../../../../../utils/supabase/admin"
+          "@/utils/supabase/admin"
         );
         const adminClient = createAdminClient();
 
@@ -88,7 +88,7 @@ export async function GET(request: Request) {
         const adminClient =
           adminClient ||
           (
-            await import("../../../../../utils/supabase/admin")
+            await import("@/utils/supabase/admin")
           ).createAdminClient();
 
         let settingsError = null;

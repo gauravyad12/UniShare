@@ -35,6 +35,7 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [joiningGroup, setJoiningGroup] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -163,6 +164,10 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
         }
 
         setData(result);
+
+        // Initialize filtered groups
+        setFilteredGroups(result.studyGroups || []);
+        setFilteredMyGroups(result.myStudyGroups || []);
       } catch (error) {
         console.error('Error fetching study groups:', error);
       } finally {
@@ -209,6 +214,8 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
   const allUserGroupIds = [...new Set([...userGroupIds, ...myGroupIds])];
 
   console.log('Updated user group IDs:', allUserGroupIds);
+
+
 
   // Function to handle joining a group with an invitation code
   const handleJoinGroup = async () => {
@@ -322,6 +329,8 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
           <Input
             placeholder="Search study groups by name, course code, or description..."
             className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </header>
@@ -334,26 +343,60 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
-          {studyGroups && studyGroups.length > 0 ? (
+          {studyGroups && studyGroups.length > 0 && studyGroups.filter((group: any) => {
+            if (searchQuery.trim() === '') return true;
+            const query = searchQuery.toLowerCase().trim();
+            return (
+              group.name?.toLowerCase().includes(query) ||
+              group.description?.toLowerCase().includes(query) ||
+              group.course_code?.toLowerCase().includes(query)
+            );
+          }).length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {studyGroups.map((group: any) => (
+              {studyGroups.filter((group: any) => {
+                if (searchQuery.trim() === '') return true;
+                const query = searchQuery.toLowerCase().trim();
+                return (
+                  group.name?.toLowerCase().includes(query) ||
+                  group.description?.toLowerCase().includes(query) ||
+                  group.course_code?.toLowerCase().includes(query)
+                );
+              }).map((group: any) => (
                 <div key={group.id}>
                   <StudyGroupCard
                     group={group}
                     isMember={allUserGroupIds.includes(group.id)}
                     onView={(id) => router.push(`/dashboard/study-groups?view=${id}`)}
+                    onJoin={(id) => router.push(`/dashboard/study-groups?view=${id}`)}
                   />
                 </div>
               ))}
             </div>
+          ) : studyGroups && studyGroups.length > 0 && searchQuery.trim() !== '' ? (
+            <Card className="bg-muted/40">
+              <CardContent className="pt-6 flex flex-col items-center justify-center text-center p-10 space-y-4">
+                <Users className="h-12 w-12 text-muted-foreground" />
+                <CardTitle>No study groups match your search</CardTitle>
+                <CardDescription>Try a different search term or create a new group</CardDescription>
+                <Button
+                  variant="outline"
+                  className="mt-2"
+                  onClick={() => setSearchQuery('')}
+                >
+                  Clear Search
+                </Button>
+                <Button className="mt-2" onClick={() => router.push('/dashboard/study-groups/create')}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Study Group
+                </Button>
+              </CardContent>
+            </Card>
           ) : (
             <Card className="bg-muted/40">
               <CardContent className="pt-6 flex flex-col items-center justify-center text-center p-10 space-y-4">
                 <Users className="h-12 w-12 text-muted-foreground" />
                 <CardTitle>No study groups found</CardTitle>
-                <CardDescription>
-                  Be the first to create a study group for your university!
-                </CardDescription>
+                <CardDescription>Be the first to create a study group for your university!</CardDescription>
                 <Button className="mt-2" onClick={() => router.push('/dashboard/study-groups/create')}>
                   <Plus className="mr-2 h-4 w-4" />
                   Create Study Group
@@ -364,10 +407,26 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
         </TabsContent>
 
         <TabsContent value="my-groups" className="space-y-4">
-          {myStudyGroups && myStudyGroups.length > 0 ? (
+          {myStudyGroups && myStudyGroups.length > 0 && myStudyGroups.filter((group: any) => {
+            if (searchQuery.trim() === '') return true;
+            const query = searchQuery.toLowerCase().trim();
+            return (
+              group.name?.toLowerCase().includes(query) ||
+              group.description?.toLowerCase().includes(query) ||
+              group.course_code?.toLowerCase().includes(query)
+            );
+          }).length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Log each group as it's being rendered */}
-              {myStudyGroups.map((group: any) => {
+              {myStudyGroups.filter((group: any) => {
+                if (searchQuery.trim() === '') return true;
+                const query = searchQuery.toLowerCase().trim();
+                return (
+                  group.name?.toLowerCase().includes(query) ||
+                  group.description?.toLowerCase().includes(query) ||
+                  group.course_code?.toLowerCase().includes(query)
+                );
+              }).map((group: any) => {
                 console.log('Rendering group in My Groups tab:', {
                   id: group.id,
                   name: group.name,
@@ -385,17 +444,34 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
                 );
               })}
             </div>
+          ) : myStudyGroups && myStudyGroups.length > 0 && searchQuery.trim() !== '' ? (
+            <Card className="bg-muted/40">
+              <CardContent className="pt-6 flex flex-col items-center justify-center text-center p-10 space-y-4">
+                <Users className="h-12 w-12 text-muted-foreground" />
+                <CardTitle>No study groups match your search</CardTitle>
+                <CardDescription>Try a different search term or join a new group</CardDescription>
+                <Button
+                  variant="outline"
+                  className="mt-2"
+                  onClick={() => setSearchQuery('')}
+                >
+                  Clear Search
+                </Button>
+                <Button className="mt-2" onClick={() => setJoinDialogOpen(true)}>
+                  <LinkIcon className="mr-2 h-4 w-4" />
+                  Join with Code
+                </Button>
+              </CardContent>
+            </Card>
           ) : (
             <Card className="bg-muted/40">
               <CardContent className="pt-6 flex flex-col items-center justify-center text-center p-10 space-y-4">
                 <Users className="h-12 w-12 text-muted-foreground" />
                 <CardTitle>No Study Groups Yet</CardTitle>
-                <CardDescription>
-                  You haven't joined any study groups yet.
-                </CardDescription>
-                <Button className="mt-2" onClick={() => router.push('/dashboard/study-groups?tab=all')}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Join a Group
+                <CardDescription>You haven't joined any study groups yet.</CardDescription>
+                <Button className="mt-2" onClick={() => setJoinDialogOpen(true)}>
+                  <LinkIcon className="mr-2 h-4 w-4" />
+                  Join with Code
                 </Button>
               </CardContent>
             </Card>
