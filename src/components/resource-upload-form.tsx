@@ -178,8 +178,9 @@ export default function ResourceUploadForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
-        <div className="bg-destructive/15 text-destructive px-4 py-2 rounded-md text-sm">
+      {/* Global error messages for non-file errors */}
+      {error && !error.includes("PDF") && (
+        <div className="bg-red-100 text-red-600 font-medium px-4 py-2 rounded-md text-sm">
           {error}
         </div>
       )}
@@ -294,7 +295,7 @@ export default function ResourceUploadForm() {
       ) : (
         <div className="space-y-2">
           <Label htmlFor="file">Upload File</Label>
-          <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-md p-4">
+          <div className={`border-2 border-dashed ${error && error.includes("PDF") ? "border-red-500" : "border-gray-300 dark:border-gray-700"} rounded-md p-4 transition-colors`}>
             {selectedFile ? (
               <div className="flex items-center justify-between">
                 <span className="text-sm truncate max-w-[80%]">
@@ -311,10 +312,21 @@ export default function ResourceUploadForm() {
               </div>
             ) : (
               <div className="text-center">
-                <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                <p className="text-sm text-gray-500 mb-2">
-                  Drag and drop or click to upload (PDF only)
-                </p>
+                <Upload className={`mx-auto h-8 w-8 ${error && error.includes("PDF") ? "text-destructive" : "text-gray-400"} mb-2 transition-colors`} />
+                {error && error.includes("PDF") ? (
+                  <div className="mb-2">
+                    <p className="text-sm text-destructive font-medium">
+                      Only PDF files are accepted
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Please select a PDF document to continue
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 mb-2">
+                    Drag and drop or click to upload (PDF only)
+                  </p>
+                )}
                 <Input
                   id="file"
                   type="file"
@@ -324,7 +336,7 @@ export default function ResourceUploadForm() {
                 />
                 <Button
                   type="button"
-                  variant="outline"
+                  variant={error && error.includes("PDF") ? "destructive" : "outline"}
                   size="sm"
                   onClick={() => document.getElementById("file")?.click()}
                 >

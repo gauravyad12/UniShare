@@ -14,11 +14,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Get all usernames that match exactly (case-insensitive)
-    // We use eq() with toLowerCase() on both sides for exact matching
+    // We use ilike for case-insensitive exact matching
     const { data, error } = await supabase
       .from("user_profiles")
       .select("username")
-      .filter('lower(username)', 'eq', username.toLowerCase());
+      .ilike("username", username.toLowerCase());
 
     if (error) {
       console.error("Error checking username:", error);

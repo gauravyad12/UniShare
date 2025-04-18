@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       const { data: existingUsernames } = await supabase
         .from("user_profiles")
         .select("username")
-        .filter('lower(username)', 'eq', username.toLowerCase());
+        .ilike("username", username.toLowerCase());
 
       if (existingUsernames && existingUsernames.length > 0) {
         return NextResponse.json(
