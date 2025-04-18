@@ -12,201 +12,111 @@ import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/utils/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
 
-type Message = {
+interface GroupWithLatestMessage {
   id: string;
-  sender_id: string;
-  receiver_id: string;
-  content: string;
-  is_read: boolean;
+  name: string;
+  description?: string;
+  is_private: boolean;
   created_at: string;
-  sender?: {
+  created_by: string;
+  image_url?: string;
+  latestMessage: {
+    id: string;
+    content: string;
+    created_at: string;
+    sender_id: string;
+    sender_name?: string;
     avatar_url?: string;
-    full_name?: string;
-    username?: string;
-  };
-};
-
-type Conversation = {
-  user_id: string;
-  username: string;
-  full_name: string;
-  avatar_url?: string;
-  last_message?: string;
-  last_message_time?: string;
-  unread_count: number;
-};
+  } | null;
+}
 
 export default function Messages() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const router = useRouter();
+  const [groups, setGroups] = useState<GroupWithLatestMessage[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [activeConversation, setActiveConversation] = useState<string | null>(
-    null,
-  );
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0); // For future implementation
   const supabase = createClient();
 
-  useEffect(() => {
-    const fetchConversations = async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return;
-
-      // Get all conversations
-      const { data: messagesData } = await supabase
-        .from("messages")
-        .select(
-          "id, sender_id, receiver_id, content, is_read, created_at, sender:sender_id(avatar_url, full_name, username)",
-        )
-        .or(
-          `sender_id.eq.${userData.user.id},receiver_id.eq.${userData.user.id}`,
-        )
-        .order("created_at", { ascending: false });
-
-      if (!messagesData) return;
-
-      // Process messages into conversations
-      const conversationsMap = new Map<string, Conversation>();
-      let totalUnread = 0;
-
-      messagesData.forEach((message) => {
-        const isIncoming = message.receiver_id === userData.user.id;
-        const otherUserId = isIncoming
-          ? message.sender_id
-          : message.receiver_id;
-
-        if (!conversationsMap.has(otherUserId)) {
-          const sender = message.sender as any;
-          conversationsMap.set(otherUserId, {
-            user_id: otherUserId,
-            username: sender?.username || "User",
-            full_name: sender?.full_name || "Unknown User",
-            avatar_url: sender?.avatar_url,
-            last_message: message.content,
-            last_message_time: message.created_at,
-            unread_count: isIncoming && !message.is_read ? 1 : 0,
-          });
-
-          if (isIncoming && !message.is_read) {
-            totalUnread++;
+  // Fetch user's study groups with latest messages
+  const fetchGroups = async () => {
+    try {
+      setIsLoading(true);
+      console.log('Fetching user groups for messages dropdown...');
+      
+      // Use the same API endpoint as the sidebar
+      const response = await fetch('/api/user-groups');
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to fetch user groups:', errorData);
+        throw new Error(`Failed to fetch user groups: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Received user groups data:', data);
+      
+      if (data.groups && Array.isArray(data.groups)) {
+        console.log(`Received ${data.groups.length} user groups with messages`);
+        
+        // Log each group's latest message for debugging
+        data.groups.forEach((group: GroupWithLatestMessage) => {
+          console.log(`Group ${group.name} latest message:`, group.latestMessage);
+          if (group.latestMessage) {
+            console.log(`  - sender_name: ${group.latestMessage.sender_name}`);
+            console.log(`  - content: ${group.latestMessage.content}`);
           }
-        } else {
-          const conversation = conversationsMap.get(otherUserId)!;
-          if (isIncoming && !message.is_read) {
-            conversation.unread_count++;
-            totalUnread++;
-          }
-        }
-      });
-
-      setConversations(Array.from(conversationsMap.values()));
-      setUnreadCount(totalUnread);
-    };
-
-    fetchConversations();
-
-    // Set up realtime subscription for new messages
-    const setupRealtimeSubscription = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (data?.user) {
-        const channel = supabase
-          .channel("messages-channel")
-          .on(
-            "postgres_changes",
-            {
-              event: "INSERT",
-              schema: "public",
-              table: "messages",
-              filter: `receiver_id=eq.${data.user.id}`,
-            },
-            (payload) => {
-              const newMessage = payload.new as Message;
-              // Update conversations and unread count
-              fetchConversations();
-              // If active conversation matches the sender, fetch new messages
-              if (activeConversation === newMessage.sender_id) {
-                fetchMessages(newMessage.sender_id);
-              }
-            },
-          )
-          .subscribe();
-
-        return channel;
+        });
+        
+        setGroups(data.groups);
+      } else {
+        console.warn('Received unexpected data format for user groups:', data);
+        setGroups([]);
       }
-      return null;
-    };
-
-    // Create and store the channel
-    let channel: any;
-    setupRealtimeSubscription().then((ch) => {
-      channel = ch;
-    });
-
-    // Cleanup function
-    return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
-    };
-  }, [supabase, activeConversation]);
-
-  const fetchMessages = async (userId: string) => {
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
-
-    const { data } = await supabase
-      .from("messages")
-      .select(
-        "id, sender_id, receiver_id, content, is_read, created_at, sender:sender_id(avatar_url, full_name, username)",
-      )
-      .or(
-        `and(sender_id.eq.${userData.user.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${userData.user.id})`,
-      )
-      .order("created_at", { ascending: true });
-
-    if (data) {
-      setMessages(data);
-
-      // Mark incoming messages as read
-      const unreadMessageIds = data
-        .filter((msg) => msg.receiver_id === userData.user.id && !msg.is_read)
-        .map((msg) => msg.id);
-
-      if (unreadMessageIds.length > 0) {
-        await supabase
-          .from("messages")
-          .update({ is_read: true })
-          .in("id", unreadMessageIds);
-
-        // Update unread count
-        setConversations((prev) =>
-          prev.map((conv) =>
-            conv.user_id === userId ? { ...conv, unread_count: 0 } : conv,
-          ),
-        );
-        setUnreadCount((prev) => prev - unreadMessageIds.length);
-      }
+    } catch (error) {
+      console.error('Error fetching user groups:', error);
+      setGroups([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !activeConversation) return;
+  useEffect(() => {
+    // Initial fetch
+    fetchGroups();
 
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
+    // Set up realtime subscription for new messages
+    const messagesChannel = supabase
+      .channel('messages-dropdown-channel')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'group_chat_messages',
+        },
+        (payload) => {
+          console.log('New group chat message detected:', payload);
+          // Refresh groups to update latest messages
+          fetchGroups();
+        },
+      )
+      .subscribe((status) => {
+        console.log('Messages subscription status:', status);
+      });
 
-    await supabase.from("messages").insert({
-      sender_id: userData.user.id,
-      receiver_id: activeConversation,
-      content: newMessage,
-      is_read: false,
-      created_at: new Date().toISOString(),
-    });
+    // Cleanup function
+    return () => {
+      supabase.removeChannel(messagesChannel);
+    };
+  }, [supabase]);
 
-    setNewMessage("");
-    fetchMessages(activeConversation);
+  // Navigate to group chat
+  const navigateToGroupChat = (groupId: string) => {
+    router.push(`/dashboard/study-groups?view=${groupId}&chat=true`);
+    setIsOpen(false);
   };
 
   return (
@@ -227,136 +137,78 @@ export default function Messages() {
       <PopoverContent className="w-80 p-0" align="end">
         <div className="p-4 border-b">
           <div className="flex justify-between items-center">
-            <h3 className="font-medium">Messages</h3>
-            {activeConversation && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs h-8"
-                onClick={() => setActiveConversation(null)}
-              >
-                Back to conversations
-              </Button>
-            )}
+            <h3 className="font-medium">Group Messages</h3>
           </div>
         </div>
 
-        {!activeConversation ? (
-          // Conversations list
-          <div className="max-h-[350px] overflow-y-auto">
-            {conversations.length > 0 ? (
-              <div className="divide-y">
-                {conversations.map((conversation) => (
-                  <div
-                    key={conversation.user_id}
-                    className={`p-4 cursor-pointer hover:bg-muted/50 ${conversation.unread_count > 0 ? "bg-muted/20" : ""}`}
-                    onClick={() => {
-                      setActiveConversation(conversation.user_id);
-                      fetchMessages(conversation.user_id);
-                    }}
-                  >
-                    <div className="flex items-start gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage
-                          src={conversation.avatar_url || ""}
-                          alt={conversation.full_name}
-                        />
-                        <AvatarFallback className="text-[10px]">
-                          {conversation.full_name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex justify-between">
-                          <p className="font-medium text-sm">
-                            {conversation.full_name}
-                          </p>
-                          {conversation.unread_count > 0 && (
-                            <Badge variant="destructive" className="ml-2">
-                              {conversation.unread_count}
-                            </Badge>
+        <div className="max-h-[350px] overflow-y-auto">
+          {isLoading ? (
+            <div className="p-4 text-center text-muted-foreground">
+              <p>Loading study group messages...</p>
+            </div>
+          ) : groups.length > 0 ? (
+            <div className="divide-y">
+              {groups.map((group) => (
+                <div
+                  key={group.id}
+                  className="p-4 cursor-pointer hover:bg-muted/50"
+                  onClick={() => navigateToGroupChat(group.id)}
+                >
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage
+                        src={group.image_url || ""}
+                        alt={group.name}
+                      />
+                      <AvatarFallback className="text-[10px] bg-primary text-primary-foreground">
+                        {group.name.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="flex justify-between">
+                        <p className="font-medium text-sm">
+                          {group.name}
+                          {group.is_private && (
+                            <span className="ml-1 text-muted-foreground">🔒</span>
                           )}
-                        </div>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {conversation.last_message}
                         </p>
-                        {conversation.last_message_time && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {formatDistanceToNow(
-                              new Date(conversation.last_message_time),
-                              { addSuffix: true },
-                            )}
-                          </p>
-                        )}
                       </div>
+                      {group.latestMessage ? (
+                        <>
+                          <p className="text-sm text-muted-foreground truncate">
+                            <span className="font-medium">
+                              {group.latestMessage.sender_id === group.created_by
+                                ? "Admin: "
+                                : group.latestMessage.sender_name
+                                ? `${group.latestMessage.sender_name.split(' ')[0]}: `
+                                : ""}
+                            </span>
+                            {group.latestMessage.content}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {group.latestMessage.created_at ?
+                              formatDistanceToNow(
+                                new Date(group.latestMessage.created_at),
+                                { addSuffix: true }
+                              ) : 'Recently'}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          No messages yet
+                        </p>
+                      )}
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 text-center text-muted-foreground">
-                <p>No conversations yet</p>
-              </div>
-            )}
-          </div>
-        ) : (
-          // Active conversation
-          <div className="flex flex-col h-[350px]">
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.length > 0 ? (
-                messages.map((message) => {
-                  const { data: userData } = supabase.auth.getUser();
-                  const isOutgoing = message.sender_id === userData.user?.id;
-
-                  return (
-                    <div
-                      key={message.id}
-                      className={`flex ${isOutgoing ? "justify-end" : "justify-start"}`}
-                    >
-                      <div
-                        className={`max-w-[80%] p-3 rounded-lg ${isOutgoing ? "bg-primary text-primary-foreground" : "bg-muted"}`}
-                      >
-                        <p className="text-sm">{message.content}</p>
-                        <p className="text-xs opacity-70 mt-1">
-                          {formatDistanceToNow(new Date(message.created_at), {
-                            addSuffix: true,
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="h-full flex items-center justify-center">
-                  <p className="text-sm text-muted-foreground">
-                    No messages yet. Start a conversation!
-                  </p>
                 </div>
-              )}
+              ))}
             </div>
-            <div className="p-4 border-t">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  sendMessage();
-                }}
-                className="flex gap-2"
-              >
-                <Input
-                  placeholder="Type a message..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  className="flex-1"
-                />
-                <Button type="submit" size="sm">
-                  Send
-                </Button>
-              </form>
+          ) : (
+            <div className="p-4 text-center text-muted-foreground">
+              <p>No study group messages</p>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </PopoverContent>
     </Popover>
   );
