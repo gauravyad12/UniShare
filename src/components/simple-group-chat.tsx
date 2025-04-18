@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { formatDistanceToNow } from "date-fns";
@@ -15,7 +15,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageSquare,
-  Users,
   ArrowLeft,
   X,
   Send,
@@ -26,6 +25,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import { useToast } from "./ui/use-toast";
+import { TypingUsers } from "@/types/chat";
+import "@/types/supabase-typing-status";
 
 interface SimpleGroupChatProps {
   group: any;
@@ -44,8 +45,82 @@ export default function SimpleGroupChat({
   const [userProfile, setUserProfile] = useState<any>(null);
   const [subscription, setSubscription] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [typingUsers, setTypingUsers] = useState<TypingUsers>({});
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   console.log('SimpleGroupChat rendering with group:', group);
+  console.log('Current typing users:', Object.keys(typingUsers).length, typingUsers);
+
+  // Update typing status in the database
+  const updateTypingStatus = useCallback(async (isTyping: boolean) => {
+    if (!userId || !group.id) return;
+
+    console.log('Updating typing status:', isTyping);
+
+    try {
+      const supabase = createClient();
+
+      // Use the security definer function to upsert typing status
+      const { data: success, error: upsertError } = await supabase
+        .rpc('upsert_typing_status', {
+          p_group_id: group.id,
+          p_user_id: userId,
+          p_is_typing: isTyping
+        });
+
+      if (upsertError) {
+        console.error('Error updating typing status:', upsertError);
+        return;
+      }
+
+      if (!success) {
+        console.log('Failed to update typing status - user may not be a member of this group');
+        return;
+      }
+
+      // Clear typing status after 5 seconds of inactivity
+      if (isTyping) {
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+
+        typingTimeoutRef.current = setTimeout(() => {
+          updateTypingStatus(false);
+        }, 5000);
+      }
+    } catch (error) {
+      console.error('Error updating typing status:', error);
+    }
+  }, [userId, group.id]);
+
+  // Clear typing status
+  const clearTypingStatus = useCallback(async () => {
+    if (!userId || !group.id) return;
+
+    console.log('Clearing typing status');
+
+    try {
+      const supabase = createClient();
+
+      // Use the security definer function to delete typing status
+      const { error: deleteError } = await supabase
+        .rpc('delete_typing_status', {
+          p_group_id: group.id,
+          p_user_id: userId
+        });
+
+      if (deleteError) {
+        console.error('Error clearing typing status:', deleteError);
+      }
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+    } catch (error) {
+      console.error('Error clearing typing status:', error);
+    }
+  }, [userId, group.id]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -79,13 +154,72 @@ export default function SimpleGroupChat({
             setMessages(messagesData);
           }
         }
+
+        // Get typing status using the security definer function
+        const { data: typingData, error: typingError } = await supabase
+          .rpc('get_typing_status_for_group', {
+            p_group_id: group.id,
+            p_user_id: userId
+          });
+
+        if (typingError) {
+          console.error('Error polling typing status:', typingError);
+        } else if (typingData && Array.isArray(typingData)) {
+          console.log('Typing status data:', typingData);
+
+          // Process typing status updates
+          const now = new Date();
+          const activeTypingUsers: TypingUsers = {};
+
+          for (const status of typingData) {
+            if (status.is_typing) {
+              // Check if the typing status is recent (within last 10 seconds)
+              const updatedAt = new Date(status.updated_at);
+              const timeDiff = now.getTime() - updatedAt.getTime();
+
+              if (timeDiff < 10000) { // 10 seconds
+                // Fetch user profile if not already in typing users
+                if (!typingUsers[status.user_id]) {
+                  const { data: profile } = await supabase
+                    .from('user_profiles')
+                    .select('full_name, username, avatar_url')
+                    .eq('id', status.user_id)
+                    .single();
+
+                  if (profile) {
+                    activeTypingUsers[status.user_id] = {
+                      full_name: profile.full_name,
+                      username: profile.username,
+                      avatar_url: profile.avatar_url,
+                      updated_at: status.updated_at
+                    };
+                  }
+                } else {
+                  // Keep existing profile info, just update timestamp
+                  activeTypingUsers[status.user_id] = {
+                    ...typingUsers[status.user_id],
+                    updated_at: status.updated_at
+                  };
+                }
+              }
+            }
+          }
+
+          // Update typing users state
+          console.log('Active typing users:', Object.keys(activeTypingUsers).length, activeTypingUsers);
+          setTypingUsers(activeTypingUsers);
+        } else {
+          console.log('No typing status data or unexpected format:', typingData);
+          // Clear typing users if no data is returned
+          setTypingUsers({});
+        }
       } catch (error) {
         console.error('Error in message polling:', error);
       }
     }, 3000); // Poll every 3 seconds
 
     return () => clearInterval(pollInterval);
-  }, [group.id, userId, messages.length]);
+  }, [group.id, userId, messages.length, typingUsers]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -225,14 +359,33 @@ export default function SimpleGroupChat({
 
     fetchData();
 
-    // Cleanup subscription on unmount
+    // Cleanup subscription and typing status on unmount
     return () => {
       if (subscription) {
         const supabase = createClient();
         supabase.removeChannel(subscription);
       }
+
+      // Clear typing status when component unmounts
+      if (userId && group.id) {
+        // Use the security definer function to avoid dependency issues
+        const supabase = createClient();
+        supabase
+          .rpc('delete_typing_status', {
+            p_group_id: group.id,
+            p_user_id: userId
+          })
+          .then(() => console.log('Typing status cleared on unmount'))
+          .catch((err: Error) => console.error('Error clearing typing status on unmount:', err));
+      }
+
+      // Clear any pending timeouts
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
     };
-  }, [group.id]);
+  }, [group.id, userId]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !userId) return;
@@ -240,6 +393,9 @@ export default function SimpleGroupChat({
     try {
       setSending(true);
       const supabase = createClient();
+
+      // Clear typing status when sending a message
+      await clearTypingStatus();
 
       // Use the simplified stored procedure to send the message
       console.log('Sending message to group:', group.id);
@@ -415,10 +571,11 @@ export default function SimpleGroupChat({
                   {message.sender_id !== userId && (
                     <Avatar className="h-8 w-8">
                       {message.avatar_url ? (
-                        <AvatarImage src={message.avatar_url} />
+                        <AvatarImage src={message.avatar_url} alt={message.full_name || message.username || "User"} />
                       ) : (
-                        <AvatarFallback>
-                          <Users className="h-4 w-4" />
+                        <AvatarFallback className="text-[10px]">
+                          {message.full_name ? message.full_name.substring(0, 2).toUpperCase() :
+                           message.username ? message.username.substring(0, 2).toUpperCase() : "UN"}
                         </AvatarFallback>
                       )}
                     </Avatar>
@@ -442,10 +599,11 @@ export default function SimpleGroupChat({
                   {message.sender_id === userId && (
                     <Avatar className="h-8 w-8">
                       {userProfile?.avatar_url ? (
-                        <AvatarImage src={userProfile.avatar_url} />
+                        <AvatarImage src={userProfile.avatar_url} alt={userProfile.full_name || userProfile.username || "You"} />
                       ) : (
-                        <AvatarFallback>
-                          <Users className="h-4 w-4" />
+                        <AvatarFallback className="text-[10px]">
+                          {userProfile?.full_name ? userProfile.full_name.substring(0, 2).toUpperCase() :
+                           userProfile?.username ? userProfile.username.substring(0, 2).toUpperCase() : "ME"}
                         </AvatarFallback>
                       )}
                     </Avatar>
@@ -473,12 +631,31 @@ export default function SimpleGroupChat({
         </div>
 
         <div className="sticky bottom-0 bg-background p-2 sm:p-3 md:p-4">
+          {/* Typing indicator */}
+          {Object.keys(typingUsers).length > 0 && (
+            <div className="flex items-center mb-2 text-sm text-muted-foreground animate-pulse mx-auto max-w-3xl">
+              <span>
+                {Object.keys(typingUsers).length === 1
+                  ? `${Object.values(typingUsers)[0].full_name || Object.values(typingUsers)[0].username || 'Someone'} is typing`
+                  : `${Object.keys(typingUsers).length} people are typing`}
+              </span>
+              <span className="ml-1 flex">
+                <span className="animate-bounce">.</span>
+                <span className="animate-bounce delay-100">.</span>
+                <span className="animate-bounce delay-200">.</span>
+              </span>
+            </div>
+          )}
           <div className="flex gap-2 items-center mx-auto max-w-3xl">
             <Input
               placeholder="Type your message..."
               value={newMessage}
               className="rounded-full bg-muted/50 focus-visible:ring-primary/50"
-              onChange={(e) => setNewMessage(e.target.value)}
+              onChange={(e) => {
+                setNewMessage(e.target.value);
+                // Update typing status when user types
+                updateTypingStatus(true);
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();

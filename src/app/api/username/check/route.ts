@@ -13,15 +13,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if username already exists (case-insensitive)
+    // Get all usernames that match exactly (case-insensitive)
+    // We use eq() with toLowerCase() on both sides for exact matching
     const { data, error } = await supabase
       .from("user_profiles")
       .select("username")
-      .ilike("username", username)
-      .single();
+      .filter('lower(username)', 'eq', username.toLowerCase());
 
-    if (error && error.code !== "PGRST116") {
-      // PGRST116 means no rows returned, which is what we want
+    if (error) {
       console.error("Error checking username:", error);
       return NextResponse.json(
         { error: "Failed to check username" },
@@ -29,8 +28,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // If data exists, username is taken
-    return NextResponse.json({ available: !data });
+    // If we found any matches, the username is taken
+    const isAvailable = !data || data.length === 0;
+
+    return NextResponse.json({ available: isAvailable });
   } catch (error) {
     console.error("Unexpected error:", error);
     return NextResponse.json(

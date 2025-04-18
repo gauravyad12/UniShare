@@ -261,7 +261,7 @@ export default function Messages() {
                           src={conversation.avatar_url || ""}
                           alt={conversation.full_name}
                         />
-                        <AvatarFallback>
+                        <AvatarFallback className="text-[10px]">
                           {conversation.full_name
                             .split(" ")
                             .map((n) => n[0])

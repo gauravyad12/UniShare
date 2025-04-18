@@ -21,7 +21,7 @@ export default function RealtimeUnreadBadge({
 
   useEffect(() => {
     fetchUnreadCount();
-    
+
     // Set up realtime subscription for new messages
     const channel = supabase
       .channel(`group-chat-unread-${groupId}`)
@@ -38,7 +38,7 @@ export default function RealtimeUnreadBadge({
         }
       )
       .subscribe();
-    
+
     return () => {
       supabase.removeChannel(channel);
     };
@@ -47,33 +47,20 @@ export default function RealtimeUnreadBadge({
   const fetchUnreadCount = async () => {
     try {
       setIsLoading(true);
-      
-      // Get the last read timestamp for this user and group
-      const { data: readStatus } = await supabase
-        .from('group_chat_read_status')
-        .select('last_read_at')
+
+      // Count all messages that don't have a read status for this user
+      const { count } = await supabase
+        .from('group_chat_messages')
+        .select('*', { count: 'exact', head: true })
         .eq('study_group_id', groupId)
-        .eq('user_id', userId)
-        .single();
-      
-      // If no read status found, count all messages
-      if (!readStatus) {
-        const { count } = await supabase
-          .from('group_chat_messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('study_group_id', groupId);
-        
-        setUnreadCount(count || 0);
-      } else {
-        // Count messages newer than last read
-        const { count } = await supabase
-          .from('group_chat_messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('study_group_id', groupId)
-          .gt('created_at', readStatus.last_read_at);
-        
-        setUnreadCount(count || 0);
-      }
+        .not('id', 'in', (
+          supabase
+            .from('message_read_status')
+            .select('message_id')
+            .eq('user_id', userId)
+        ));
+
+      setUnreadCount(count || 0);
     } catch (err) {
       console.error("Error fetching unread count:", err);
     } finally {

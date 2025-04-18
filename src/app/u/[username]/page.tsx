@@ -133,7 +133,7 @@ export default function UserProfilePage({
               src={profileData?.avatar_url || undefined}
               alt={profileData?.full_name || profileData?.username || "User"}
             />
-            <AvatarFallback className="text-2xl">
+            <AvatarFallback className="text-xl">
               {(profileData?.full_name || profileData?.username || "U")
                 .substring(0, 2)
                 .toUpperCase()}

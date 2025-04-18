@@ -68,6 +68,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate file type (only PDF allowed)
+    if (file && file.type !== 'application/pdf') {
+      return NextResponse.json(
+        { error: "Only PDF files are accepted" },
+        { status: 400 },
+      );
+    }
+
     if (resourceType === "link" && !externalLink) {
       return NextResponse.json(
         { error: "URL is required for link resources" },

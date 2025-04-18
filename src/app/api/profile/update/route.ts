@@ -40,18 +40,17 @@ export async function POST(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    // If username is changing, check if it's already taken (case-insensitive)
+    // If username is changing, check if it's already taken (case-insensitive exact match)
     if (
       username &&
       username.toLowerCase() !== existingProfile?.username?.toLowerCase()
     ) {
-      const { data: existingUsername } = await supabase
+      const { data: existingUsernames } = await supabase
         .from("user_profiles")
         .select("username")
-        .ilike("username", username)
-        .single();
+        .filter('lower(username)', 'eq', username.toLowerCase());
 
-      if (existingUsername) {
+      if (existingUsernames && existingUsernames.length > 0) {
         return NextResponse.json(
           { error: "Username is already taken" },
           { status: 400 },

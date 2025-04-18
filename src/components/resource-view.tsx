@@ -162,10 +162,8 @@ export default function ResourceView({
 
       if (response.ok) {
         setNewComment("");
-        // Update comments list with the new comment
-        if (data.comment) {
-          setComments((prevComments) => [data.comment, ...prevComments]);
-        }
+        // Don't manually update comments - rely on the realtime subscription
+        // to avoid duplicate comments
 
         // Update comment count from server response
         setCommentCount(data.count);
@@ -983,13 +981,13 @@ export default function ResourceView({
               placeholder="Add a comment..."
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              className="resize-none mb-2"
+              className={`resize-none mb-2 ${commentError ? "border-red-500" : ""}`}
               rows={3}
             />
             {commentError && (
-              <div className="bg-destructive/15 text-destructive px-4 py-2 rounded-md text-sm mb-2">
+              <p className="text-xs text-red-500 mb-2">
                 {commentError}
-              </div>
+              </p>
             )}
             <div className="flex justify-end">
               <Button
@@ -1018,7 +1016,7 @@ export default function ResourceView({
                     <AvatarImage
                       src={comment.user_profiles?.avatar_url || undefined}
                     />
-                    <AvatarFallback>
+                    <AvatarFallback className="text-[10px]">
                       {(
                         comment.user_profiles?.full_name ||
                         comment.user_profiles?.username ||

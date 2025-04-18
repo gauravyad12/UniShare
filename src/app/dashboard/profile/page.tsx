@@ -50,6 +50,23 @@ export default function ProfilePage() {
     major: "",
     graduation_year: "",
   });
+
+  // Character limits for each field
+  const charLimits = {
+    fullName: 30,
+    username: 30,
+    bio: 500,
+    major: 30
+  };
+
+  // Character counts
+  const [charCounts, setCharCounts] = useState({
+    fullName: 0,
+    username: 0,
+    bio: 0,
+    major: 0
+  });
+
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
 
@@ -110,12 +127,22 @@ export default function ProfilePage() {
         }
 
         // Set form data
-        setFormData({
+        const newFormData = {
           full_name: profile?.full_name || user?.user_metadata?.full_name || "",
           username: profile?.username || user?.user_metadata?.username || "",
           bio: profile?.bio || "",
           major: profile?.major || "",
           graduation_year: profile?.graduation_year?.toString() || "",
+        };
+
+        setFormData(newFormData);
+
+        // Initialize character counts
+        setCharCounts({
+          fullName: newFormData.full_name.length,
+          username: newFormData.username.length,
+          bio: newFormData.bio.length,
+          major: newFormData.major.length
         });
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -185,7 +212,7 @@ export default function ProfilePage() {
     }
   };
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
 
     // Special handling for username
@@ -204,6 +231,12 @@ export default function ProfilePage() {
       } else {
         setUsernameStatus(null);
       }
+
+      // Update character count
+      setCharCounts(prev => ({
+        ...prev,
+        username: value.length
+      }));
     }
 
     // Special handling for graduation year
@@ -216,6 +249,24 @@ export default function ProfilePage() {
         graduation_year: numericValue,
       });
       return;
+    }
+
+    // Update character counts based on field
+    if (id === "fullName") {
+      setCharCounts(prev => ({
+        ...prev,
+        fullName: value.length
+      }));
+    } else if (id === "bio") {
+      setCharCounts(prev => ({
+        ...prev,
+        bio: value.length
+      }));
+    } else if (id === "major") {
+      setCharCounts(prev => ({
+        ...prev,
+        major: value.length
+      }));
     }
 
     setFormData({
@@ -306,8 +357,10 @@ export default function ProfilePage() {
 
     try {
       // Include avatar_url in the form data if it exists
+      // Also ensure username is lowercase
       const updatedFormData = {
         ...formData,
+        username: formData.username.toLowerCase(), // Convert username to lowercase
         avatar_url: profile?.avatar_url || null,
       };
 
@@ -334,7 +387,7 @@ export default function ProfilePage() {
         setProfile({
           ...profile,
           full_name: formData.full_name,
-          username: formData.username,
+          username: formData.username.toLowerCase(), // Use lowercase username
           bio: formData.bio,
           major: formData.major,
           graduation_year: formData.graduation_year,
@@ -361,7 +414,7 @@ export default function ProfilePage() {
     }
   };
 
-  const handleImageUpload = async (e) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -393,12 +446,13 @@ export default function ProfilePage() {
         title: "Profile picture updated",
         description: "Your profile picture has been successfully updated.",
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error uploading image:", error);
       toast({
         title: "Error",
         description:
-          "Failed to upload profile picture: " + (error.message || error),
+          "Failed to upload profile picture: " +
+          (error instanceof Error ? error.message : String(error)),
         variant: "destructive",
       });
     } finally {
@@ -480,12 +534,14 @@ export default function ProfilePage() {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <Label htmlFor="fullName">Full Name</Label>
+                    <p className="text-xs text-muted-foreground">{charCounts.fullName}/{charLimits.fullName}</p>
                   </div>
                   <Input
                     id="fullName"
                     value={formData.full_name}
                     onChange={handleInputChange}
                     placeholder="Your full name"
+                    maxLength={charLimits.fullName}
                     className={formErrors.fullName ? "border-red-500" : ""}
                   />
                   {formErrors.fullName && (
@@ -497,32 +553,36 @@ export default function ProfilePage() {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <Label htmlFor="username">Username</Label>
-                    {usernameStatus && usernameStatus !== "unchanged" && (
-                      <div className="flex items-center text-xs">
-                        {usernameStatus === "checking" ? (
-                          <div className="flex items-center text-muted-foreground">
-                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                            Checking...
-                          </div>
-                        ) : usernameStatus === "available" ? (
-                          <div className="flex items-center text-green-500">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Available
-                          </div>
-                        ) : (
-                          <div className="flex items-center text-red-500">
-                            <XCircle className="h-3 w-3 mr-1" />
-                            {usernameStatus === "invalid" ? "Invalid" : "Taken"}
-                          </div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-muted-foreground">{charCounts.username}/{charLimits.username}</p>
+                      {usernameStatus && usernameStatus !== "unchanged" && (
+                        <div className="flex items-center text-xs">
+                          {usernameStatus === "checking" ? (
+                            <div className="flex items-center text-muted-foreground">
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              Checking...
+                            </div>
+                          ) : usernameStatus === "available" ? (
+                            <div className="flex items-center text-green-500">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Available
+                            </div>
+                          ) : (
+                            <div className="flex items-center text-red-500">
+                              <XCircle className="h-3 w-3 mr-1" />
+                              {usernameStatus === "invalid" ? "Invalid" : "Taken"}
+                            </div>
                         )}
                       </div>
                     )}
+                    </div>
                   </div>
                   <Input
                     id="username"
                     value={formData.username}
                     onChange={handleInputChange}
                     placeholder="Choose a username"
+                    maxLength={charLimits.username}
                     className={
                       usernameStatus === "taken" ||
                       usernameStatus === "invalid" ||
@@ -609,12 +669,16 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="major">Major/Field of Study</Label>
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="major">Major/Field of Study</Label>
+                  <p className="text-xs text-muted-foreground">{charCounts.major}/{charLimits.major}</p>
+                </div>
                 <Input
                   id="major"
                   value={formData.major}
                   onChange={handleInputChange}
                   placeholder="Your major or field of study"
+                  maxLength={charLimits.major}
                   className={formErrors.major ? "border-red-500" : ""}
                 />
                 {formErrors.major && (
@@ -623,13 +687,17 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="bio">Bio</Label>
+                <div className="flex justify-between items-center">
+                  <Label htmlFor="bio">Bio</Label>
+                  <p className="text-xs text-muted-foreground">{charCounts.bio}/{charLimits.bio}</p>
+                </div>
                 <Textarea
                   id="bio"
                   value={formData.bio}
                   onChange={handleInputChange}
                   placeholder="Tell others about yourself"
                   rows={4}
+                  maxLength={charLimits.bio}
                   className={formErrors.bio ? "border-red-500" : ""}
                 />
                 {formErrors.bio && (

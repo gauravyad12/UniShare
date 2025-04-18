@@ -17,3 +17,24 @@ export interface UnreadCounts {
     unread: number;
   };
 }
+
+export interface TypingStatus {
+  id: string;
+  study_group_id: string;
+  user_id: string;
+  is_typing: boolean;
+  updated_at: string;
+  // Include user profile information for display
+  full_name?: string;
+  username?: string;
+  avatar_url?: string;
+}
+
+export interface TypingUsers {
+  [userId: string]: {
+    full_name?: string;
+    username?: string;
+    avatar_url?: string;
+    updated_at: string;
+  };
+}

@@ -8,7 +8,6 @@ export async function DELETE(
 ) {
   try {
     const supabase = createClient();
-    const adminClient = createAdminClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -25,78 +24,41 @@ export async function DELETE(
       );
     }
 
-    // Check if user is the creator or an admin of the group
-    const { data: studyGroup } = await adminClient
-      .from("study_groups")
-      .select("created_by")
-      .eq("id", groupId)
-      .single();
+    console.log("Deleting study group with ID:", groupId);
+    console.log("User ID:", user.id);
 
-    if (!studyGroup) {
-      return NextResponse.json(
-        { error: "Study group not found" },
-        { status: 404 }
-      );
-    }
-
-    const isCreator = studyGroup.created_by === user.id;
-
-    if (!isCreator) {
-      // Check if user is an admin
-      const { data: membership } = await adminClient
-        .from("study_group_members")
-        .select("role")
-        .eq("study_group_id", groupId)
-        .eq("user_id", user.id)
-        .single();
-
-      const isAdmin = membership?.role === "admin";
-
-      if (!isAdmin) {
-        return NextResponse.json(
-          { error: "Only the creator or admins can delete this study group" },
-          { status: 403 }
-        );
+    // Use the security definer function to delete the study group
+    // This bypasses RLS and avoids infinite recursion
+    const { data: success, error: deleteError } = await supabase.rpc(
+      "delete_study_group",
+      {
+        p_group_id: groupId,
+        p_user_id: user.id
       }
-    }
-
-    // Delete all related data first (using cascading delete would be better, but we'll do it manually for safety)
-    
-    // 1. Delete all messages
-    await adminClient
-      .from("group_chat_messages")
-      .delete()
-      .eq("study_group_id", groupId);
-
-    // 2. Delete all message read statuses
-    await adminClient
-      .from("group_chat_read_status")
-      .delete()
-      .eq("study_group_id", groupId);
-
-    // 3. Delete all resources
-    await adminClient
-      .from("study_group_resources")
-      .delete()
-      .eq("study_group_id", groupId);
-
-    // 4. Delete all members
-    await adminClient
-      .from("study_group_members")
-      .delete()
-      .eq("study_group_id", groupId);
-
-    // 5. Finally, delete the study group
-    const { error: deleteError } = await adminClient
-      .from("study_groups")
-      .delete()
-      .eq("id", groupId);
+    );
 
     if (deleteError) {
       console.error("Error deleting study group:", deleteError);
+
+      // Check for specific error types
+      if (deleteError.code === "42501" || deleteError.message?.includes("permission denied")) {
+        return NextResponse.json(
+          { error: "You don't have permission to delete this study group." },
+          { status: 403 }
+        );
+      }
+
       return NextResponse.json(
         { error: "Failed to delete study group" },
         { status: 500 }
+      );
+    }
+
+    // If the function returned false, the user doesn't have permission
+    if (success === false) {
+      return NextResponse.json(
+        { error: "Only the creator or admins can delete this study group" },
+        { status: 403 }
       );
     }
 

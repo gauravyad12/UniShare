@@ -150,7 +150,17 @@ export default function ResourceUploadForm() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setSelectedFile(e.target.files[0]);
+      const file = e.target.files[0];
+
+      // Check if the file is a PDF
+      if (file.type !== 'application/pdf') {
+        setError('Only PDF files are accepted');
+        setSelectedFile(null);
+        return;
+      }
+
+      setError(null);
+      setSelectedFile(file);
     } else {
       setSelectedFile(null);
     }
@@ -303,11 +313,12 @@ export default function ResourceUploadForm() {
               <div className="text-center">
                 <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
                 <p className="text-sm text-gray-500 mb-2">
-                  Drag and drop or click to upload
+                  Drag and drop or click to upload (PDF only)
                 </p>
                 <Input
                   id="file"
                   type="file"
+                  accept="application/pdf"
                   className="hidden"
                   onChange={handleFileChange}
                 />

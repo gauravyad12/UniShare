@@ -36,8 +36,11 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
   const [inviteCode, setInviteCode] = useState("");
   const [joiningGroup, setJoiningGroup] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filteredGroups, setFilteredGroups] = useState<any[]>([]);
+  const [filteredMyGroups, setFilteredMyGroups] = useState<any[]>([]);
   const router = useRouter();
 
+  // First useEffect for data fetching
   useEffect(() => {
     async function fetchData() {
       try {
@@ -178,6 +181,38 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
     fetchData();
   }, []);
 
+  // Second useEffect for filtering - MUST be before any conditional returns
+  useEffect(() => {
+    if (!data) return; // Skip if data isn't loaded yet
+
+    const { studyGroups = [], myStudyGroups = [] } = data;
+
+    // Filter public groups
+    const filtered = studyGroups.filter((group: any) => {
+      if (searchQuery.trim() === '') return true;
+      const query = searchQuery.toLowerCase().trim();
+      return (
+        group.name?.toLowerCase().includes(query) ||
+        group.description?.toLowerCase().includes(query) ||
+        group.course_code?.toLowerCase().includes(query)
+      );
+    });
+
+    // Filter user's groups
+    const filteredMy = myStudyGroups.filter((group: any) => {
+      if (searchQuery.trim() === '') return true;
+      const query = searchQuery.toLowerCase().trim();
+      return (
+        group.name?.toLowerCase().includes(query) ||
+        group.description?.toLowerCase().includes(query) ||
+        group.course_code?.toLowerCase().includes(query)
+      );
+    });
+
+    setFilteredGroups(filtered);
+    setFilteredMyGroups(filteredMy);
+  }, [searchQuery, data]);
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
@@ -214,8 +249,6 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
   const allUserGroupIds = [...new Set([...userGroupIds, ...myGroupIds])];
 
   console.log('Updated user group IDs:', allUserGroupIds);
-
-
 
   // Function to handle joining a group with an invitation code
   const handleJoinGroup = async () => {
@@ -271,12 +304,12 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
   return (
     <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
       <header className="flex flex-col gap-4">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-2">
           <h1 className="text-3xl font-bold">Study Groups</h1>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap w-full sm:w-auto gap-2">
             <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline">
+                <Button variant="outline" className="flex-1 sm:flex-auto">
                   <LinkIcon className="mr-2 h-4 w-4" /> Join with Code
                 </Button>
               </DialogTrigger>
@@ -288,14 +321,14 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <label htmlFor="inviteCode" className="text-right">
+                  <div className="grid sm:grid-cols-4 items-center gap-4">
+                    <label htmlFor="inviteCode" className="sm:text-right">
                       Invitation Code
                     </label>
                     <Input
                       id="inviteCode"
                       placeholder="Enter code"
-                      className="col-span-3"
+                      className="sm:col-span-3"
                       value={inviteCode}
                       onChange={(e) => setInviteCode(e.target.value)}
                     />
@@ -318,7 +351,7 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-            <Button onClick={() => router.push('/dashboard/study-groups/create')}>
+            <Button onClick={() => router.push('/dashboard/study-groups/create')} className="flex-1 sm:flex-auto">
               <Plus className="mr-2 h-4 w-4" />
               Create Group
             </Button>
@@ -343,25 +376,9 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
-          {studyGroups && studyGroups.length > 0 && studyGroups.filter((group: any) => {
-            if (searchQuery.trim() === '') return true;
-            const query = searchQuery.toLowerCase().trim();
-            return (
-              group.name?.toLowerCase().includes(query) ||
-              group.description?.toLowerCase().includes(query) ||
-              group.course_code?.toLowerCase().includes(query)
-            );
-          }).length > 0 ? (
+          {filteredGroups && filteredGroups.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {studyGroups.filter((group: any) => {
-                if (searchQuery.trim() === '') return true;
-                const query = searchQuery.toLowerCase().trim();
-                return (
-                  group.name?.toLowerCase().includes(query) ||
-                  group.description?.toLowerCase().includes(query) ||
-                  group.course_code?.toLowerCase().includes(query)
-                );
-              }).map((group: any) => (
+              {filteredGroups.map((group: any) => (
                 <div key={group.id}>
                   <StudyGroupCard
                     group={group}
@@ -372,7 +389,7 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
                 </div>
               ))}
             </div>
-          ) : studyGroups && studyGroups.length > 0 && searchQuery.trim() !== '' ? (
+          ) : studyGroups.length > 0 && searchQuery.trim() !== '' ? (
             <Card className="bg-muted/40">
               <CardContent className="pt-6 flex flex-col items-center justify-center text-center p-10 space-y-4">
                 <Users className="h-12 w-12 text-muted-foreground" />
@@ -407,26 +424,10 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
         </TabsContent>
 
         <TabsContent value="my-groups" className="space-y-4">
-          {myStudyGroups && myStudyGroups.length > 0 && myStudyGroups.filter((group: any) => {
-            if (searchQuery.trim() === '') return true;
-            const query = searchQuery.toLowerCase().trim();
-            return (
-              group.name?.toLowerCase().includes(query) ||
-              group.description?.toLowerCase().includes(query) ||
-              group.course_code?.toLowerCase().includes(query)
-            );
-          }).length > 0 ? (
+          {filteredMyGroups && filteredMyGroups.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Log each group as it's being rendered */}
-              {myStudyGroups.filter((group: any) => {
-                if (searchQuery.trim() === '') return true;
-                const query = searchQuery.toLowerCase().trim();
-                return (
-                  group.name?.toLowerCase().includes(query) ||
-                  group.description?.toLowerCase().includes(query) ||
-                  group.course_code?.toLowerCase().includes(query)
-                );
-              }).map((group: any) => {
+              {filteredMyGroups.map((group: any) => {
                 console.log('Rendering group in My Groups tab:', {
                   id: group.id,
                   name: group.name,
@@ -444,7 +445,7 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
                 );
               })}
             </div>
-          ) : myStudyGroups && myStudyGroups.length > 0 && searchQuery.trim() !== '' ? (
+          ) : myStudyGroups.length > 0 && searchQuery.trim() !== '' ? (
             <Card className="bg-muted/40">
               <CardContent className="pt-6 flex flex-col items-center justify-center text-center p-10 space-y-4">
                 <Users className="h-12 w-12 text-muted-foreground" />
