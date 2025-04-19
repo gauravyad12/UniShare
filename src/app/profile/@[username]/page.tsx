@@ -16,5 +16,5 @@ export default function ProfileRedirect({
     ? params.username.substring(1)
     : params.username;
 
-  redirect(`/dashboard/profile?username=${encodeURIComponent(cleanUsername)}`);
+  redirect(`/profile?username=${cleanUsername}`);
 }

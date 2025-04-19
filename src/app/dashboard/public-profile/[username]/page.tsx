@@ -40,14 +40,12 @@ export default function PublicProfilePage({
     isFollowing: false,
   });
 
-  // Get username from params
-  const username = params.username;
-
   // Handle follow status changes
   const handleFollowStatusChange = (status) => {
     console.log("Follow status changed:", status);
     setFollowStats(status);
   };
+  const username = params.username;
 
   // Fetch follow stats separately
   useEffect(() => {
