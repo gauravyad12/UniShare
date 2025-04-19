@@ -35,8 +35,8 @@ export default function UserProfilePage() {
   useEffect(() => {
     const fetchProfileData = async () => {
       if (!usernameParam) {
-        // If no username parameter is provided, redirect to dashboard
-        router.push('/dashboard');
+        setError(true);
+        setLoading(false);
         return;
       }
 
