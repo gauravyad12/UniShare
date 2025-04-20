@@ -13,25 +13,28 @@
 </div>
 
 ## Project Status
-This project is currently enrolled in the UCF Knight Hacks Project Launch competition and is being worked on by a team of students with varying degrees of skills.
+This project is currently in Beta.
 
 ## Features
-- 📎: Share Homework
-- 📖: Textbook Answers
+- 📎: Share Coursework and other files
+- 📖: Textbook Answers / Free Textbook Library
+- 👥: Study Groups 
 - 🤖: AI Tools
 - 🏫: Per College Exclusive
 - 🧑‍🤝‍🧑: Invite Only
-- :black_medium_square::white_medium_square: Beautifully modern UI with dark / light modes
+- 📅: Share Course Schedules (w/ Ratemyprofessor & Canvas Integration)
+- :black_medium_square::white_medium_square: Beautifully modern UI with dark / light modes and many customization options
 - 文A Multi language
 - More to come:
-    - :bust_in_silhouette: Google account login
-    - :art: Custom themes
+  - Cross University Challenges
+  - Built-in Website Unblocker
+  - Distribute resumes
 
 ## Purpose
 This project is an attempt to make an all-in-one student portal. The goal of the project is to create a fully functioning web app and mobile app that offers various features and tools for students to use to learn and grow in a University environment.
 
 ## Acknowledgements
-I want to personally thank the UCF Knight Hacks community members, officers, and my personal team members that all helped with the development with this project.
+I want to personally thank the many ScorpiSoft team members that helped with the development with this project.
 
 ## License
 UniShare is licensed under the GNU General Public License
