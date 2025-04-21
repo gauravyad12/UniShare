@@ -29,7 +29,7 @@ export async function DELETE(
     // Check if user is the author of the resource
     const { data: resource, error: resourceError } = await supabase
       .from("resources")
-      .select("author_id, file_url")
+      .select("author_id, file_url, thumbnail_url")
       .eq("id", resourceId)
       .single();
 
@@ -61,15 +61,17 @@ export async function DELETE(
       );
     }
 
+    // Helper function to extract file path from URL
+    const extractFilePath = (url: string) => {
+      const match = url.match(/resources\/([^?]+)/);
+      return match && match[1] ? match[1] : null;
+    };
+
     // If there's a file associated with the resource, delete it from storage
     if (resource.file_url) {
       try {
-        // Extract the file path from the URL
-        // The URL format is typically: https://<project-ref>.supabase.co/storage/v1/object/public/resources/<path>
-        // We need to extract just the path part after 'resources/'
-        const filePathMatch = resource.file_url.match(/resources\/([^?]+)/);
-        if (filePathMatch && filePathMatch[1]) {
-          const filePath = filePathMatch[1];
+        const filePath = extractFilePath(resource.file_url);
+        if (filePath) {
           console.log("Attempting to delete file:", filePath);
 
           const { error: storageError } = await supabase.storage
@@ -90,6 +92,35 @@ export async function DELETE(
         }
       } catch (fileError) {
         console.error("Exception when deleting file from storage:", fileError);
+        // Continue despite error - the resource record was deleted successfully
+      }
+    }
+
+    // If there's a thumbnail associated with the resource, delete it from storage
+    if (resource.thumbnail_url) {
+      try {
+        const thumbnailPath = extractFilePath(resource.thumbnail_url);
+        if (thumbnailPath) {
+          console.log("Attempting to delete thumbnail:", thumbnailPath);
+
+          const { error: storageError } = await supabase.storage
+            .from("resources")
+            .remove([thumbnailPath]);
+
+          if (storageError) {
+            console.error("Error deleting thumbnail from storage:", storageError);
+            // Continue despite error - the resource record was deleted successfully
+          } else {
+            console.log("Successfully deleted thumbnail from storage:", thumbnailPath);
+          }
+        } else {
+          console.error(
+            "Could not extract thumbnail path from URL:",
+            resource.thumbnail_url,
+          );
+        }
+      } catch (thumbnailError) {
+        console.error("Exception when deleting thumbnail from storage:", thumbnailError);
         // Continue despite error - the resource record was deleted successfully
       }
     }

@@ -16,6 +16,7 @@ import {
   ExternalLink,
   CheckCircle,
 } from "lucide-react";
+import ResourcePreview from "./resource-preview";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useToast } from "./ui/use-toast";
@@ -37,6 +38,9 @@ interface ResourceCardProps {
     comment_count?: number;
     likes?: number;
     downloads?: number;
+    file_url?: string;
+    external_link?: string;
+    thumbnail_url?: string;
   };
   onView?: (id: string) => void;
   onDownload?: (id: string) => void;
@@ -355,7 +359,7 @@ export default function ResourceCard({
               </div>
             )}
             <div className="flex items-center">
-              <ThumbsUp className="h-4 w-4 text-blue-500" />
+              <ThumbsUp className="h-4 w-4" />
               <span className="text-sm ml-1">{likesCount}</span>
             </div>
           </div>
@@ -368,7 +372,19 @@ export default function ResourceCard({
         )}
       </CardHeader>
       <CardContent>
-        <p className="text-gray-600 line-clamp-2">{resource.description}</p>
+        {/* Resource Preview */}
+        <div className="mb-3">
+          <ResourcePreview
+            resourceId={resource.id}
+            resourceType={resource.resource_type}
+            fileUrl={resource.file_url}
+            externalLink={resource.external_link}
+            title={resource.title}
+            thumbnailUrl={resource.thumbnail_url}
+          />
+        </div>
+
+        <p className="text-white/60 font-medium line-clamp-2 mt-3">{resource.description}</p>
 
         <div className="flex flex-wrap gap-1 mt-3">
           {resource.tags?.map((tag, index) => (
@@ -380,12 +396,15 @@ export default function ResourceCard({
       </CardContent>
       <CardFooter className="flex justify-between pt-2 border-t">
         <div className="flex items-center text-sm text-gray-500">
-          <div className="flex items-center mr-3">
-            <Download className="h-4 w-4 mr-1" />
-            <span>
-              {formatNumber(resource.downloads || resource.download_count || 0)}
-            </span>
-          </div>
+          {/* Only show download count for non-link resources */}
+          {resource.resource_type !== "link" && (
+            <div className="flex items-center mr-3">
+              <Download className="h-4 w-4 mr-1" />
+              <span>
+                {formatNumber(resource.downloads || resource.download_count || 0)}
+              </span>
+            </div>
+          )}
           <div className="flex items-center">
             <MessageSquare className="h-4 w-4 mr-1" />
             <span>{formatNumber(resource.comment_count || 0)}</span>

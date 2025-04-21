@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `resources/${fileName}`;
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from("resources")
         .upload(filePath, file);
 
@@ -179,6 +179,52 @@ export async function POST(request: NextRequest) {
         { error: "Failed to create resource" },
         { status: 500 },
       );
+    }
+
+    // Removed duplicate call to /api/thumbnails/generate
+
+    // Generate thumbnail for the resource
+    if (resource) {
+      try {
+        console.log('Triggering immediate thumbnail generation for new resource:', resource.id);
+        // Try to generate the thumbnail immediately, but don't block the response
+        const thumbnailPromise = fetch(`${request.nextUrl.origin}/api/thumbnails/screenshot`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            resourceId: resource.id,
+            resourceType,
+            fileUrl,
+            externalLink,
+          }),
+        });
+
+        // Add a timeout to ensure we don't wait too long
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Thumbnail generation timeout')), 5000);
+        });
+
+        // Race the thumbnail generation against the timeout
+        Promise.race([thumbnailPromise, timeoutPromise])
+          .then(response => {
+            if (response instanceof Response) {
+              console.log('Thumbnail generation response status:', response.status);
+              return response.json();
+            }
+            return null;
+          })
+          .then(data => {
+            if (data) {
+              console.log('Thumbnail generated successfully:', data);
+            }
+          })
+          .catch(e => console.error('Background thumbnail generation failed:', e));
+      } catch (e) {
+        console.error('Error triggering thumbnail generation:', e);
+        // Don't fail the request if thumbnail generation fails
+      }
     }
 
     return NextResponse.json({ success: true, resource });

@@ -29,7 +29,7 @@ export async function POST(
     // Check if user is the author of the resource
     const { data: resource, error: resourceError } = await supabase
       .from("resources")
-      .select("author_id")
+      .select("author_id, file_url, external_link, resource_type")
       .eq("id", resourceId)
       .single();
 
@@ -96,6 +96,39 @@ export async function POST(
         { error: "Failed to update resource" },
         { status: 500 },
       );
+    }
+
+    // Check if we need to regenerate the thumbnail
+    const needsNewThumbnail =
+      (data.resource_type !== resource.resource_type) || // Resource type changed
+      (data.external_link !== resource.external_link && data.resource_type === 'link'); // External link changed for link resources
+
+    if (needsNewThumbnail) {
+      try {
+        // Get the updated resource to ensure we have the latest data
+        const { data: updatedResource } = await supabase
+          .from("resources")
+          .select("file_url, external_link")
+          .eq("id", resourceId)
+          .single();
+
+        // Don't await this - let it run in the background
+        fetch(`${request.nextUrl.origin}/api/thumbnails/screenshot`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            resourceId,
+            resourceType: data.resource_type,
+            fileUrl: updatedResource?.file_url || resource.file_url,
+            externalLink: updatedResource?.external_link || data.external_link,
+          }),
+        }).catch(e => console.error('Background thumbnail regeneration failed:', e));
+      } catch (e) {
+        console.error('Error triggering thumbnail regeneration:', e);
+        // Don't fail the request if thumbnail regeneration fails
+      }
     }
 
     return NextResponse.json({ success: true });

@@ -883,14 +883,17 @@ export default function ResourceView({
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row justify-between border-t pt-4 gap-4">
           <div className="flex items-center text-sm text-gray-500">
-            <div className="flex items-center mr-3">
-              <Download className="h-4 w-4 mr-1" />
-              <span>
-                {formatNumber(
-                  resource.downloads || resource.download_count || 0,
-                )}
-              </span>
-            </div>
+            {/* Only show download count for non-external link resources */}
+            {!resource.external_link && (
+              <div className="flex items-center mr-3">
+                <Download className="h-4 w-4 mr-1" />
+                <span>
+                  {formatNumber(
+                    resource.downloads || resource.download_count || 0,
+                  )}
+                </span>
+              </div>
+            )}
             <div className="flex items-center mr-3">
               <ThumbsUp className="h-4 w-4 mr-1" />
               <span>{formatNumber(likeCount)}</span>

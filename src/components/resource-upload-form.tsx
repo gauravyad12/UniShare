@@ -30,6 +30,7 @@ export default function ResourceUploadForm() {
   });
   const [resourceType, setResourceType] = useState<string>("notes");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
   const [externalLink, setExternalLink] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [title, setTitle] = useState<string>("");
@@ -178,6 +179,44 @@ export default function ResourceUploadForm() {
       setSelectedFile(file);
     } else {
       setSelectedFile(null);
+    }
+  };
+
+  // Handle drag and drop functionality
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+
+      // Check if the file is a PDF
+      if (file.type !== 'application/pdf') {
+        setErrors(prev => ({ ...prev, file: 'Only PDF files are accepted' }));
+        setSelectedFile(null);
+        return;
+      }
+
+      setErrors(prev => ({ ...prev, file: '' }));
+      setSelectedFile(file);
     }
   };
 
@@ -336,7 +375,13 @@ export default function ResourceUploadForm() {
       ) : (
         <div className="space-y-2">
           <Label htmlFor="file">Upload File</Label>
-          <div className={`border-2 border-dashed ${errors.file ? "border-red-500" : "border-gray-300 dark:border-gray-700"} rounded-md p-4 transition-colors`}>
+          <div
+            className={`border-2 border-dashed ${errors.file ? "border-red-500" : isDragging ? "border-primary" : "border-gray-300 dark:border-gray-700"} rounded-md p-4 transition-colors ${isDragging ? "bg-primary/5" : ""}`}
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
             {selectedFile ? (
               <div className="flex items-center justify-between">
                 <span className="text-sm truncate max-w-[80%]">
