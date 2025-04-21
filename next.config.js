@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
+  // Disable static generation for all routes
+  output: 'standalone',
+  // Disable static export
+  staticPageGenerationTimeout: 1000,
+  // Disable static export completely
+  exportPathMap: null,
   // Disable webpack caching to prevent ENOENT errors
   webpack: (config, { dev }) => {
     if (dev) {
@@ -67,6 +73,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+
 };
 
 // Configure SWC plugins for Tempo - only in development
