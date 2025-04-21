@@ -3,6 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -29,6 +30,7 @@ export default function PublicProfilePage({
 }: {
   params: { username: string };
 }) {
+  const router = useRouter();
   const supabase = createClient();
   const [profile, setProfile] = useState<any>(null);
   const [resources, setResources] = useState<any[]>([]);
@@ -133,15 +135,42 @@ export default function PublicProfilePage({
           setResources(resourcesData || []);
         }
 
-        // Get user's public study groups
-        const { data: studyGroupsData } = await supabase
+        // Get user's public study groups (both created by them and ones they're a member of)
+        // First, get the groups they created
+        const { data: createdGroupsData } = await supabase
           .from("study_groups")
           .select("*")
           .eq("created_by", profileData.id)
           .eq("is_private", false)
           .order("created_at", { ascending: false });
 
-        setStudyGroups(studyGroupsData || []);
+        // Then, get the groups they're a member of using our new API
+        const memberGroupsResponse = await fetch(`/api/user/${profileData.id}/study-groups`);
+        const memberGroupsData = await memberGroupsResponse.json();
+
+        // Combine both sets of groups and remove duplicates
+        const createdGroups = createdGroupsData || [];
+        const memberGroups = memberGroupsData.studyGroups || [];
+
+        // Use a Map to remove duplicates (in case they created and are a member of the same group)
+        const groupsMap = new Map();
+
+        // Add created groups to the map
+        createdGroups.forEach(group => {
+          groupsMap.set(group.id, group);
+        });
+
+        // Add member groups to the map (will overwrite if already exists)
+        memberGroups.forEach(group => {
+          if (!groupsMap.has(group.id)) {
+            groupsMap.set(group.id, group);
+          }
+        });
+
+        // Convert map back to array
+        const combinedGroups = Array.from(groupsMap.values());
+
+        setStudyGroups(combinedGroups);
       } catch (error) {
         console.error("Error:", error);
       } finally {
@@ -320,9 +349,18 @@ export default function PublicProfilePage({
         <TabsContent value="study-groups" className="mt-6">
           {studyGroups.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-              {studyGroups.map((group) => (
-                <StudyGroupCard key={group.id} group={group} />
-              ))}
+              {studyGroups.map((group) => {
+                // Check if the current user is a member of this group
+                const isMember = currentUser && group.members?.some(member => member.user_id === currentUser.id);
+                return (
+                  <StudyGroupCard
+                    key={group.id}
+                    group={group}
+                    isMember={isMember}
+                    onJoin={(id) => router.push(`/dashboard/study-groups?view=${id}`)}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-12">
@@ -331,7 +369,7 @@ export default function PublicProfilePage({
                 No public study groups yet
               </h3>
               <p className="text-muted-foreground">
-                This user hasn't created any public study groups.
+                This user isn't a member of any public study groups.
               </p>
             </div>
           )}

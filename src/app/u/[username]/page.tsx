@@ -3,9 +3,9 @@
 export const dynamic = "force-dynamic";
 
 import { createClient } from "@/utils/supabase/client";
-import { redirect, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ResourceCard from "@/components/resource-card";
 import StudyGroupCard from "@/components/study-group-card";
@@ -87,16 +87,38 @@ export default function UserProfilePage({
 
         setResources(resourcesData || []);
 
-        // Fetch public study groups by this user
-        const { data: studyGroupsData = [] } = await supabase
+        // Fetch public study groups (both created by and member of)
+        // First, get the groups they created
+        const { data: createdGroupsData = [] } = await supabase
           .from("study_groups")
           .select("*")
           .eq("created_by", finalProfileData.id)
           .eq("is_private", false)
-          .order("created_at", { ascending: false })
-          .limit(3);
+          .order("created_at", { ascending: false });
 
-        setStudyGroups(studyGroupsData);
+        // For the signed-out view, we'll just show groups created by the user
+        // This avoids potential issues with the API and keeps the page simple
+        console.log('Setting study groups to created groups only for signed-out view');
+        console.log('Created groups data:', createdGroupsData);
+        setStudyGroups(createdGroupsData || []);
+
+        // Let's try to use the API as well to see if it works
+        try {
+          const apiUrl = `${window.location.origin}/api/user/${finalProfileData.id}/study-groups`;
+          console.log('Attempting to fetch from API:', apiUrl);
+          const memberGroupsResponse = await fetch(apiUrl);
+          const memberGroupsData = await memberGroupsResponse.json();
+          console.log('API response:', memberGroupsData);
+
+          // If we got data from the API, use it instead
+          if (memberGroupsData && memberGroupsData.studyGroups && memberGroupsData.studyGroups.length > 0) {
+            console.log('Using API data instead');
+            setStudyGroups(memberGroupsData.studyGroups);
+          }
+        } catch (apiError) {
+          console.error('Error fetching from API (this is expected):', apiError);
+          // We already set the study groups to created groups, so no need to do anything here
+        }
       } catch (error) {
         console.error("Error fetching profile data:", error);
         setNotFound(true);
@@ -202,14 +224,14 @@ export default function UserProfilePage({
             {studyGroups && studyGroups.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8">
                 {studyGroups.map((group) => (
-                  <StudyGroupCard key={group.id} group={group} />
+                  <StudyGroupCard key={group.id} group={group} isPublicView={true} />
                 ))}
               </div>
             ) : (
               <Card>
                 <CardContent className="pt-6 text-center">
                   <p className="text-muted-foreground">
-                    No public study groups available
+                    This user isn't a member of any public study groups
                   </p>
                 </CardContent>
               </Card>

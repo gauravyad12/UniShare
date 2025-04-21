@@ -36,6 +36,7 @@ interface StudyGroupCardProps {
   isMember?: boolean;
   onJoin?: (id: string) => void;
   onView?: (id: string) => void;
+  isPublicView?: boolean;
 }
 
 export default function StudyGroupCard({
@@ -43,6 +44,7 @@ export default function StudyGroupCard({
   isMember = false,
   onJoin,
   onView,
+  isPublicView = false,
 }: StudyGroupCardProps) {
   const [userId, setUserId] = useState<string>("");
 
@@ -139,14 +141,38 @@ export default function StudyGroupCard({
         </div>
       </CardContent>
       <CardFooter className="flex justify-end pt-2 border-t gap-2">
-        {isMember ? (
+        {isPublicView ? (
+          // Public view (signed-out) - redirect to sign-in
           <>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onView && onView(group.id)}
+              asChild
             >
-              View Details
+              <Link href={`/sign-in?redirect=/dashboard/study-groups?view=${group.id}`}>
+                View Details
+              </Link>
+            </Button>
+            <Button
+              size="sm"
+              asChild
+            >
+              <Link href={`/sign-in?redirect=/dashboard/study-groups?view=${group.id}`}>
+                Join Group
+              </Link>
+            </Button>
+          </>
+        ) : isMember ? (
+          // Signed-in member view
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+            >
+              <Link href={`/dashboard/study-groups?view=${group.id}`}>
+                View Details
+              </Link>
             </Button>
             <Button
               size="sm"
@@ -167,15 +193,21 @@ export default function StudyGroupCard({
             </Button>
           </>
         ) : (
+          // Signed-in non-member view
           <>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onView && onView(group.id)}
+              asChild
             >
-              View Details
+              <Link href={`/dashboard/study-groups?view=${group.id}`}>
+                View Details
+              </Link>
             </Button>
-            <Button size="sm" onClick={() => onJoin && onJoin(group.id)}>
+            <Button
+              size="sm"
+              onClick={() => onJoin && onJoin(group.id)}
+            >
               Join Group
             </Button>
           </>
