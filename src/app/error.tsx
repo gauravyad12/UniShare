@@ -1,7 +1,8 @@
 "use client";
 
 import ErrorBoundary from "@/components/error-boundary";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
+import SuspenseSearchParams from "@/components/suspense-search-params";
 
 export default function Error({
   error,
@@ -53,5 +54,16 @@ export default function Error({
     }
   }, [error]);
 
-  return <ErrorBoundary error={error} reset={reset} />;
+  // Handle search params changes
+  const handleParamsChange = useCallback((params: URLSearchParams) => {
+    // We don't need to do anything with the params here
+    // Just having this function prevents the error
+  }, []);
+
+  return (
+    <>
+      <SuspenseSearchParams onParamsChange={handleParamsChange} fallback={<div>Loading...</div>} />
+      <ErrorBoundary error={error} reset={reset} />
+    </>
+  );
 }

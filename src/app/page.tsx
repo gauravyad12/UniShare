@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import Hero from "@/components/hero";
 import ClientNavbar from "@/components/client-navbar";
 import Footer from "@/components/footer";
@@ -17,10 +19,17 @@ import {
   MapPin,
   Check,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import Link from "next/link";
+import SuspenseSearchParams from "@/components/suspense-search-params";
 
 export default function Home() {
+  // Handle search params changes
+  const handleParamsChange = useCallback((params: URLSearchParams) => {
+    // We don't need to do anything with the params here
+    // Just having this function prevents the error
+  }, []);
+
   // Add smooth scrolling behavior
   useEffect(() => {
     // Handle smooth scrolling for anchor links
@@ -49,6 +58,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/95">
+      <SuspenseSearchParams onParamsChange={handleParamsChange} fallback={<div>Loading...</div>} />
       <ClientNavbar />
       <Hero />
 

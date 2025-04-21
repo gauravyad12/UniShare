@@ -1,5 +1,8 @@
 import { notFound } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
+
 // Define special routes that should be redirected to their original paths
 const SPECIAL_ROUTES = [
   "dashboard",

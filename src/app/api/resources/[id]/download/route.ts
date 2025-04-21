@@ -1,6 +1,9 @@
 import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
+
 // Simple helper to handle errors silently
 const silentTry = async (fn: () => Promise<any>, fallbackValue: any = null) => {
   try {

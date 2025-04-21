@@ -3,6 +3,9 @@ import { createClient } from "@/utils/supabase/server";
 import { createAdminClient, executeRawSql } from "@/utils/supabase/admin";
 import { cookies } from "next/headers";
 
+export const dynamic = "force-dynamic";
+
+
 export async function POST(request: NextRequest) {
   try {
     // Parse JSON body instead of form data

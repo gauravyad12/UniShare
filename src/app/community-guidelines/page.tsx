@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import Footer from "@/components/footer";
 import Navbar from "@/components/navbar";
 
+export const dynamic = "force-dynamic";
+
+
 export const metadata: Metadata = {
   title: "UniShare | Community Guidelines",
   description:

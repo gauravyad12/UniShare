@@ -1,6 +1,9 @@
 import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
+
 // Helper function to get the current like count
 async function getLikeCount(supabase: any, resourceId: string) {
   try {

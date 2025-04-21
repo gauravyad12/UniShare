@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Metadata } from "next";
 import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";

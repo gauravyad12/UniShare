@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
+
 // Simple health check endpoint to verify the server is running
 export async function GET() {
   try {

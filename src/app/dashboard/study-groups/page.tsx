@@ -4,6 +4,9 @@ import StudyGroupsClient from "@/components/study-groups-client";
 import SimpleStudyGroupView from "@/components/simple-study-group-view";
 import SimpleGroupChat from "@/components/simple-group-chat";
 
+export const dynamic = "force-dynamic";
+
+
 export default async function StudyGroupsPage({
   searchParams,
 }: {

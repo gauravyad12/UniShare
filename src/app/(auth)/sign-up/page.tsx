@@ -13,6 +13,9 @@ import { createClient } from "@/utils/supabase/server";
 import SignUpForm from "@/components/sign-up-form";
 import { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
+
 export const metadata: Metadata = {
   title: "UniShare | Sign Up",
   description: "Create your UniShare account",

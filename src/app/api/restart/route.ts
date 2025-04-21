@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
+
 // Simple endpoint to restart the server process
 export async function GET() {
   try {

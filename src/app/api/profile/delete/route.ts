@@ -2,6 +2,9 @@ import { createClient } from "@/utils/supabase/server";
 import { createAdminClient, executeRawSql } from "@/utils/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
+
 // Define error types for better error handling
 type DeletionError = {
   step: string;

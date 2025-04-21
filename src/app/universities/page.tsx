@@ -4,6 +4,9 @@ import { createClient } from "@/utils/supabase/server";
 import { Metadata } from "next";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
+
 export const metadata: Metadata = {
   title: "UniShare | Supported Universities",
   description: "View the list of universities currently supported by UniShare",

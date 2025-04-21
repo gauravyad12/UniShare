@@ -7,6 +7,8 @@ import { ThemeSync } from "@/components/theme-sync";
 import { TempoInit } from "@/components/tempo-init";
 import { NavigationEvents } from "@/components/navigation-events";
 import GlobalLoadingSpinner from "@/components/global-loading-spinner";
+// Force dynamic rendering for all pages
+import "./force-dynamic";
 
 const inter = Inter({ subsets: ["latin"] });
 

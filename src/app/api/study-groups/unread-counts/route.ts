@@ -1,6 +1,9 @@
 import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
+
 // GET unread message counts for all study groups the user is a member of
 export async function GET(request: NextRequest) {
   try {

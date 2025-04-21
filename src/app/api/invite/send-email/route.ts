@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { Resend } from "resend";
 
+export const dynamic = "force-dynamic";
+
+
 // Initialize Resend with API key
 // You'll need to add RESEND_API_KEY to your environment variables
 const resend = new Resend(process.env.RESEND_API_KEY);

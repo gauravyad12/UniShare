@@ -1,6 +1,9 @@
 import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
+
 // POST: Use an invitation code to join a group
 export async function POST(request: NextRequest) {
   try {

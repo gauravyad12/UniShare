@@ -2,6 +2,9 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import JoinStudyGroup from "@/components/join-study-group";
 
+export const dynamic = "force-dynamic";
+
+
 export default async function JoinPage({
   searchParams,
 }: {

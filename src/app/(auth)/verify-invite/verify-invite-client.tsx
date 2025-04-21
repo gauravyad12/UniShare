@@ -1,8 +1,9 @@
 "use client";
 
 import { redirect } from "next/navigation";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import { SearchParamsProvider } from "@/components/search-params-wrapper";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,11 +25,15 @@ export default function VerifyInviteClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const errorMessage = searchParams.get("error");
-  const successMessage = searchParams.get("success");
-  const clearCookie = searchParams.get("clear_cookie");
-  const codeParam = searchParams.get("code");
+  const [params, setParams] = useState<URLSearchParams | null>(null);
+  const errorMessage = params?.get("error");
+  const successMessage = params?.get("success");
+  const clearCookie = params?.get("clear_cookie");
+  const codeParam = params?.get("code");
+
+  const handleParamsChange = useCallback((newParams: URLSearchParams) => {
+    setParams(newParams);
+  }, []);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [autoVerified, setAutoVerified] = useState(false);
 
@@ -83,9 +88,11 @@ export default function VerifyInviteClient() {
 
   // Check if we already have a verified invite code in cookies
   useEffect(() => {
+    if (!params) return;
+
     const checkExistingCode = () => {
       // Don't redirect if we have a no_redirect parameter
-      const noRedirect = searchParams.get("no_redirect");
+      const noRedirect = params.get("no_redirect");
       if (noRedirect === "true") {
         console.log("Skipping redirect due to no_redirect parameter");
         return;
@@ -114,7 +121,7 @@ export default function VerifyInviteClient() {
     return () => {
       sessionStorage.removeItem("preventRedirectLoop");
     };
-  }, [router, searchParams]);
+  }, [router, params]);
 
   const handleVerifyInvite = async (
     e: React.FormEvent | null,
@@ -178,6 +185,7 @@ export default function VerifyInviteClient() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-gradient-to-b from-background to-background/95">
+      <SearchParamsProvider onParamsChange={handleParamsChange} />
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">

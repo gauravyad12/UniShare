@@ -4,6 +4,9 @@ import { PasswordInput } from "@/components/password-input";
 import { SubmitButton } from "@/components/submit-button";
 import { Label } from "@/components/ui/label";
 
+export const dynamic = "force-dynamic";
+
+
 export default async function ResetPassword(props: {
   searchParams: Promise<Message>;
 }) {

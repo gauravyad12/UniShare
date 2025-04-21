@@ -1,3 +1,6 @@
+
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "UniShare | Contact Us",
   description: "Get in touch with the UniShare team for support or inquiries",

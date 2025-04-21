@@ -3,23 +3,23 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/navbar";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState, useCallback } from "react";
+import SuspenseSearchParams from "@/components/suspense-search-params";
 
 export default function NotFound() {
-  const searchParams = useSearchParams();
   const [errorMessage, setErrorMessage] = useState<string>("");
 
-  useEffect(() => {
+  const handleParamsChange = useCallback((params: URLSearchParams) => {
     // Get error message from URL params
-    const error = searchParams?.get("error");
+    const error = params.get("error");
     setErrorMessage(
       error || "The page you are looking for doesn't exist or has been moved.",
     );
-  }, [searchParams]);
+  }, []);
 
   return (
     <>
+      <SuspenseSearchParams onParamsChange={handleParamsChange} fallback={<div>Loading...</div>} />
       <Navbar />
       <div className="flex min-h-[80vh] flex-col items-center justify-center text-center px-4">
         <h1 className="text-6xl font-bold">404</h1>

@@ -9,6 +9,9 @@ import Link from "next/link";
 import { GraduationCap } from "lucide-react";
 import { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
+
 export const metadata: Metadata = {
   title: "UniShare | Sign In",
   description: "Sign in to your UniShare account",

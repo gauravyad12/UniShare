@@ -3,23 +3,23 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { GraduationCap } from "lucide-react";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState, useCallback } from "react";
+import SuspenseSearchParams from "@/components/suspense-search-params";
 
 export default function FallbackError() {
-  const searchParams = useSearchParams();
   const [errorMessage, setErrorMessage] = useState<string>("");
 
-  useEffect(() => {
+  const handleParamsChange = useCallback((params: URLSearchParams) => {
     // Get error message from URL params
-    const message = searchParams?.get("message");
+    const message = params.get("message");
     setErrorMessage(
       message || "An unexpected error occurred. Please try again later.",
     );
-  }, [searchParams]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
+      <SuspenseSearchParams onParamsChange={handleParamsChange} fallback={<div>Loading...</div>} />
       <nav className="w-full border-b border-border bg-background py-4">
         <div className="container mx-auto px-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">

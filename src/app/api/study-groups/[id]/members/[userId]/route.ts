@@ -1,6 +1,9 @@
 import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
+
 // PATCH to update a member's role (promote/demote)
 export async function PATCH(
   request: NextRequest,

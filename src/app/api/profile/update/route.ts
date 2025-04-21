@@ -2,6 +2,9 @@ import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 import { detectUniversityFromEmail } from "@/utils/utils";
 
+export const dynamic = "force-dynamic";
+
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = createClient();

@@ -1,6 +1,9 @@
 import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
+
 // Helper function to update the comment count directly in the database
 async function updateResourceCommentCount(
   supabase,

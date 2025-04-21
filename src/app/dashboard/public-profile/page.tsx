@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+export const dynamic = "force-dynamic";
+
+import { useCallback, useEffect, useState, Suspense } from "react";
+import { SearchParamsProvider } from "@/components/search-params-wrapper";
 import { createClient } from "@/utils/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -20,8 +22,12 @@ import ResourceCard from "@/components/resource-card";
 import StudyGroupCard from "@/components/study-group-card";
 
 export default function PublicProfilePage() {
-  const searchParams = useSearchParams();
-  const username = searchParams.get("username");
+  const [params, setParams] = useState<URLSearchParams | null>(null);
+  const username = params?.get("username");
+
+  const handleParamsChange = useCallback((newParams: URLSearchParams) => {
+    setParams(newParams);
+  }, []);
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
@@ -139,6 +145,7 @@ export default function PublicProfilePage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <SearchParamsProvider onParamsChange={handleParamsChange} />
       <Card className="mb-8">
         <CardHeader className="flex flex-row items-center gap-4">
           <div className="flex-shrink-0">

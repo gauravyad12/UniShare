@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import VerifyInviteClient from "./verify-invite-client";
 import { createClient } from "@/utils/supabase/server";
 
+export const dynamic = "force-dynamic";
+
+
 export const metadata: Metadata = {
   title: "UniShare | Verify Invite Code",
   description: "Enter your invite code to join UniShare",

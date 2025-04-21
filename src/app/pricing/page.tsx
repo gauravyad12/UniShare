@@ -5,6 +5,9 @@ import { createClient } from "../../../supabase/server";
 import { Metadata } from "next";
 import { Check, X } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
+
 export const metadata: Metadata = {
   title: "UniShare | Pricing Plans",
   description: "Choose the perfect subscription plan for your academic needs",

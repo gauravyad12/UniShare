@@ -3,6 +3,9 @@ import fs from "fs";
 import path from "path";
 import { createAdminClient } from "@/utils/supabase/admin";
 
+export const dynamic = "force-dynamic";
+
+
 export async function POST(request: NextRequest) {
   try {
     // Only allow in development environment
