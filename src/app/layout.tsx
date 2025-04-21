@@ -8,6 +8,7 @@ import { TempoInit } from "@/components/tempo-init";
 import { NavigationEvents } from "@/components/navigation-events";
 import GlobalLoadingSpinner from "@/components/global-loading-spinner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/react";
 // Force dynamic rendering for all pages
 import "./force-dynamic";
 
@@ -38,6 +39,7 @@ export default function RootLayout({
           <NavigationEvents />
           <TempoInit />
           <SpeedInsights />
+          <Analytics />
         </ThemeProvider>
       </body>
     </html>
