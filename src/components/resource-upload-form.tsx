@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
@@ -14,22 +14,26 @@ import {
 } from "./ui/select";
 import { Upload, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
 // Import badWords dynamically to use the async version
 
 export default function ResourceUploadForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [globalError, setGlobalError] = useState<string | null>(null);
+  const [errors, setErrors] = useState({
+    title: "",
+    description: "",
+    courseCode: "",
+    externalLink: "",
+    file: ""
+  });
   const [resourceType, setResourceType] = useState<string>("notes");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [externalLink, setExternalLink] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [title, setTitle] = useState<string>("");
   const [courseCode, setCourseCode] = useState<string>("");
-  const [validating, setValidating] = useState(false);
-  const [badWords, setBadWords] = useState<string[]>([]);
 
   // Character limits for each field
   const charLimits = {
@@ -42,62 +46,73 @@ export default function ResourceUploadForm() {
   // We'll use the dynamic import of badWords utility instead of maintaining our own list
 
   const validateForm = async (): Promise<boolean> => {
-    setError(null);
+    setGlobalError(null);
+    // Reset all errors
+    const newErrors = {
+      title: "",
+      description: "",
+      courseCode: "",
+      externalLink: "",
+      file: ""
+    };
+
+    let isValid = true;
 
     // Check title
     if (!title.trim()) {
-      setError("Title is required");
-      return false;
+      newErrors.title = "Title is required";
+      isValid = false;
     }
 
     // Check description
     if (!description.trim()) {
-      setError("Description is required");
-      return false;
+      newErrors.description = "Description is required";
+      isValid = false;
     }
 
     // Check course code
     if (!courseCode.trim()) {
-      setError("Course code is required");
-      return false;
+      newErrors.courseCode = "Course code is required";
+      isValid = false;
     }
 
     // Check for bad words in title and description
     const { containsBadWords } = await import('@/utils/badWords');
 
     if (await containsBadWords(title)) {
-      setError("Title contains inappropriate language");
-      return false;
+      newErrors.title = "Title contains inappropriate language";
+      isValid = false;
     }
 
     if (await containsBadWords(description)) {
-      setError("Description contains inappropriate language");
-      return false;
+      newErrors.description = "Description contains inappropriate language";
+      isValid = false;
     }
 
     if (courseCode && await containsBadWords(courseCode)) {
-      setError("Course code contains inappropriate language");
-      return false;
+      newErrors.courseCode = "Course code contains inappropriate language";
+      isValid = false;
     }
 
     // Check resource type specific requirements
     if (resourceType === "link" && !externalLink) {
-      setError("URL is required for link resources");
-      return false;
+      newErrors.externalLink = "URL is required for link resources";
+      isValid = false;
     }
 
     if (resourceType !== "link" && !selectedFile) {
-      setError("File is required for non-link resources");
-      return false;
+      newErrors.file = "File is required for non-link resources";
+      isValid = false;
     }
 
-    return true;
+    setErrors(newErrors);
+    return isValid;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null);
+    setGlobalError(null);
 
     // Validate form
     const isValid = await validateForm();
@@ -142,7 +157,7 @@ export default function ResourceUploadForm() {
       params.delete("upload");
       router.push(`/dashboard/resources?${params.toString()}`);
     } catch (err: any) {
-      setError(err.message || "An error occurred while uploading the resource");
+      setGlobalError(err.message || "An error occurred while uploading the resource");
     } finally {
       setIsLoading(false);
     }
@@ -154,12 +169,12 @@ export default function ResourceUploadForm() {
 
       // Check if the file is a PDF
       if (file.type !== 'application/pdf') {
-        setError('Only PDF files are accepted');
+        setErrors(prev => ({ ...prev, file: 'Only PDF files are accepted' }));
         setSelectedFile(null);
         return;
       }
 
-      setError(null);
+      setErrors(prev => ({ ...prev, file: '' }));
       setSelectedFile(file);
     } else {
       setSelectedFile(null);
@@ -178,10 +193,10 @@ export default function ResourceUploadForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Global error messages for non-file errors */}
-      {error && !error.includes("PDF") && (
+      {/* Global error message */}
+      {globalError && (
         <div className="bg-red-100 text-red-600 font-medium px-4 py-2 rounded-md text-sm">
-          {error}
+          {globalError}
         </div>
       )}
 
@@ -198,12 +213,18 @@ export default function ResourceUploadForm() {
           onChange={(e) => {
             if (e.target.value.length <= charLimits.title) {
               setTitle(e.target.value);
+              if (errors.title) {
+                setErrors(prev => ({ ...prev, title: "" }));
+              }
             }
           }}
           maxLength={charLimits.title}
           required
-          className={error && error.includes("Title") ? "border-red-500" : ""}
+          className={errors.title ? "border-red-500" : ""}
         />
+        {errors.title && (
+          <p className="text-sm text-red-500 mt-1">{errors.title}</p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -219,18 +240,26 @@ export default function ResourceUploadForm() {
           onChange={(e) => {
             if (e.target.value.length <= charLimits.description) {
               setDescription(e.target.value);
+              if (errors.description) {
+                setErrors(prev => ({ ...prev, description: "" }));
+              }
             }
           }}
           maxLength={charLimits.description}
           rows={3}
           required
-          className={error && error.includes("Description") ? "border-red-500" : ""}
+          className={errors.description ? "border-red-500" : ""}
         />
+        {errors.description && (
+          <p className="text-sm text-red-500 mt-1">{errors.description}</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="type">Resource Type</Label>
+          <div className="flex justify-between pb-[1.5px]">
+            <Label htmlFor="type">Resource Type</Label>
+          </div>
           <Select
             name="type"
             value={resourceType}
@@ -263,12 +292,18 @@ export default function ResourceUploadForm() {
             onChange={(e) => {
               if (e.target.value.length <= charLimits.courseCode) {
                 setCourseCode(e.target.value);
+                if (errors.courseCode) {
+                  setErrors(prev => ({ ...prev, courseCode: "" }));
+                }
               }
             }}
             maxLength={charLimits.courseCode}
             required
-            className={error && error.includes("Course code") ? "border-red-500" : ""}
+            className={errors.courseCode ? "border-red-500" : ""}
           />
+          {errors.courseCode && (
+            <p className="text-sm text-red-500 mt-1">{errors.courseCode}</p>
+          )}
         </div>
       </div>
 
@@ -285,17 +320,23 @@ export default function ResourceUploadForm() {
             onChange={(e) => {
               if (e.target.value.length <= charLimits.externalLink) {
                 setExternalLink(e.target.value);
+                if (errors.externalLink) {
+                  setErrors(prev => ({ ...prev, externalLink: "" }));
+                }
               }
             }}
             maxLength={charLimits.externalLink}
             required
-            className={error && error.includes("URL") ? "border-red-500" : ""}
+            className={errors.externalLink ? "border-red-500" : ""}
           />
+          {errors.externalLink && (
+            <p className="text-sm text-red-500 mt-1">{errors.externalLink}</p>
+          )}
         </div>
       ) : (
         <div className="space-y-2">
           <Label htmlFor="file">Upload File</Label>
-          <div className={`border-2 border-dashed ${error && error.includes("PDF") ? "border-red-500" : "border-gray-300 dark:border-gray-700"} rounded-md p-4 transition-colors`}>
+          <div className={`border-2 border-dashed ${errors.file ? "border-red-500" : "border-gray-300 dark:border-gray-700"} rounded-md p-4 transition-colors`}>
             {selectedFile ? (
               <div className="flex items-center justify-between">
                 <span className="text-sm truncate max-w-[80%]">
@@ -312,8 +353,8 @@ export default function ResourceUploadForm() {
               </div>
             ) : (
               <div className="text-center">
-                <Upload className={`mx-auto h-8 w-8 ${error && error.includes("PDF") ? "text-destructive" : "text-gray-400"} mb-2 transition-colors`} />
-                {error && error.includes("PDF") ? (
+                <Upload className={`mx-auto h-8 w-8 ${errors.file ? "text-destructive" : "text-gray-400"} mb-2 transition-colors`} />
+                {errors.file && errors.file.includes("PDF") ? (
                   <div className="mb-2">
                     <p className="text-sm text-destructive font-medium">
                       Only PDF files are accepted
@@ -336,7 +377,7 @@ export default function ResourceUploadForm() {
                 />
                 <Button
                   type="button"
-                  variant={error && error.includes("PDF") ? "destructive" : "outline"}
+                  variant={errors.file ? "destructive" : "outline"}
                   size="sm"
                   onClick={() => document.getElementById("file")?.click()}
                 >
@@ -345,6 +386,9 @@ export default function ResourceUploadForm() {
               </div>
             )}
           </div>
+          {errors.file && !errors.file.includes("PDF") && (
+            <p className="text-sm text-red-500 mt-1">{errors.file}</p>
+          )}
         </div>
       )}
 
