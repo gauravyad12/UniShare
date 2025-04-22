@@ -5,11 +5,14 @@ import Link from "next/link";
 import { Home, User, BookOpen, Users, Settings } from "lucide-react";
 import { useThemeContext } from "./theme-context";
 import { useEffect, useState } from "react";
+import { createClient } from "@/utils/supabase/client";
 
 export default function BottomNavbar() {
   const pathname = usePathname();
   const { accentColor, theme } = useThemeContext();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
+  const supabase = createClient();
 
   // Handle scroll effect for shadow
   useEffect(() => {
@@ -20,6 +23,30 @@ export default function BottomNavbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Fetch current user's username
+  useEffect(() => {
+    const fetchUsername = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data } = await supabase
+            .from('user_profiles')
+            .select('username')
+            .eq('id', user.id)
+            .single();
+
+          if (data?.username) {
+            setUsername(data.username);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching username:', error);
+      }
+    };
+
+    fetchUsername();
+  }, [supabase]);
 
   // Define navigation items with their paths, icons, and labels
   const navItems = [
@@ -39,7 +66,7 @@ export default function BottomNavbar() {
       label: "Groups",
     },
     {
-      path: "/dashboard/profile",
+      path: "/dashboard/profile/edit",
       icon: User,
       label: "Profile",
     },
@@ -76,8 +103,8 @@ export default function BottomNavbar() {
     >
       <nav className="flex justify-around items-center h-16 px-1 max-w-screen-lg mx-auto">
         {navItems.map((item) => {
-          const isActive =
-            pathname === item.path ||
+          // Standard check for paths
+          const isActive = pathname === item.path ||
             (pathname.startsWith(`${item.path}/`) &&
               item.path !== "/dashboard");
 

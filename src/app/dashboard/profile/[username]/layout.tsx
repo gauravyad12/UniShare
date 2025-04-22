@@ -25,6 +25,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function PublicProfileLayout({ children }: Props) {
-  return children;
+export default function ProfileLayout({ children }: Props) {
+  return <>{children}</>;
 }

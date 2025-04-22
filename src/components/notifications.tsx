@@ -31,10 +31,12 @@ export default function Notifications() {
   const supabase = createClient();
 
   useEffect(() => {
-    const fetchNotifications = async () => {
+    const setupNotifications = async () => {
+      // Get the current user
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
 
+      // Fetch existing notifications
       const { data } = await supabase
         .from("notifications")
         .select("*")
@@ -46,30 +48,40 @@ export default function Notifications() {
         setNotifications(data);
         setUnreadCount(data.filter((n) => !n.is_read).length);
       }
+
+      // Set up realtime subscription for new notifications
+      const channel = supabase
+        .channel("notifications-channel")
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${userData.user.id}`,
+          },
+          (payload) => {
+            const newNotification = payload.new as Notification;
+            setNotifications((prev) => [newNotification, ...prev]);
+            setUnreadCount((prev) => prev + 1);
+          },
+        )
+        .subscribe();
+
+      return channel;
     };
 
-    fetchNotifications();
+    // Setup notifications and store the channel for cleanup
+    let channel: any;
+    setupNotifications().then(ch => {
+      channel = ch;
+    });
 
-    // Set up realtime subscription for new notifications
-    const channel = supabase
-      .channel("notifications-channel")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-        },
-        (payload) => {
-          const newNotification = payload.new as Notification;
-          setNotifications((prev) => [newNotification, ...prev]);
-          setUnreadCount((prev) => prev + 1);
-        },
-      )
-      .subscribe();
-
+    // Cleanup function
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [supabase]);
 

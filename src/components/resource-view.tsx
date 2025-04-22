@@ -22,6 +22,8 @@ import {
   RefreshCw,
   Eye,
   CheckCircle,
+  Share2,
+  UserCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
@@ -45,6 +47,10 @@ interface Resource {
   download_count: number;
   likes?: number;
   comment_count?: number;
+  created_by?: string;
+  creator_username?: string;
+  creator_full_name?: string;
+  creator_avatar_url?: string;
 }
 
 interface Comment {
@@ -102,6 +108,40 @@ export default function ResourceView({
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [creatorInfo, setCreatorInfo] = useState<{ id?: string; username?: string; fullName?: string } | null>(null);
+
+  // Function to copy to clipboard
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied",
+      description: "Link copied to clipboard",
+    });
+  };
+
+  // Function to share resource
+  const shareResource = async () => {
+    const shareUrl = `${window.location.origin}/dashboard/resources?view=${resource.id}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: resource.title,
+          text: resource.description,
+          url: shareUrl,
+        });
+      } catch (error) {
+        // Handle AbortError (user cancelled) and NotAllowedError (permission denied)
+        if (error.name !== "AbortError") {
+          console.error("Error sharing:", error);
+          // Fall back to clipboard copy only for non-abort errors
+          copyToClipboard(shareUrl);
+        }
+      }
+    } else {
+      copyToClipboard(shareUrl);
+    }
+  };
 
   // Fetch comments and update the count
   const fetchComments = async () => {
@@ -293,6 +333,47 @@ export default function ResourceView({
       <span>Download failed. Trying alternative method...</span>
     `;
   };
+
+  // Fetch creator info if not already provided
+  useEffect(() => {
+    const fetchCreatorInfo = async () => {
+      // If we already have creator info from props, use that
+      if (resource.creator_username || resource.creator_full_name) {
+        setCreatorInfo({
+          id: resource.author_id || resource.created_by,
+          username: resource.creator_username,
+          fullName: resource.creator_full_name,
+        });
+        return;
+      }
+
+      // Otherwise fetch it from the database
+      const authorId = resource.author_id || resource.created_by;
+      if (!authorId) return;
+
+      try {
+        const { createClient } = await import("@/utils/supabase/client");
+        const supabase = createClient();
+        const { data } = await supabase
+          .from("user_profiles")
+          .select("id, username, full_name")
+          .eq("id", authorId)
+          .single();
+
+        if (data) {
+          setCreatorInfo({
+            id: data.id,
+            username: data.username,
+            fullName: data.full_name,
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching creator info:", err);
+      }
+    };
+
+    fetchCreatorInfo();
+  }, [resource]);
 
   // Initialize comments and setup
   useEffect(() => {
@@ -794,8 +875,24 @@ export default function ResourceView({
             )}
           </div>
           <CardTitle className="text-2xl mt-2">{resource.title}</CardTitle>
-          <div className="text-sm text-muted-foreground">
-            Uploaded on {formattedDate}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-sm text-muted-foreground">
+            <div>Uploaded on {formattedDate}</div>
+            {creatorInfo && (creatorInfo.username || creatorInfo.fullName) && (
+              <div className="flex items-center">
+                <span className="hidden sm:inline">•</span>
+                <UserCircle className="h-3 w-3 mx-1" />
+                <span
+                  className="hover:underline cursor-pointer"
+                  onClick={() => {
+                    if (creatorInfo.username) {
+                      window.open(`/u/${creatorInfo.username}`, '_blank');
+                    }
+                  }}
+                >
+                  {creatorInfo.fullName || creatorInfo.username || "Unknown User"}
+                </span>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -905,6 +1002,15 @@ export default function ResourceView({
           </div>
 
           <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-shrink-0"
+              onClick={shareResource}
+            >
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
+            </Button>
             <Button
               variant={hasLiked ? "default" : "outline"}
               onClick={handleLike}

@@ -20,6 +20,9 @@ export default function RealtimeUnreadBadge({
   const supabase = createClient();
 
   useEffect(() => {
+    // Only fetch and subscribe if we have valid IDs
+    if (!groupId || !userId) return;
+
     fetchUnreadCount();
 
     // Set up realtime subscription for new messages
@@ -45,11 +48,17 @@ export default function RealtimeUnreadBadge({
   }, [groupId, userId]);
 
   const fetchUnreadCount = async () => {
+    // Skip if we don't have valid IDs
+    if (!groupId || !userId) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
 
       // Count all messages that don't have a read status for this user
-      const { count } = await supabase
+      const { count, error } = await supabase
         .from('group_chat_messages')
         .select('*', { count: 'exact', head: true })
         .eq('study_group_id', groupId)
@@ -59,6 +68,11 @@ export default function RealtimeUnreadBadge({
             .select('message_id')
             .eq('user_id', userId)
         ));
+
+      if (error) {
+        console.error("Error in unread count query:", error);
+        return;
+      }
 
       setUnreadCount(count || 0);
     } catch (err) {

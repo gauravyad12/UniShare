@@ -131,11 +131,11 @@ export default function UserProfile() {
         </div>
 
         <DropdownMenuItem asChild className="py-2">
-          <Link href="/dashboard/profile" className="flex items-center">
+          <Link href="/dashboard/profile/edit" className="flex items-center">
             <span className="rounded-full bg-gray-100 dark:bg-gray-800 p-1 mr-2">
               <UserCircle className="h-4 w-4" />
             </span>
-            Profile
+            Edit Profile
           </Link>
         </DropdownMenuItem>
 

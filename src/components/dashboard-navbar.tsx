@@ -176,9 +176,9 @@ export default function DashboardNavbar() {
                 </div>
               )}
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/profile" className="flex items-center">
+                <Link href="/dashboard/profile/edit" className="flex items-center">
                   <UserCircle className="h-4 w-4 mr-2" />
-                  Profile
+                  Edit Profile
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

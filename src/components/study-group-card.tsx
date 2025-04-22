@@ -182,7 +182,7 @@ export default function StudyGroupCard({
               <Link href={`/dashboard/study-groups?view=${group.id}&chat=true`}>
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Chat
-                {userId && (
+                {userId && !isPublicView && (
                   <RealtimeUnreadBadge
                     groupId={group.id}
                     userId={userId}

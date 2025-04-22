@@ -25,7 +25,7 @@ import { format } from "date-fns";
 import { FollowButton } from "@/components/follow-button";
 import { Card, CardContent } from "@/components/ui/card";
 
-export default function PublicProfilePage({
+export default function ProfilePage({
   params,
 }: {
   params: { username: string };
@@ -55,30 +55,57 @@ export default function PublicProfilePage({
   useEffect(() => {
     let isMounted = true;
 
-    if (profile && currentUser && !isCurrentUserProfile) {
+    if (profile && currentUser) {
       const fetchFollowStats = async () => {
         try {
-          const response = await fetch(
-            `/api/users/${profile.id}/follow/status`,
-            {
-              headers: {
-                "Cache-Control": "no-cache",
-                Pragma: "no-cache",
+          // For the current user's own profile, use the public stats API
+          if (isCurrentUserProfile) {
+            const response = await fetch(
+              `/api/users/${profile.id}/follow-stats`,
+              {
+                headers: {
+                  "Cache-Control": "no-cache",
+                  Pragma: "no-cache",
+                },
+                cache: "no-store",
               },
-              cache: "no-store",
-            },
-          );
+            );
 
-          if (!isMounted) return;
+            if (!isMounted) return;
 
-          if (response.ok) {
-            const data = await response.json();
-            console.log("Initial follow stats fetched:", data);
-            setFollowStats({
-              isFollowing: data.isFollowing,
-              followersCount: data.followersCount || 0,
-              followingCount: data.followingCount || 0,
-            });
+            if (response.ok) {
+              const data = await response.json();
+              console.log("Own profile follow stats fetched:", data);
+              setFollowStats({
+                isFollowing: false, // Can't follow yourself
+                followersCount: data.followersCount || 0,
+                followingCount: data.followingCount || 0,
+              });
+            }
+          } else {
+            // For other users' profiles, use the follow status API
+            const response = await fetch(
+              `/api/users/${profile.id}/follow/status`,
+              {
+                headers: {
+                  "Cache-Control": "no-cache",
+                  Pragma: "no-cache",
+                },
+                cache: "no-store",
+              },
+            );
+
+            if (!isMounted) return;
+
+            if (response.ok) {
+              const data = await response.json();
+              console.log("Other user follow stats fetched:", data);
+              setFollowStats({
+                isFollowing: data.isFollowing,
+                followersCount: data.followersCount || 0,
+                followingCount: data.followingCount || 0,
+              });
+            }
           }
         } catch (error) {
           console.error("Error fetching follow stats:", error);
@@ -94,7 +121,7 @@ export default function PublicProfilePage({
   }, [profile, currentUser, isCurrentUserProfile]);
 
   useEffect(() => {
-    console.log("Public profile page mounted for username:", username);
+    console.log("Profile page mounted for username:", username);
     const fetchData = async () => {
       try {
         setIsLoading(true);
@@ -136,39 +163,45 @@ export default function PublicProfilePage({
         }
 
         // Get user's public study groups (both created by them and ones they're a member of)
-        // First, get the groups they created
-        const { data: createdGroupsData } = await supabase
+        // Step 1: Get groups created by the user
+        const { data: createdGroupsData = [] } = await supabase
           .from("study_groups")
           .select("*")
           .eq("created_by", profileData.id)
           .eq("is_private", false)
           .order("created_at", { ascending: false });
 
-        // Then, get the groups they're a member of using our new API
-        const memberGroupsResponse = await fetch(`/api/user/${profileData.id}/study-groups`);
-        const memberGroupsData = await memberGroupsResponse.json();
+        // Step 2: Get groups the user is a member of
+        const { data: memberships = [] } = await supabase
+          .from("study_group_members")
+          .select("study_group_id")
+          .eq("user_id", profileData.id);
 
-        // Combine both sets of groups and remove duplicates
-        const createdGroups = createdGroupsData || [];
-        const memberGroups = memberGroupsData.studyGroups || [];
+        // Initialize combined groups with created groups
+        const combinedGroups = [...createdGroupsData];
 
-        // Use a Map to remove duplicates (in case they created and are a member of the same group)
-        const groupsMap = new Map();
+        // If user is a member of any groups, fetch and add them
+        if (memberships.length > 0) {
+          // Get the group IDs
+          const groupIds = memberships.map(m => m.study_group_id);
 
-        // Add created groups to the map
-        createdGroups.forEach(group => {
-          groupsMap.set(group.id, group);
-        });
+          // Get the groups
+          const { data: memberGroups = [] } = await supabase
+            .from("study_groups")
+            .select("*")
+            .in("id", groupIds)
+            .eq("is_private", false)
+            .order("created_at", { ascending: false });
 
-        // Add member groups to the map (will overwrite if already exists)
-        memberGroups.forEach(group => {
-          if (!groupsMap.has(group.id)) {
-            groupsMap.set(group.id, group);
+          // Add member groups, avoiding duplicates
+          if (memberGroups.length > 0) {
+            for (const group of memberGroups) {
+              if (!combinedGroups.some(g => g.id === group.id)) {
+                combinedGroups.push(group);
+              }
+            }
           }
-        });
-
-        // Convert map back to array
-        const combinedGroups = Array.from(groupsMap.values());
+        }
 
         setStudyGroups(combinedGroups);
       } catch (error) {
@@ -330,7 +363,11 @@ export default function PublicProfilePage({
           {resources.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8">
               {resources.map((resource) => (
-                <ResourceCard key={resource.id} resource={resource} />
+                <ResourceCard
+                  key={resource.id}
+                  resource={resource}
+                  onView={() => router.push(`/dashboard/resources?view=${resource.id}`)}
+                />
               ))}
             </div>
           ) : (

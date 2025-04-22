@@ -18,74 +18,73 @@ export async function GET(
       );
     }
 
-    // Log the request origin to help debug
-    const origin = request.headers.get('origin') || 'unknown';
-    const referer = request.headers.get('referer') || 'unknown';
-    console.log(`Request from origin: ${origin}, referer: ${referer}`);
+    // Simplified approach that works for both authenticated and unauthenticated users
+    // This avoids the need for stored procedures and complex RLS policies
 
-    console.log(`Fetching study groups for user: ${userId}`);
+    // Step 1: Get groups created by the user
+    const { data: createdGroups, error: createdError } = await supabase
+      .from('study_groups')
+      .select('*')
+      .eq('created_by', userId)
+      .eq('is_private', false)
+      .order('created_at', { ascending: false });
 
-    // Use a stored procedure to get the user's study groups to avoid RLS recursion
-    console.log('Using stored procedure to get user study groups');
-    try {
-      // First try with the bypass RLS procedure if available
-      const { data: userGroups, error: procError } = await supabase
-        .rpc('get_user_study_groups_bypass_rls', {
-          p_user_id: userId
-        });
+    if (createdError) {
+      console.error('Error fetching created groups:', createdError);
+      return NextResponse.json(
+        { error: "Failed to fetch study groups" },
+        { status: 500 }
+      );
+    }
 
-      if (procError) {
-        console.error('Error calling bypass RLS procedure:', procError);
-        // If the bypass procedure fails, try the regular one
-        const { data: regularGroups, error: regularError } = await supabase
-          .rpc('get_user_study_groups', {
-            p_user_id: userId
-          });
+    // Step 2: Get groups the user is a member of
+    // First get the IDs of groups the user is a member of
+    const { data: memberships, error: membershipError } = await supabase
+      .from('study_group_members')
+      .select('study_group_id')
+      .eq('user_id', userId);
 
-        if (regularError) {
-          console.error('Error calling regular procedure:', regularError);
-          throw regularError;
+    if (membershipError) {
+      console.error('Error fetching memberships:', membershipError);
+      // Continue with just the created groups
+      return NextResponse.json({ studyGroups: createdGroups || [] });
+    }
+
+    // If user is not a member of any groups, just return the created groups
+    if (!memberships || memberships.length === 0) {
+      return NextResponse.json({ studyGroups: createdGroups || [] });
+    }
+
+    // Get the group IDs
+    const groupIds = memberships.map(m => m.study_group_id);
+
+    // Get the groups
+    const { data: memberGroups, error: groupsError } = await supabase
+      .from('study_groups')
+      .select('*')
+      .in('id', groupIds)
+      .eq('is_private', false)
+      .order('created_at', { ascending: false });
+
+    if (groupsError) {
+      console.error('Error fetching member groups:', groupsError);
+      // Continue with just the created groups
+      return NextResponse.json({ studyGroups: createdGroups || [] });
+    }
+
+    // Combine both sets of groups and remove duplicates
+    const allGroups = [...(createdGroups || [])];
+
+    // Add member groups, avoiding duplicates
+    if (memberGroups) {
+      for (const group of memberGroups) {
+        if (!allGroups.some(g => g.id === group.id)) {
+          allGroups.push(group);
         }
-
-        // Filter to only include public groups
-        const publicGroups = regularGroups?.filter(group => !group.is_private) || [];
-        console.log(`Found ${publicGroups.length} public study groups using regular procedure`);
-        return NextResponse.json({ studyGroups: publicGroups });
-      }
-
-      // Filter to only include public groups
-      const publicGroups = userGroups?.filter(group => !group.is_private) || [];
-      console.log(`Found ${publicGroups.length} public study groups using bypass procedure`);
-      return NextResponse.json({ studyGroups: publicGroups });
-    } catch (procError) {
-      console.error('Error in stored procedure approach:', procError);
-
-      // Fall back to a direct SQL approach as a last resort
-      try {
-        // Use a direct query to get public groups for the user
-        const { data: publicGroups, error: directError } = await supabase
-          .from('study_groups')
-          .select('*')
-          .eq('is_private', false)
-          .order('created_at', { ascending: false });
-
-        if (directError) {
-          console.error('Error in direct query fallback:', directError);
-          throw directError;
-        }
-
-        console.log(`Found ${publicGroups?.length || 0} public study groups using direct query`);
-        return NextResponse.json({ studyGroups: publicGroups || [] });
-      } catch (directError) {
-        console.error('All approaches failed:', directError);
-        return NextResponse.json(
-          { error: "Failed to fetch study groups" },
-          { status: 500 }
-        );
       }
     }
 
-    // All logic is now handled in the try/catch blocks above
+    return NextResponse.json({ studyGroups: allGroups });
   } catch (error) {
     console.error("Unexpected error:", error);
     return NextResponse.json(

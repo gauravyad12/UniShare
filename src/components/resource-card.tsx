@@ -15,6 +15,8 @@ import {
   ThumbsUp,
   ExternalLink,
   CheckCircle,
+  Share2,
+  UserCircle,
 } from "lucide-react";
 import ResourcePreview from "./resource-preview";
 import { useRouter } from "next/navigation";
@@ -41,6 +43,11 @@ interface ResourceCardProps {
     file_url?: string;
     external_link?: string;
     thumbnail_url?: string;
+    author_id?: string;
+    created_by?: string;
+    creator_username?: string;
+    creator_full_name?: string;
+    creator_avatar_url?: string;
   };
   onView?: (id: string) => void;
   onDownload?: (id: string) => void;
@@ -65,6 +72,40 @@ export default function ResourceCard({
   const { toast } = useToast();
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [creatorInfo, setCreatorInfo] = useState<{ username?: string; fullName?: string } | null>(null);
+
+  // Function to copy to clipboard
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied",
+      description: "Link copied to clipboard",
+    });
+  };
+
+  // Function to share resource
+  const shareResource = async () => {
+    const shareUrl = `${window.location.origin}/dashboard/resources?view=${resource.id}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: resource.title,
+          text: resource.description,
+          url: shareUrl,
+        });
+      } catch (error) {
+        // Handle AbortError (user cancelled) and NotAllowedError (permission denied)
+        if (error.name !== "AbortError") {
+          console.error("Error sharing:", error);
+          // Fall back to clipboard copy only for non-abort errors
+          copyToClipboard(shareUrl);
+        }
+      }
+    } else {
+      copyToClipboard(shareUrl);
+    }
+  };
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -75,6 +116,40 @@ export default function ResourceCard({
 
     checkAuth();
   }, []);
+
+  // Fetch creator info if not already provided
+  useEffect(() => {
+    const fetchCreatorInfo = async () => {
+      // If we already have creator info from props, use that
+      if (resource.creator_username || resource.creator_full_name) {
+        setCreatorInfo({
+          username: resource.creator_username,
+          fullName: resource.creator_full_name,
+        });
+        return;
+      }
+
+      // Otherwise fetch it from the database
+      const authorId = resource.author_id || resource.created_by;
+      if (!authorId) return;
+
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("user_profiles")
+        .select("username, full_name")
+        .eq("id", authorId)
+        .single();
+
+      if (data) {
+        setCreatorInfo({
+          username: data.username,
+          fullName: data.full_name,
+        });
+      }
+    };
+
+    fetchCreatorInfo();
+  }, [resource]);
 
   // Calculate average rating if available
   const averageRating =
@@ -364,16 +439,27 @@ export default function ResourceCard({
             </div>
           </div>
         </div>
-        <CardTitle className="mt-2 text-xl">{resource.title}</CardTitle>
+        <CardTitle
+          className="mt-2 text-xl cursor-pointer hover:underline"
+          onClick={handleViewClick}
+        >
+          {resource.title}
+        </CardTitle>
         {resource.professor && (
           <CardDescription className="text-sm">
             Prof. {resource.professor}
           </CardDescription>
         )}
+        {creatorInfo && (creatorInfo.username || creatorInfo.fullName) && (
+          <CardDescription className="text-sm flex items-center mt-1">
+            <UserCircle className="h-3 w-3 mr-1" />
+            {creatorInfo.fullName || creatorInfo.username || "Unknown User"}
+          </CardDescription>
+        )}
       </CardHeader>
       <CardContent>
         {/* Resource Preview */}
-        <div className="mb-3">
+        <div className="mb-3 cursor-pointer" onClick={handleViewClick}>
           <ResourcePreview
             resourceId={resource.id}
             resourceType={resource.resource_type}
@@ -412,36 +498,55 @@ export default function ResourceCard({
         </div>
 
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={(e) => {
+              // Completely stop event propagation
+              e.preventDefault();
+              e.stopPropagation();
+
+              // Share the resource
+              shareResource();
+            }}
+          >
+            <Share2 className="h-4 w-4 mr-2" />
+            Share
+          </Button>
           <Button variant="outline" size="sm" onClick={handleViewClick}>
             View
           </Button>
           <Button
             size="sm"
-            onClick={handleDownloadClick}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleDownloadClick(e);
+            }}
             disabled={isDownloading}
           >
-            {isDownloading ? (
-              <span className="flex items-center justify-center w-full">
-                <Download className="animate-bounce h-4 w-4 mr-2" />
-                Downloading...
-              </span>
-            ) : downloadSuccess ? (
-              <span className="flex items-center justify-center w-full">
-                <CheckCircle className="text-green-500 h-4 w-4 mr-2" />
-                Downloaded
-              </span>
-            ) : resource.resource_type === "link" ? (
-              <span className="flex items-center justify-center w-full">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                View Link
-              </span>
-            ) : (
-              <span className="flex items-center justify-center w-full">
-                <Download className="h-4 w-4 mr-2" />
-                Download
-              </span>
-            )}
-          </Button>
+              {isDownloading ? (
+                <span className="flex items-center justify-center w-full">
+                  <Download className="animate-bounce h-4 w-4 mr-2" />
+                  Downloading...
+                </span>
+              ) : downloadSuccess ? (
+                <span className="flex items-center justify-center w-full">
+                  <CheckCircle className="text-green-500 h-4 w-4 mr-2" />
+                  Downloaded
+                </span>
+              ) : resource.resource_type === "link" ? (
+                <span className="flex items-center justify-center w-full">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View Link
+                </span>
+              ) : (
+                <span className="flex items-center justify-center w-full">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </span>
+              )}
+            </Button>
         </div>
       </CardFooter>
     </Card>

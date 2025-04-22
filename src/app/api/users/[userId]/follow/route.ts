@@ -62,19 +62,14 @@ export async function POST(
       );
     }
 
-    // Use admin client to bypass any RLS
-    const adminClient = createAdminClient();
-    if (!adminClient) {
-      return NextResponse.json(
-        { success: false, error: "Server configuration error" },
-        { status: 500 },
-      );
-    }
+    // Use the regular client with RLS policies
+    // We'll rely on the RLS policies to control access
+    const client = supabase;
 
     // Handle follow/unfollow
     if (action === "follow") {
       // Check if already following
-      const { data: existing } = await adminClient
+      const { data: existing } = await client
         .from("user_followers")
         .select("*")
         .eq("user_id", targetUserId)
@@ -89,7 +84,7 @@ export async function POST(
       }
 
       // Create follow relationship
-      const { error: followError } = await adminClient
+      const { error: followError } = await client
         .from("user_followers")
         .insert({
           user_id: targetUserId,
@@ -100,12 +95,12 @@ export async function POST(
       // Update follower and following counts
       if (!followError) {
         // Increment target user's follower count
-        await adminClient.rpc("increment_follower_count", {
+        await client.rpc("increment_follower_count", {
           user_id: targetUserId,
         });
 
         // Increment current user's following count
-        await adminClient.rpc("increment_following_count", {
+        await client.rpc("increment_following_count", {
           user_id: user.id,
         });
       }
@@ -120,7 +115,7 @@ export async function POST(
 
       // Check if a notification already exists for this follow action to prevent duplicates
       try {
-        const { data: followerProfile } = await adminClient
+        const { data: followerProfile } = await client
           .from("user_profiles")
           .select("username")
           .eq("id", user.id)
@@ -129,7 +124,7 @@ export async function POST(
         const followerUsername = followerProfile?.username || "someone";
 
         // Check for existing notifications from this user to prevent duplicates
-        const { data: existingNotifications } = await adminClient
+        const { data: existingNotifications } = await client
           .from("notifications")
           .select("*")
           .eq("user_id", targetUserId)
@@ -140,7 +135,7 @@ export async function POST(
         // Only insert if no existing notification is found
         if (!existingNotifications || existingNotifications.length === 0) {
           // Insert notification with actor_id field
-          await adminClient.from("notifications").insert({
+          await client.from("notifications").insert({
             user_id: targetUserId,
             title: "New Follower",
             message: `User @${followerUsername} started following you`,
@@ -166,7 +161,7 @@ export async function POST(
       });
     } else {
       // Unfollow action
-      const { error: unfollowError } = await adminClient
+      const { error: unfollowError } = await client
         .from("user_followers")
         .delete()
         .eq("user_id", targetUserId)
@@ -175,12 +170,12 @@ export async function POST(
       // Update follower and following counts
       if (!unfollowError) {
         // Decrement target user's follower count
-        await adminClient.rpc("decrement_follower_count", {
+        await client.rpc("decrement_follower_count", {
           user_id: targetUserId,
         });
 
         // Decrement current user's following count
-        await adminClient.rpc("decrement_following_count", {
+        await client.rpc("decrement_following_count", {
           user_id: user.id,
         });
       }

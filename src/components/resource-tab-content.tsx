@@ -94,12 +94,11 @@ export default function ResourceTabContent({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {resources.map((resource) => (
-        <Link
+        <ResourceCard
           key={resource.id}
-          href={`/dashboard/resources?view=${resource.id}&tab=${activeTab}`}
-        >
-          <ResourceCard resource={resource} />
-        </Link>
+          resource={resource}
+          onView={() => router.push(`/dashboard/resources?view=${resource.id}&tab=${activeTab}`)}
+        />
       ))}
     </div>
   );

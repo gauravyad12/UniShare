@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import ResourceCard from "@/components/resource-card";
 import StudyGroupCard from "@/components/study-group-card";
 import { useEffect, useState } from "react";
@@ -17,16 +18,24 @@ export default function UserProfilePage({
   params: { username: string };
 }) {
   const router = useRouter();
+  // Start with loading state true by default
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState<any>(null);
   const [resources, setResources] = useState<any[]>([]);
   const [studyGroups, setStudyGroups] = useState<any[]>([]);
   const [notFound, setNotFound] = useState(false);
+  const [followStats, setFollowStats] = useState({
+    followersCount: 0,
+    followingCount: 0
+  });
 
+  // Show loading state immediately
   useEffect(() => {
+    // Set loading to true immediately when component mounts
+    setLoading(true);
+
     const fetchData = async () => {
       try {
-        setLoading(true);
         const supabase = createClient();
 
         // Check if user is logged in
@@ -34,9 +43,10 @@ export default function UserProfilePage({
           data: { session },
         } = await supabase.auth.getSession();
 
-        // If logged in, redirect to dashboard public profile
+        // If logged in, redirect to dashboard profile
         if (session) {
-          router.push(`/dashboard/public-profile/${params.username}`);
+          // Keep loading state while redirecting
+          router.push(`/dashboard/profile/${params.username}`);
           return;
         }
 
@@ -87,37 +97,82 @@ export default function UserProfilePage({
 
         setResources(resourcesData || []);
 
-        // Fetch public study groups (both created by and member of)
-        // First, get the groups they created
-        const { data: createdGroupsData = [] } = await supabase
-          .from("study_groups")
-          .select("*")
-          .eq("created_by", finalProfileData.id)
-          .eq("is_private", false)
-          .order("created_at", { ascending: false });
-
-        // For the signed-out view, we'll just show groups created by the user
-        // This avoids potential issues with the API and keeps the page simple
-        console.log('Setting study groups to created groups only for signed-out view');
-        console.log('Created groups data:', createdGroupsData);
-        setStudyGroups(createdGroupsData || []);
-
-        // Let's try to use the API as well to see if it works
+        // Fetch study groups the user is a member of
         try {
-          const apiUrl = `${window.location.origin}/api/user/${finalProfileData.id}/study-groups`;
-          console.log('Attempting to fetch from API:', apiUrl);
-          const memberGroupsResponse = await fetch(apiUrl);
-          const memberGroupsData = await memberGroupsResponse.json();
-          console.log('API response:', memberGroupsData);
+          // Step 1: Get groups created by the user
+          const { data: createdGroupsData = [] } = await supabase
+            .from("study_groups")
+            .select("*")
+            .eq("created_by", finalProfileData.id)
+            .eq("is_private", false)
+            .order("created_at", { ascending: false });
 
-          // If we got data from the API, use it instead
-          if (memberGroupsData && memberGroupsData.studyGroups && memberGroupsData.studyGroups.length > 0) {
-            console.log('Using API data instead');
-            setStudyGroups(memberGroupsData.studyGroups);
+          // Step 2: Get groups the user is a member of
+          const { data: memberships = [] } = await supabase
+            .from("study_group_members")
+            .select("study_group_id")
+            .eq("user_id", finalProfileData.id);
+
+          if (memberships.length > 0) {
+            // Get the group IDs
+            const groupIds = memberships.map(m => m.study_group_id);
+
+            // Get the groups
+            const { data: memberGroups = [] } = await supabase
+              .from("study_groups")
+              .select("*")
+              .in("id", groupIds)
+              .eq("is_private", false)
+              .order("created_at", { ascending: false });
+
+            // Combine both sets of groups and remove duplicates
+            const allGroups = [...createdGroupsData];
+
+            // Add member groups, avoiding duplicates
+            if (memberGroups.length > 0) {
+              for (const group of memberGroups) {
+                if (!allGroups.some(g => g.id === group.id)) {
+                  allGroups.push(group);
+                }
+              }
+            }
+
+            setStudyGroups(allGroups);
+          } else {
+            // If user is not a member of any groups, just use created groups
+            setStudyGroups(createdGroupsData);
           }
-        } catch (apiError) {
-          console.error('Error fetching from API (this is expected):', apiError);
-          // We already set the study groups to created groups, so no need to do anything here
+        } catch (groupsError) {
+          console.error("Error fetching study groups:", groupsError);
+          // If there's an error, try to at least show created groups
+          try {
+            const { data: createdGroupsData = [] } = await supabase
+              .from("study_groups")
+              .select("*")
+              .eq("created_by", finalProfileData.id)
+              .eq("is_private", false)
+              .order("created_at", { ascending: false });
+
+            setStudyGroups(createdGroupsData);
+          } catch (fallbackError) {
+            console.error("Error in fallback query:", fallbackError);
+            setStudyGroups([]);
+          }
+        }
+
+        // Fetch follower/following counts using the public API
+        try {
+          const followStatsResponse = await fetch(`/api/users/${finalProfileData.id}/follow-stats`);
+          if (followStatsResponse.ok) {
+            const followStatsData = await followStatsResponse.json();
+            setFollowStats({
+              followersCount: followStatsData.followersCount || 0,
+              followingCount: followStatsData.followingCount || 0
+            });
+          }
+        } catch (statsError) {
+          console.error("Error fetching follow stats:", statsError);
+          // Continue with default values if there's an error
         }
       } catch (error) {
         console.error("Error fetching profile data:", error);
@@ -132,8 +187,37 @@ export default function UserProfilePage({
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8 text-center">
-        <h1 className="text-2xl font-bold mb-6">Loading Profile...</h1>
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Profile Header Skeleton */}
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8 align-top">
+            <Skeleton className="w-24 h-24 rounded-full" />
+
+            <div className="text-center md:text-left w-full md:w-2/3">
+              <Skeleton className="h-8 w-48 mb-2" />
+              <Skeleton className="h-4 w-32 mb-4" />
+              <Skeleton className="h-4 w-full max-w-md mb-2" />
+              <Skeleton className="h-4 w-full max-w-md mb-2" />
+              <Skeleton className="h-4 w-full max-w-md mb-4" />
+
+              <div className="flex gap-4 mt-4 md:justify-start justify-center">
+                <Skeleton className="h-16 w-20" />
+                <Skeleton className="h-16 w-20" />
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs Skeleton */}
+          <div className="w-full">
+            <Skeleton className="h-10 w-full mb-6" />
+
+            <Skeleton className="h-6 w-48 mb-4" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-64 w-full" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -185,6 +269,16 @@ export default function UserProfilePage({
             {profileData?.bio && (
               <p className="mt-3 text-sm">{profileData.bio}</p>
             )}
+            <div className="flex gap-4 mt-4 md:justify-start justify-center">
+              <div className="bg-card rounded-md px-3 py-2 shadow-sm border">
+                <div className="font-bold text-base">{followStats.followingCount}</div>
+                <div className="text-xs text-muted-foreground">Following</div>
+              </div>
+              <div className="bg-card rounded-md px-3 py-2 shadow-sm border">
+                <div className="font-bold text-base">{followStats.followersCount}</div>
+                <div className="text-xs text-muted-foreground">Followers</div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -200,7 +294,11 @@ export default function UserProfilePage({
             {resources && resources.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-8">
                 {resources.map((resource) => (
-                  <ResourceCard key={resource.id} resource={resource} />
+                  <ResourceCard
+                    key={resource.id}
+                    resource={resource}
+                    onView={() => router.push(`/dashboard/resources?view=${resource.id}`)}
+                  />
                 ))}
               </div>
             ) : (
