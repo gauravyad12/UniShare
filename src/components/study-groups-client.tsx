@@ -26,6 +26,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import StudyGroupCard from "@/components/study-group-card";
+import UserMeetingsCarousel from "@/components/user-meetings-carousel";
 
 export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
   const { toast } = useToast();
@@ -372,7 +373,7 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
         <TabsList className="mb-6 w-full max-w-full overflow-x-auto">
           <TabsTrigger value="all">All Groups</TabsTrigger>
           <TabsTrigger value="my-groups">My Groups</TabsTrigger>
-          <TabsTrigger value="upcoming">Upcoming Meetings</TabsTrigger>
+          <TabsTrigger value="upcoming">Meetings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="space-y-4 overflow-x-hidden">
@@ -480,19 +481,7 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
         </TabsContent>
 
         <TabsContent value="upcoming" className="space-y-4 overflow-x-hidden">
-          <Card className="bg-muted/40">
-            <CardContent className="pt-6 flex flex-col items-center justify-center text-center p-10 space-y-4">
-              <Calendar className="h-12 w-12 text-muted-foreground" />
-              <CardTitle>Upcoming Meetings</CardTitle>
-              <CardDescription>
-                View your scheduled study group meetings and sessions.
-              </CardDescription>
-              <Button className="mt-2" onClick={() => router.push('/dashboard/study-groups/create')}>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Study Group
-              </Button>
-            </CardContent>
-          </Card>
+          <UserMeetingsCarousel />
         </TabsContent>
       </Tabs>
     </div>
