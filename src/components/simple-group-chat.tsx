@@ -55,6 +55,7 @@ export default function SimpleGroupChat({
   const [isButtonVisible, setIsButtonVisible] = useState(false);
   const [cleanupFunction, setCleanupFunction] = useState<(() => void) | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingCooldownRef = useRef<NodeJS.Timeout | null>(null);
 
   // Component state initialized
 
@@ -431,6 +432,20 @@ export default function SimpleGroupChat({
             filter: `study_group_id=eq.${group.id}`
           }, async (payload: any) => {
             console.log('Received new message:', payload.new);
+
+            // Immediately remove typing indicator for the sender
+            // This makes the chat feel more responsive when receiving messages
+            const senderId = payload.new.sender_id;
+            if (senderId) {
+              setTypingUsers(prev => {
+                const updated = {...prev};
+                if (updated[senderId]) {
+                  delete updated[senderId];
+                }
+                return updated;
+              });
+            }
+
             // Fetch all messages to get the latest with profile info
             try {
               const { data: messagesData, error: messagesError } = await supabase
@@ -491,6 +506,12 @@ export default function SimpleGroupChat({
         clearTimeout(typingTimeoutRef.current);
         typingTimeoutRef.current = null;
       }
+
+      // Clear any cooldown timeouts
+      if (typingCooldownRef.current) {
+        clearTimeout(typingCooldownRef.current);
+        typingCooldownRef.current = null;
+      }
     };
   }, [group.id, userId]);
 
@@ -500,6 +521,16 @@ export default function SimpleGroupChat({
     try {
       setSending(true);
       const supabase = createClient();
+
+      // Immediately hide the current user's typing indicator client-side
+      // This makes the UI feel more responsive
+      setTypingUsers(prev => {
+        const updated = {...prev};
+        if (userId && updated[userId]) {
+          delete updated[userId];
+        }
+        return updated;
+      });
 
       // Clear typing status when sending a message
       await clearTypingStatus();
@@ -520,6 +551,16 @@ export default function SimpleGroupChat({
 
       // Clear the input
       setNewMessage("");
+
+      // Set a cooldown period to prevent the typing indicator from immediately reappearing
+      // This makes the chat feel more natural
+      if (typingCooldownRef.current) {
+        clearTimeout(typingCooldownRef.current);
+      }
+
+      typingCooldownRef.current = setTimeout(() => {
+        typingCooldownRef.current = null;
+      }, 2000); // 2 second cooldown
 
       // The function returns the message with profile information
       if (data && Array.isArray(data) && data.length > 0) {
@@ -854,8 +895,10 @@ export default function SimpleGroupChat({
               className="rounded-full bg-muted/50 focus-visible:ring-primary/50"
               onChange={(e) => {
                 setNewMessage(e.target.value);
-                // Update typing status when user types
-                updateTypingStatus(true);
+                // Only update typing status if we're not in a cooldown period
+                if (!typingCooldownRef.current) {
+                  updateTypingStatus(true);
+                }
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {

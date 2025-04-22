@@ -39,15 +39,18 @@ export default function ResourceTabContent({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // Reset loading state when tab or resources change
   useEffect(() => {
-    // Show loading state briefly when tab changes
+    // Show loading state briefly when tab or resources change
     setIsLoading(true);
+
+    // Use a shorter timeout for a snappier experience
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 300);
+    }, 150);
 
     return () => clearTimeout(timer);
-  }, [activeTab]);
+  }, [activeTab, resources]);
 
   if (isLoading) {
     return (

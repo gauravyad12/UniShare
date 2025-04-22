@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import StudyGroupsTabs from "@/components/study-groups-tabs";
 import { Calendar, Plus, Search, Users, Loader2, Link as LinkIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -212,7 +212,7 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
 
     setFilteredGroups(filtered);
     setFilteredMyGroups(filteredMy);
-  }, [searchQuery, data]);
+  }, [searchQuery, data, tab]); // Added tab dependency to refresh when tab changes
 
   if (loading) {
     return (
@@ -369,121 +369,13 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
         </div>
       </header>
 
-      <Tabs defaultValue={tab} className="w-full">
-        <TabsList className="mb-6 w-full max-w-full overflow-x-auto">
-          <TabsTrigger value="all">All Groups</TabsTrigger>
-          <TabsTrigger value="my-groups">My Groups</TabsTrigger>
-          <TabsTrigger value="upcoming">Meetings</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="all" className="space-y-4 overflow-x-hidden">
-          {filteredGroups && filteredGroups.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-              {filteredGroups.map((group: any) => (
-                <div key={group.id}>
-                  <StudyGroupCard
-                    group={group}
-                    isMember={allUserGroupIds.includes(group.id)}
-                    onView={(id) => router.push(`/dashboard/study-groups?view=${id}`)}
-                    onJoin={(id) => router.push(`/dashboard/study-groups?view=${id}`)}
-                  />
-                </div>
-              ))}
-            </div>
-          ) : studyGroups.length > 0 && searchQuery.trim() !== '' ? (
-            <Card className="bg-muted/40">
-              <CardContent className="pt-6 flex flex-col items-center justify-center text-center p-10 space-y-4">
-                <Users className="h-12 w-12 text-muted-foreground" />
-                <CardTitle>No study groups match your search</CardTitle>
-                <CardDescription>Try a different search term or create a new group</CardDescription>
-                <Button
-                  variant="outline"
-                  className="mt-2"
-                  onClick={() => setSearchQuery('')}
-                >
-                  Clear Search
-                </Button>
-                <Button className="mt-2" onClick={() => router.push('/dashboard/study-groups/create')}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Study Group
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="bg-muted/40">
-              <CardContent className="pt-6 flex flex-col items-center justify-center text-center p-10 space-y-4">
-                <Users className="h-12 w-12 text-muted-foreground" />
-                <CardTitle>No study groups found</CardTitle>
-                <CardDescription>Be the first to create a study group for your university!</CardDescription>
-                <Button className="mt-2" onClick={() => router.push('/dashboard/study-groups/create')}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Study Group
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="my-groups" className="space-y-4 overflow-x-hidden">
-          {filteredMyGroups && filteredMyGroups.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-              {/* Log each group as it's being rendered */}
-              {filteredMyGroups.map((group: any) => {
-                console.log('Rendering group in My Groups tab:', {
-                  id: group.id,
-                  name: group.name,
-                  is_private: group.is_private
-                });
-                return (
-                  <div key={group.id}>
-                    <StudyGroupCard
-                      key={group.id}
-                      group={group}
-                      isMember={true}
-                      onView={(id) => router.push(`/dashboard/study-groups?view=${id}`)}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          ) : myStudyGroups.length > 0 && searchQuery.trim() !== '' ? (
-            <Card className="bg-muted/40">
-              <CardContent className="pt-6 flex flex-col items-center justify-center text-center p-10 space-y-4">
-                <Users className="h-12 w-12 text-muted-foreground" />
-                <CardTitle>No study groups match your search</CardTitle>
-                <CardDescription>Try a different search term or join a new group</CardDescription>
-                <Button
-                  variant="outline"
-                  className="mt-2"
-                  onClick={() => setSearchQuery('')}
-                >
-                  Clear Search
-                </Button>
-                <Button className="mt-2" onClick={() => setJoinDialogOpen(true)}>
-                  <LinkIcon className="mr-2 h-4 w-4" />
-                  Join with Code
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card className="bg-muted/40">
-              <CardContent className="pt-6 flex flex-col items-center justify-center text-center p-10 space-y-4">
-                <Users className="h-12 w-12 text-muted-foreground" />
-                <CardTitle>No Study Groups Yet</CardTitle>
-                <CardDescription>You haven't joined any study groups yet.</CardDescription>
-                <Button className="mt-2" onClick={() => setJoinDialogOpen(true)}>
-                  <LinkIcon className="mr-2 h-4 w-4" />
-                  Join with Code
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="upcoming" className="space-y-4 overflow-x-hidden">
-          <UserMeetingsCarousel />
-        </TabsContent>
-      </Tabs>
+      <StudyGroupsTabs
+        initialTab={tab}
+        allGroups={filteredGroups}
+        myGroups={filteredMyGroups}
+        userGroupIds={allUserGroupIds}
+        onSearch={setSearchQuery}
+      />
     </div>
   );
 }
