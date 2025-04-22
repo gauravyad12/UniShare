@@ -101,6 +101,7 @@ export default function ResourceView({
   const [commentCount, setCommentCount] = useState<number>(
     resource.comment_count || 0,
   );
+  const [isLikeAnimating, setIsLikeAnimating] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
@@ -756,10 +757,15 @@ export default function ResourceView({
   const handleLike = async () => {
     if (hasLiked) return; // Prevent multiple likes
 
+    // Start animation immediately when user clicks
+    setIsLikeAnimating(true);
     setIsLoading(true);
     setError(null);
 
     try {
+      // Delay the API call slightly to allow animation to be visible
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const response = await fetch(`/api/resources/${resource.id}/like`, {
         method: "POST",
         headers: {
@@ -778,8 +784,14 @@ export default function ResourceView({
       // Update local state
       setHasLiked(true);
       setLikeCount(data.likeCount);
+
+      // Keep animation going for a bit longer after success
+      setTimeout(() => {
+        setIsLikeAnimating(false);
+      }, 800); // Match animation duration
     } catch (err: any) {
       setError(err.message || "An error occurred while liking the resource");
+      setIsLikeAnimating(false); // Reset animation on error
     } finally {
       setIsLoading(false);
     }
@@ -1015,13 +1027,28 @@ export default function ResourceView({
               variant={hasLiked ? "default" : "outline"}
               onClick={handleLike}
               disabled={isLoading || hasLiked}
-              className={`${hasLiked ? "bg-primary hover:bg-primary/90" : ""} flex-shrink-0`}
+              className={`
+                ${hasLiked ? "bg-primary hover:bg-primary/90" : ""}
+                ${isLikeAnimating ? "like-button-animation" : ""}
+                flex-shrink-0 relative overflow-hidden
+                transition-all duration-200
+              `}
               size="sm"
             >
               <ThumbsUp
-                className={`h-4 w-4 mr-1 ${hasLiked ? "fill-white" : ""}`}
+                className={`
+                  h-4 w-4 mr-1
+                  ${hasLiked ? "fill-white" : ""}
+                  ${isLikeAnimating ? "like-icon-animation" : ""}
+                  transition-transform duration-200
+                `}
               />
               {hasLiked ? "Liked" : "Like"}
+              {isLikeAnimating && (
+                <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="absolute w-8 h-8 bg-primary/20 animate-ping rounded-full"></span>
+                </span>
+              )}
             </Button>
             {resource.file_url &&
               resource.file_url.toLowerCase().endsWith(".pdf") && (

@@ -7,6 +7,7 @@ import { ThemeSync } from "@/components/theme-sync";
 import { TempoInit } from "@/components/tempo-init";
 import { NavigationEvents } from "@/components/navigation-events";
 import GlobalLoadingSpinner from "@/components/global-loading-spinner";
+import { GlobalStylesProvider } from "@/components/global-styles-provider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 // Force dynamic rendering for all pages
@@ -34,6 +35,7 @@ export default function RootLayout({
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ThemeSync />
+          <GlobalStylesProvider />
           <GlobalLoadingSpinner />
           {children}
           <NavigationEvents />

@@ -138,7 +138,11 @@ export default function ShareGroupResource({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-full h-10 w-10 flex items-center justify-center p-0 aspect-square hover:bg-muted transition-colors"
+        >
           <Plus className="h-5 w-5" />
         </Button>
       </PopoverTrigger>

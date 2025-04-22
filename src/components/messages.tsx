@@ -45,22 +45,22 @@ export default function Messages() {
     try {
       setIsLoading(true);
       console.log('Fetching user groups for messages dropdown...');
-      
+
       // Use the same API endpoint as the sidebar
       const response = await fetch('/api/user-groups');
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('Failed to fetch user groups:', errorData);
         throw new Error(`Failed to fetch user groups: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log('Received user groups data:', data);
-      
+
       if (data.groups && Array.isArray(data.groups)) {
         console.log(`Received ${data.groups.length} user groups with messages`);
-        
+
         // Log each group's latest message for debugging
         data.groups.forEach((group: GroupWithLatestMessage) => {
           console.log(`Group ${group.name} latest message:`, group.latestMessage);
@@ -69,7 +69,7 @@ export default function Messages() {
             console.log(`  - content: ${group.latestMessage.content}`);
           }
         });
-        
+
         setGroups(data.groups);
       } else {
         console.warn('Received unexpected data format for user groups:', data);
@@ -134,7 +134,7 @@ export default function Messages() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
+      <PopoverContent className="w-80 p-0 max-w-[320px]" align="end">
         <div className="p-4 border-b">
           <div className="flex justify-between items-center">
             <h3 className="font-medium">Group Messages</h3>
@@ -166,7 +166,7 @@ export default function Messages() {
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex justify-between">
-                        <p className="font-medium text-sm">
+                        <p className="font-medium text-sm truncate max-w-[180px]">
                           {group.name}
                           {group.is_private && (
                             <span className="ml-1 text-muted-foreground">🔒</span>
@@ -183,7 +183,9 @@ export default function Messages() {
                                 ? `${group.latestMessage.sender_name.split(' ')[0]}: `
                                 : ""}
                             </span>
-                            {group.latestMessage.content}
+                            {group.latestMessage.content.length > 15
+                              ? `${group.latestMessage.content.substring(0, 15)}...`
+                              : group.latestMessage.content}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
                             {group.latestMessage.created_at ?

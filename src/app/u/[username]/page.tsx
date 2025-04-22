@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import ResourceCard from "@/components/resource-card";
 import StudyGroupCard from "@/components/study-group-card";
 import { useEffect, useState } from "react";
+import { UserPlus, UsersRound } from "lucide-react";
 
 export default function UserProfilePage({
   params,
@@ -20,6 +21,8 @@ export default function UserProfilePage({
   const router = useRouter();
   // Start with loading state true by default
   const [loading, setLoading] = useState(true);
+  // Add a state to track if we're redirecting
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
   const [resources, setResources] = useState<any[]>([]);
   const [studyGroups, setStudyGroups] = useState<any[]>([]);
@@ -29,26 +32,42 @@ export default function UserProfilePage({
     followingCount: 0
   });
 
-  // Show loading state immediately
+  // First useEffect: Check authentication status immediately
   useEffect(() => {
-    // Set loading to true immediately when component mounts
+    const checkAuth = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (session) {
+          // Set redirecting state to true
+          setIsRedirecting(true);
+          // Redirect to dashboard profile
+          router.push(`/dashboard/profile/${params.username}`);
+          // Don't continue with profile data fetching
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error("Error checking auth:", error);
+        return false;
+      }
+    };
+
+    checkAuth();
+  }, [params.username, router]);
+
+  // Second useEffect: Fetch profile data only if not redirecting
+  useEffect(() => {
+    // If we're redirecting, don't fetch profile data
+    if (isRedirecting) return;
+
+    // Set loading to true
     setLoading(true);
 
     const fetchData = async () => {
       try {
         const supabase = createClient();
-
-        // Check if user is logged in
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        // If logged in, redirect to dashboard profile
-        if (session) {
-          // Keep loading state while redirecting
-          router.push(`/dashboard/profile/${params.username}`);
-          return;
-        }
 
         // Continue with the public profile view for non-authenticated users
 
@@ -183,9 +202,10 @@ export default function UserProfilePage({
     };
 
     fetchData();
-  }, [params.username, router]);
+  }, [params.username, router, isRedirecting]);
 
-  if (loading) {
+  // Always show skeleton when redirecting or loading
+  if (isRedirecting || loading) {
     return (
       <div className="container mx-auto py-8 px-4">
         <div className="max-w-4xl mx-auto">
@@ -201,8 +221,8 @@ export default function UserProfilePage({
               <Skeleton className="h-4 w-full max-w-md mb-4" />
 
               <div className="flex gap-4 mt-4 md:justify-start justify-center">
-                <Skeleton className="h-16 w-20" />
-                <Skeleton className="h-16 w-20" />
+                <Skeleton className="h-16 w-24" />
+                <Skeleton className="h-16 w-24" />
               </div>
             </div>
           </div>
@@ -272,11 +292,17 @@ export default function UserProfilePage({
             <div className="flex gap-4 mt-4 md:justify-start justify-center">
               <div className="bg-card rounded-md px-3 py-2 shadow-sm border">
                 <div className="font-bold text-base">{followStats.followingCount}</div>
-                <div className="text-xs text-muted-foreground">Following</div>
+                <div className="flex items-center justify-center gap-1 text-muted-foreground text-xs">
+                  <UserPlus className="h-3 w-3" />
+                  <span>Following</span>
+                </div>
               </div>
               <div className="bg-card rounded-md px-3 py-2 shadow-sm border">
                 <div className="font-bold text-base">{followStats.followersCount}</div>
-                <div className="text-xs text-muted-foreground">Followers</div>
+                <div className="flex items-center justify-center gap-1 text-muted-foreground text-xs">
+                  <UsersRound className="h-3 w-3" />
+                  <span>Followers</span>
+                </div>
               </div>
             </div>
           </div>

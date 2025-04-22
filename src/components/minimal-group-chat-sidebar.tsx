@@ -144,14 +144,14 @@ export default function MinimalGroupChatSidebar({
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-col w-full">
                         <div className="flex justify-between items-center w-full">
-                          <div className="flex items-center gap-1 max-w-[60%]">
+                          <div className="flex items-center gap-1 max-w-[50%]">
                             <h3 className="font-medium text-sm truncate">{group.name}</h3>
                             {group.is_private && (
                               <Lock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                             )}
                           </div>
                           {group.latestMessage && (
-                            <span className="text-[10px] text-muted-foreground whitespace-nowrap flex-shrink-0 ml-1">
+                            <span className="text-[10px] text-muted-foreground whitespace-nowrap flex-shrink-0 ml-1 min-w-[60px] text-right">
                               {formatDistanceToNow(new Date(group.latestMessage.created_at), { addSuffix: true })}
                             </span>
                           )}
@@ -163,7 +163,9 @@ export default function MinimalGroupChatSidebar({
                             <span className="font-medium">
                               {group.latestMessage.sender_name ? `${group.latestMessage.sender_name.split(' ')[0]}: ` : ""}
                             </span>
-                            {group.latestMessage.content}
+                            {group.latestMessage.content.length > 15
+                              ? `${group.latestMessage.content.substring(0, 15)}...`
+                              : group.latestMessage.content}
                           </>
                         ) : (
                           "No messages yet"
