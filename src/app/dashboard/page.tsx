@@ -11,6 +11,7 @@ import {
   Users,
   UserPlus,
 } from "lucide-react";
+import MeetingCarousel from "@/components/meeting-carousel";
 import Link from "next/link";
 import {
   Card,
@@ -104,22 +105,55 @@ export default async function Dashboard() {
     console.log('Study group count:', studyGroupCount);
   }
 
-  // Get user's study groups
-  const { data: userStudyGroups } = await supabase
-    .from("study_group_members")
-    .select("study_group_id")
-    .eq("user_id", user.id);
+  // Get user's study groups count using a secure function
+  const { data: userGroupCountResult, error: userGroupCountError } = await supabase
+    .rpc('get_user_study_group_count');
 
-  const userGroupCount = userStudyGroups?.length || 0;
+  if (userGroupCountError) {
+    console.error("Error fetching user's study group count:", userGroupCountError);
+  }
 
-  // Get upcoming meetings
-  const now = new Date().toISOString();
-  const { data: upcomingMeetings } = await supabase
-    .from("study_group_meetings")
-    .select("*, study_group:study_groups(name)")
-    .gt("start_time", now)
-    .order("start_time", { ascending: true })
-    .limit(3);
+  // Fallback to direct query if the function fails
+  let userGroupCount = userGroupCountResult || 0;
+
+  if (userGroupCountError) {
+    const { data: userStudyGroups, error: userGroupsError } = await supabase
+      .from("study_group_members")
+      .select("study_group_id")
+      .eq("user_id", user.id);
+
+    if (userGroupsError) {
+      console.error("Error fetching user's study groups:", userGroupsError);
+    } else {
+      userGroupCount = userStudyGroups?.length || 0;
+      console.log(`Found ${userGroupCount} groups for user ${user.id} (fallback method)`);
+    }
+  } else {
+    console.log(`User ${user.id} is a member of ${userGroupCount} study groups`);
+  }
+
+  // Get both upcoming and past meetings using the custom function
+  const { data: allMeetings, error: meetingsError } = await supabase
+    .rpc('get_user_meetings');
+
+  if (meetingsError) {
+    console.error("Error fetching meetings:", meetingsError);
+  }
+
+  // Split meetings into upcoming and past
+  const upcomingMeetings = allMeetings?.filter(meeting => !meeting.is_past) || [];
+  const pastMeetings = allMeetings?.filter(meeting => meeting.is_past) || [];
+
+  // Sort upcoming meetings by start time (ascending)
+  upcomingMeetings.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+
+  // Sort past meetings by start time (descending - most recent first)
+  pastMeetings.sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+
+  // Get all upcoming meetings for display
+  const limitedUpcomingMeetings = upcomingMeetings;
+  // Limit past meetings to only the 4 most recent ones
+  const limitedPastMeetings = pastMeetings.slice(0, 4);
 
   return (
     <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
@@ -247,7 +281,7 @@ export default async function Dashboard() {
           <CardContent>
             <p className="text-3xl font-bold">{userGroupCount}</p>
             <p className="text-sm text-muted-foreground">
-              Groups you've joined
+              Study groups you've joined
             </p>
           </CardContent>
           <CardFooter>
@@ -294,51 +328,26 @@ export default async function Dashboard() {
 
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Upcoming Meetings</CardTitle>
+            <CardTitle>Study Group Meetings</CardTitle>
             <CardDescription>Your scheduled study sessions</CardDescription>
           </CardHeader>
           <CardContent>
-            {upcomingMeetings && upcomingMeetings.length > 0 ? (
-              <div className="space-y-4">
-                {upcomingMeetings.map((meeting) => {
-                  const startDate = new Date(meeting.start_time);
-                  const endDate = new Date(meeting.end_time);
-                  return (
-                    <div
-                      key={meeting.id}
-                      className="flex items-start gap-3 p-3 rounded-lg border"
-                    >
-                      <div className="bg-primary/10 p-2 rounded-md">
-                        <Calendar className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium">{meeting.title}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {meeting.study_group?.name}
-                        </p>
-                        <div className="flex items-center mt-2 text-sm">
-                          <span>
-                            {startDate.toLocaleDateString()} •{" "}
-                            {startDate.toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}{" "}
-                            -{" "}
-                            {endDate.toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+            {(limitedUpcomingMeetings.length > 0 || limitedPastMeetings.length > 0) ? (
+              <div className="space-y-6">
+                {/* Upcoming Meetings Section */}
+                {limitedUpcomingMeetings.length > 0 && (
+                  <MeetingCarousel meetings={limitedUpcomingMeetings} isPast={false} />
+                )}
+
+                {/* Past Meetings Section */}
+                {limitedPastMeetings.length > 0 && (
+                  <MeetingCarousel meetings={limitedPastMeetings} isPast={true} />
+                )}
               </div>
             ) : (
               <div className="text-center py-6">
                 <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                <h3 className="font-medium">No upcoming meetings</h3>
+                <h3 className="font-medium">No meetings found</h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   Join a study group to see scheduled sessions
                 </p>

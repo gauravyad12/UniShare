@@ -202,14 +202,15 @@ export default function StudyGroupInvitations({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-2 mb-4">
         <h3 className="text-lg font-semibold">Invitations</h3>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 self-end xs:self-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={handleRefresh}
             disabled={refreshing}
+            className="h-9"
           >
             {refreshing ? (
               <Loader2 className="h-4 w-4 animate-spin mr-1" />
@@ -222,7 +223,7 @@ export default function StudyGroupInvitations({
           {isAdmin && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button size="sm">
+                <Button size="sm" className="h-9">
                   <LinkIcon className="h-4 w-4 mr-1" />
                   Create Invitation
                 </Button>
@@ -236,58 +237,61 @@ export default function StudyGroupInvitations({
                 </DialogHeader>
 
                 <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="expires" className="text-right">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+                    <Label htmlFor="expires" className="sm:text-right">
                       Expires in
                     </Label>
-                    <Select
-                      value={expiresIn}
-                      onValueChange={setExpiresIn}
-                    >
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select expiration time" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 hour</SelectItem>
-                        <SelectItem value="6">6 hours</SelectItem>
-                        <SelectItem value="12">12 hours</SelectItem>
-                        <SelectItem value="24">24 hours</SelectItem>
-                        <SelectItem value="48">2 days</SelectItem>
-                        <SelectItem value="168">7 days</SelectItem>
-                        <SelectItem value="720">30 days</SelectItem>
-                        <SelectItem value="0">Never expires</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="sm:col-span-3">
+                      <Select
+                        value={expiresIn}
+                        onValueChange={setExpiresIn}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select expiration time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 hour</SelectItem>
+                          <SelectItem value="6">6 hours</SelectItem>
+                          <SelectItem value="12">12 hours</SelectItem>
+                          <SelectItem value="24">24 hours</SelectItem>
+                          <SelectItem value="48">2 days</SelectItem>
+                          <SelectItem value="168">7 days</SelectItem>
+                          <SelectItem value="720">30 days</SelectItem>
+                          <SelectItem value="0">Never expires</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="maxUses" className="text-right">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+                    <Label htmlFor="maxUses" className="sm:text-right">
                       Max uses
                     </Label>
-                    <Input
-                      id="maxUses"
-                      type="number"
-                      min="1"
-                      placeholder="Unlimited"
-                      value={maxUses}
-                      onChange={(e) => {
-                        // Only allow numeric input
-                        const value = e.target.value;
-                        if (value === '' || /^\d+$/.test(value)) {
-                          setMaxUses(value);
-                        }
-                      }}
-                      onKeyPress={(e) => {
-                        // Prevent non-numeric characters from being entered
-                        if (!/\d/.test(e.key)) {
-                          e.preventDefault();
-                        }
-                      }}
-                      className="col-span-3"
-                    />
+                    <div className="sm:col-span-3">
+                      <Input
+                        id="maxUses"
+                        type="number"
+                        min="1"
+                        placeholder="Unlimited"
+                        value={maxUses}
+                        onChange={(e) => {
+                          // Only allow numeric input
+                          const value = e.target.value;
+                          if (value === '' || /^\d+$/.test(value)) {
+                            setMaxUses(value);
+                          }
+                        }}
+                        onKeyPress={(e) => {
+                          // Prevent non-numeric characters from being entered
+                          if (!/\d/.test(e.key)) {
+                            e.preventDefault();
+                          }
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <DialogFooter>
+                <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
                   <Button
                     onClick={handleCreateInvitation}
                     disabled={creating}
@@ -313,59 +317,109 @@ export default function StudyGroupInvitations({
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : invitations.length > 0 ? (
-        <div className="border rounded-md">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Invitation Code</TableHead>
-                <TableHead>Expiration</TableHead>
-                <TableHead>Uses</TableHead>
-                <TableHead>Created By</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invitations.map((invitation) => (
-                <TableRow key={invitation.id}>
-                  <TableCell className="font-medium">{invitation.code}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
-                      {getExpiryText(invitation.expires_at)}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <Users className="h-4 w-4 mr-1 text-muted-foreground" />
-                      {getUsesText(invitation.max_uses, invitation.current_uses)}
-                    </div>
-                  </TableCell>
-                  <TableCell>{invitation.created_by_name}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyInvitationCode(invitation.code)}
-                        title="Copy code"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => copyInvitationLink(invitation.code)}
-                        title="Copy link"
-                      >
-                        <LinkIcon className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+        <>
+          {/* Desktop view */}
+          <div className="border rounded-md hidden sm:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Invitation Code</TableHead>
+                  <TableHead>Expiration</TableHead>
+                  <TableHead>Uses</TableHead>
+                  <TableHead>Created By</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {invitations.map((invitation) => (
+                  <TableRow key={invitation.id}>
+                    <TableCell className="font-medium">{invitation.code}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+                        {getExpiryText(invitation.expires_at)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center">
+                        <Users className="h-4 w-4 mr-1 text-muted-foreground" />
+                        {getUsesText(invitation.max_uses, invitation.current_uses)}
+                      </div>
+                    </TableCell>
+                    <TableCell>{invitation.created_by_name}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyInvitationCode(invitation.code)}
+                          title="Copy code"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyInvitationLink(invitation.code)}
+                          title="Copy link"
+                        >
+                          <LinkIcon className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile view */}
+          <div className="space-y-4 sm:hidden">
+            {invitations.map((invitation) => (
+              <div key={invitation.id} className="border rounded-md p-4 space-y-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="font-medium mb-1">{invitation.code}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Created by {invitation.created_by_name}
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyInvitationCode(invitation.code)}
+                      title="Copy code"
+                      className="h-8 w-8 p-0"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyInvitationLink(invitation.code)}
+                      title="Copy link"
+                      className="h-8 w-8 p-0"
+                    >
+                      <LinkIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+                  <div className="flex items-center">
+                    <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+                    {getExpiryText(invitation.expires_at)}
+                  </div>
+                  <div className="flex items-center">
+                    <Users className="h-4 w-4 mr-1 text-muted-foreground" />
+                    {getUsesText(invitation.max_uses, invitation.current_uses)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       ) : (
         <Card className="bg-muted/40">
           <CardContent className="pt-6 flex flex-col items-center justify-center text-center p-10 space-y-4">
