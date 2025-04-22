@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import {
   Dialog,
@@ -24,6 +24,14 @@ interface ScheduleGroupMeetingProps {
   onMeetingScheduled?: () => void;
 }
 
+// Character limits for each field
+const charLimits = {
+  title: 25,
+  description: 100,
+  location: 100,
+  meetingLink: 255
+};
+
 export default function ScheduleGroupMeeting({
   groupId,
   onMeetingScheduled,
@@ -40,12 +48,38 @@ export default function ScheduleGroupMeeting({
   const [meetingLink, setMeetingLink] = useState("");
   const [scheduling, setScheduling] = useState(false);
 
+  // Character counts
+  const [charCounts, setCharCounts] = useState({
+    title: 0,
+    description: 0,
+    location: 0,
+    meetingLink: 0
+  });
+
   const handleScheduleMeeting = async () => {
     // Validate inputs
     if (!title) {
       toast({
         title: "Missing title",
         description: "Please enter a title for the meeting",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (title.length > charLimits.title) {
+      toast({
+        title: "Title too long",
+        description: `Title must be ${charLimits.title} characters or less`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (description && description.length > charLimits.description) {
+      toast({
+        title: "Description too long",
+        description: `Description must be ${charLimits.description} characters or less`,
         variant: "destructive",
       });
       return;
@@ -171,6 +205,14 @@ export default function ScheduleGroupMeeting({
     setEndTime("");
     setLocation("");
     setMeetingLink("");
+
+    // Reset character counts
+    setCharCounts({
+      title: 0,
+      description: 0,
+      location: 0,
+      meetingLink: 0
+    });
   };
 
   // Set default times when the dialog opens
@@ -189,6 +231,16 @@ export default function ScheduleGroupMeeting({
     setStartTime(startTimeStr);
     setEndTime(endTimeStr);
   };
+
+  // Update character counts when values change
+  useEffect(() => {
+    setCharCounts({
+      title: title.length,
+      description: description.length,
+      location: location.length,
+      meetingLink: meetingLink.length
+    });
+  }, [title, description, location, meetingLink]);
 
   return (
     <Dialog
@@ -215,23 +267,47 @@ export default function ScheduleGroupMeeting({
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="meeting-title">Title</Label>
+            <div className="flex justify-between">
+              <Label htmlFor="meeting-title">Title</Label>
+              <span className="text-xs text-muted-foreground">
+                {charCounts.title}/{charLimits.title}
+              </span>
+            </div>
             <Input
               id="meeting-title"
-              placeholder="Meeting title"
+              placeholder="Brief meeting title"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                if (newValue.length <= charLimits.title) {
+                  setTitle(newValue);
+                  setCharCounts(prev => ({ ...prev, title: newValue.length }));
+                }
+              }}
+              maxLength={charLimits.title}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="meeting-description">Description (optional)</Label>
+            <div className="flex justify-between">
+              <Label htmlFor="meeting-description">Description (optional)</Label>
+              <span className="text-xs text-muted-foreground">
+                {charCounts.description}/{charLimits.description}
+              </span>
+            </div>
             <Textarea
               id="meeting-description"
-              placeholder="What's this meeting about?"
+              placeholder="Brief description of the meeting (100 chars max)"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
+              onChange={(e) => {
+                const newValue = e.target.value;
+                if (newValue.length <= charLimits.description) {
+                  setDescription(newValue);
+                  setCharCounts(prev => ({ ...prev, description: newValue.length }));
+                }
+              }}
+              maxLength={charLimits.description}
+              rows={2}
             />
           </div>
 
@@ -294,7 +370,12 @@ export default function ScheduleGroupMeeting({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="location">Location (optional)</Label>
+            <div className="flex justify-between">
+              <Label htmlFor="location">Location (optional)</Label>
+              <span className="text-xs text-muted-foreground">
+                {charCounts.location}/{charLimits.location}
+              </span>
+            </div>
             <div className="relative">
               <MapPin className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -302,13 +383,25 @@ export default function ScheduleGroupMeeting({
                 placeholder="e.g. Library, Room 101"
                 className="pl-8"
                 value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  if (newValue.length <= charLimits.location) {
+                    setLocation(newValue);
+                    setCharCounts(prev => ({ ...prev, location: newValue.length }));
+                  }
+                }}
+                maxLength={charLimits.location}
               />
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="meeting-link">Meeting Link (optional)</Label>
+            <div className="flex justify-between">
+              <Label htmlFor="meeting-link">Meeting Link (optional)</Label>
+              <span className="text-xs text-muted-foreground">
+                {charCounts.meetingLink}/{charLimits.meetingLink}
+              </span>
+            </div>
             <div className="relative">
               <LinkIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -316,7 +409,14 @@ export default function ScheduleGroupMeeting({
                 placeholder="e.g. Zoom or Google Meet link"
                 className="pl-8"
                 value={meetingLink}
-                onChange={(e) => setMeetingLink(e.target.value)}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  if (newValue.length <= charLimits.meetingLink) {
+                    setMeetingLink(newValue);
+                    setCharCounts(prev => ({ ...prev, meetingLink: newValue.length }));
+                  }
+                }}
+                maxLength={charLimits.meetingLink}
               />
             </div>
           </div>

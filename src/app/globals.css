@@ -141,6 +141,20 @@
   --ring: 142.1 76.2% 36.3%;
 }
 
+/* Custom utility classes */
+@layer utilities {
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Download overlay animations */
 @keyframes slide-in {
   from {

@@ -19,7 +19,9 @@ import {
   ArrowLeft,
   X,
   Send,
-  Loader2
+  Loader2,
+  FileText,
+  ChevronDown
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -47,11 +49,14 @@ export default function SimpleGroupChat({
   const [userProfile, setUserProfile] = useState<any>(null);
   const [subscription, setSubscription] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [typingUsers, setTypingUsers] = useState<TypingUsers>({});
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [isButtonVisible, setIsButtonVisible] = useState(false);
+  const [cleanupFunction, setCleanupFunction] = useState<(() => void) | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  console.log('SimpleGroupChat rendering with group:', group);
-  console.log('Current typing users:', Object.keys(typingUsers).length, typingUsers);
+  // Component state initialized
 
   // Update typing status in the database
   const updateTypingStatus = useCallback(async (isTyping: boolean) => {
@@ -124,14 +129,117 @@ export default function SimpleGroupChat({
     }
   }, [userId, group.id]);
 
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    if (messages.length > 0) {
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+  // Check if user is scrolled to the bottom
+  const checkIfScrolledToBottom = useCallback(() => {
+    if (!messagesContainerRef.current) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    // Consider not at bottom if scrolled up more than 10px
+    const scrolledFromBottom = scrollHeight - scrollTop - clientHeight;
+    const isAtBottomNow = scrolledFromBottom < 10;
+
+    // Only update state if it's changed to avoid unnecessary re-renders
+    if (isAtBottomNow !== isAtBottom) {
+      setIsAtBottom(isAtBottomNow);
+
+      // Show button with animation when scrolling up
+      if (!isAtBottomNow) {
+        setIsButtonVisible(true);
+      }
     }
-  }, [messages]);
+  }, [isAtBottom]);
+
+
+  // Scroll to bottom function
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      // Start fade out animation
+      setIsButtonVisible(false);
+
+      // Scroll to bottom
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      setIsAtBottom(true);
+    }
+  }, []);
+
+  // Initial scroll to bottom when messages change
+  const initialLoadRef = useRef(true);
+
+  useEffect(() => {
+    // Check scroll position immediately
+    checkIfScrolledToBottom();
+
+    const checkTimeout = setTimeout(() => {
+      // Only auto-scroll on initial load or when user is already at the bottom
+      if (initialLoadRef.current || isAtBottom) {
+        scrollToBottom();
+        // Mark initial load as complete after first scroll
+        initialLoadRef.current = false;
+      }
+    }, 100);
+
+    return () => clearTimeout(checkTimeout);
+  }, [messages, isAtBottom, scrollToBottom, checkIfScrolledToBottom]);
+
+  // Also check scroll position on component mount
+  useEffect(() => {
+    // Check scroll position multiple times after mounting to ensure it's correct
+    const timeouts = [500, 1000, 2000, 3000].map(delay => {
+      return setTimeout(() => {
+        checkIfScrolledToBottom();
+      }, delay);
+    });
+
+    return () => timeouts.forEach(clearTimeout);
+  }, [checkIfScrolledToBottom]);
+
+  // Set up scroll event listener with a delay to ensure ref is initialized
+  useEffect(() => {
+    // Use a timeout to ensure the ref is initialized
+    const setupTimeout = setTimeout(() => {
+      const container = messagesContainerRef.current;
+      if (!container) return;
+
+      // Check initial scroll position
+      checkIfScrolledToBottom();
+
+      // Add scroll event listener
+      const scrollHandler = () => {
+        // Use RAF to avoid too many updates
+        requestAnimationFrame(() => {
+          checkIfScrolledToBottom();
+        });
+      };
+
+      // Force check scroll position every second to ensure button appears
+      const intervalId = setInterval(() => {
+        checkIfScrolledToBottom();
+      }, 1000);
+
+      container.addEventListener('scroll', scrollHandler);
+
+      // Also check on resize
+      window.addEventListener('resize', scrollHandler);
+
+      // Store cleanup function
+      const cleanup = () => {
+        if (container) {
+          container.removeEventListener('scroll', scrollHandler);
+        }
+        window.removeEventListener('resize', scrollHandler);
+        clearInterval(intervalId);
+      };
+
+      // Store the cleanup function for later use
+      setCleanupFunction(() => cleanup);
+    }, 500); // 500ms delay to ensure DOM is fully rendered
+
+    return () => {
+      clearTimeout(setupTimeout);
+      // Call the stored cleanup function if it exists
+      cleanupFunction && cleanupFunction();
+    };
+  }, [checkIfScrolledToBottom, cleanupFunction]);
 
   // Set up polling for new messages
   useEffect(() => {
@@ -208,10 +316,8 @@ export default function SimpleGroupChat({
           }
 
           // Update typing users state
-          console.log('Active typing users:', Object.keys(activeTypingUsers).length, activeTypingUsers);
           setTypingUsers(activeTypingUsers);
         } else {
-          console.log('No typing status data or unexpected format:', typingData);
           // Clear typing users if no data is returned
           setTypingUsers({});
         }
@@ -231,6 +337,8 @@ export default function SimpleGroupChat({
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        // Set initial button visibility to false
+        setIsButtonVisible(false);
         setUserId(user.id);
 
         // Get user profile
@@ -244,24 +352,18 @@ export default function SimpleGroupChat({
 
         // Check if user is a member of this group or the creator
         const isCreator = group.created_by === user.id;
-        console.log('Is user the creator?', isCreator, 'Creator ID:', group.created_by, 'User ID:', user.id);
 
         if (isCreator) {
-          console.log('User is the creator of this group');
         } else {
           // Use the stored procedure to check membership
           try {
-            const { data: membershipData, error: membershipError } = await supabase
+            const { data: membershipData } = await supabase
               .rpc('check_study_group_membership', {
                 p_group_id: group.id,
                 p_user_id: user.id
               });
 
-            console.log('Membership check result:', membershipData);
-            console.log('Membership check error:', membershipError);
-
             const isUserMember = membershipData && membershipData.length > 0 && membershipData[0].is_member;
-            console.log('User membership status:', isUserMember);
 
             // If user is not a member or creator, redirect to study groups page
             if (!isUserMember) {
@@ -310,6 +412,9 @@ export default function SimpleGroupChat({
             console.error('Error fetching messages:', messagesError);
           } else {
             setMessages(messagesData || []);
+
+            // Mark as initial load so the useEffect will scroll to bottom
+            initialLoadRef.current = true;
           }
         } catch (error) {
           console.error('Error fetching messages:', error);
@@ -425,7 +530,7 @@ export default function SimpleGroupChat({
 
         // Scroll to the bottom
         setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          scrollToBottom();
         }, 100);
       } else {
         // Fallback: Fetch all messages again immediately
@@ -556,7 +661,13 @@ export default function SimpleGroupChat({
       </CardHeader>
 
       <CardContent className="flex-1 overflow-hidden flex flex-col">
-        <div className="flex-1 overflow-y-auto border-none rounded-none p-1 sm:p-2 md:p-4 bg-background">
+        <div
+          ref={messagesContainerRef}
+          onScroll={() => checkIfScrolledToBottom()}
+          className="flex-1 overflow-y-auto scrollbar-hide border-none rounded-none p-1 sm:p-2 md:p-4 bg-background relative"
+        >
+          {/* Removed scroll button from here - moved to bottom of chat */}
+
           {messages.length > 0 ? (
             <div className="space-y-3 pt-3">
               <AnimatePresence initial={false}>
@@ -583,9 +694,9 @@ export default function SimpleGroupChat({
                     </Avatar>
                   )}
                   <div
-                    className={`max-w-[80%] ${message.sender_id === userId
+                    className={`max-w-[85%] ${message.sender_id === userId
                       ? 'bg-primary text-primary-foreground rounded-2xl rounded-br-sm shadow-sm'
-                      : 'bg-muted rounded-2xl rounded-bl-sm shadow-sm'} p-2 sm:p-3`}>
+                      : 'bg-muted rounded-2xl rounded-bl-sm shadow-sm'} p-2 sm:p-3 ${message.content.includes('[Resource:') ? 'min-w-[250px]' : ''}`}>
                     <div className="flex justify-between items-center gap-4 mb-1">
                       <span className="text-xs font-medium">
                         {message.sender_id === userId
@@ -596,38 +707,63 @@ export default function SimpleGroupChat({
                         {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
                       </span>
                     </div>
-                    <p className="text-sm whitespace-pre-wrap break-words">
-                      {message.content.includes('[Resource:') ? (
-                        // Parse and render resource links
-                        message.content.split(/\[Resource:([^\]]*)\]\(([^\)]*)\)/).map((part, i) => {
-                          if (i % 3 === 0) {
-                            // Regular text part
-                            return part;
-                          } else if (i % 3 === 1) {
-                            // Resource title
-                            const title = part.trim();
-                            const link = message.content.split(/\[Resource:([^\]]*)\]\(([^\)]*)\)/)[i + 1];
+                    {message.content.includes('[Resource:') ? (
+                      <>
+                        {/* First render any text before the resource link */}
+                        <p className="text-sm whitespace-pre-wrap break-words mb-1">
+                          {message.content.split(/\[Resource:([^\]]*)\]\(([^\)]*)\)/)[0]}
+                        </p>
+
+                        {/* Then render the resource link */}
+                        {(() => {
+                          const parts = message.content.split(/\[Resource:([^\]]*)\]\(([^\)]*)\)/);
+                          if (parts.length >= 3) {
+                            const title = parts[1].trim();
+                            const link = parts[2];
                             return (
-                              <Button
-                                key={i}
-                                variant="link"
-                                className="p-0 h-auto text-sm font-medium underline"
-                                asChild
-                              >
-                                <Link href={link}>
-                                  <FileText className="h-3 w-3 mr-1 inline" />
-                                  {title}
-                                </Link>
-                              </Button>
+                              <div className="mt-4 mb-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+                                {/* Separate resource card outside the message bubble */}
+                                <div className="rounded-lg overflow-hidden border-2 border-solid border-secondary">
+                                  <div className="bg-primary/10 px-3 py-1.5 text-xs font-medium border-b border-solid border-primary text-foreground flex items-center">
+                                    <div className="bg-card px-1.5 py-0.5 rounded border border-solid border-primary mr-1.5">
+                                      Shared Resource
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    className="w-full justify-start h-auto py-3 px-4 text-left bg-card text-card-foreground hover:bg-muted rounded-none"
+                                    asChild
+                                  >
+                                    <Link href={link}>
+                                      <div className="bg-primary/10 p-2 rounded-md mr-3 flex-shrink-0">
+                                        <FileText className="h-5 w-5 text-primary" />
+                                      </div>
+                                      <div className="truncate">
+                                        <span className="font-medium text-base text-foreground">{title}</span>
+                                        <div className="text-xs text-muted-foreground mt-1">Click to view shared resource</div>
+                                      </div>
+                                    </Link>
+                                  </Button>
+                                </div>
+                              </div>
                             );
                           }
-                          return null; // Skip the URL parts
-                        })
-                      ) : (
-                        // Regular message
-                        message.content
-                      )}
-                    </p>
+                          return null;
+                        })()}
+
+                        {/* Render any text after the resource link */}
+                        {message.content.split(/\[Resource:([^\]]*)\]\(([^\)]*)\)/).length > 3 && (
+                          <p className="text-sm whitespace-pre-wrap break-words mt-2">
+                            {message.content.split(/\[Resource:([^\]]*)\]\(([^\)]*)\)/)[3]}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      // Regular message
+                      <p className="text-sm whitespace-pre-wrap break-words">
+                        {message.content}
+                      </p>
+                    )}
                   </div>
                   {message.sender_id === userId && (
                     <Avatar className="h-8 w-8">
@@ -663,7 +799,31 @@ export default function SimpleGroupChat({
           )}
         </div>
 
+        {/* Scroll to bottom button - absolute positioned to avoid affecting layout */}
+        <AnimatePresence>
+          {!isAtBottom && isButtonVisible && messages.length > 0 && (
+            <motion.div
+              className="absolute bottom-40 sm:bottom-36 md:bottom-32 left-0 right-0 z-10 pointer-events-none flex justify-center"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Button
+                variant="default"
+                size="sm"
+                className="rounded-full shadow-lg animate-bounce bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-5 border-2 border-background pointer-events-auto"
+                onClick={scrollToBottom}
+              >
+                <ChevronDown className="h-5 w-5 mr-2" />
+                New Messages
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="sticky bottom-0 bg-background p-2 sm:p-3 md:p-4">
+
           {/* Typing indicator */}
           {Object.keys(typingUsers).length > 0 && (
             <div className="flex items-center mb-2 text-sm text-muted-foreground animate-pulse mx-auto max-w-3xl">
