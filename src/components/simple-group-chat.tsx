@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import MinimalGroupChatSidebar from "./minimal-group-chat-sidebar";
@@ -27,6 +28,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "./ui/use-toast";
 import { TypingUsers } from "@/types/chat";
 import "@/types/supabase-typing-status";
+import ShareGroupResource from "./share-group-resource";
 
 interface SimpleGroupChatProps {
   group: any;
@@ -594,7 +596,38 @@ export default function SimpleGroupChat({
                         {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
                       </span>
                     </div>
-                    <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                    <p className="text-sm whitespace-pre-wrap break-words">
+                      {message.content.includes('[Resource:') ? (
+                        // Parse and render resource links
+                        message.content.split(/\[Resource:([^\]]*)\]\(([^\)]*)\)/).map((part, i) => {
+                          if (i % 3 === 0) {
+                            // Regular text part
+                            return part;
+                          } else if (i % 3 === 1) {
+                            // Resource title
+                            const title = part.trim();
+                            const link = message.content.split(/\[Resource:([^\]]*)\]\(([^\)]*)\)/)[i + 1];
+                            return (
+                              <Button
+                                key={i}
+                                variant="link"
+                                className="p-0 h-auto text-sm font-medium underline"
+                                asChild
+                              >
+                                <Link href={link}>
+                                  <FileText className="h-3 w-3 mr-1 inline" />
+                                  {title}
+                                </Link>
+                              </Button>
+                            );
+                          }
+                          return null; // Skip the URL parts
+                        })
+                      ) : (
+                        // Regular message
+                        message.content
+                      )}
+                    </p>
                   </div>
                   {message.sender_id === userId && (
                     <Avatar className="h-8 w-8">
@@ -647,6 +680,14 @@ export default function SimpleGroupChat({
             </div>
           )}
           <div className="flex gap-2 items-center mx-auto max-w-3xl">
+            <ShareGroupResource
+              groupId={group.id}
+              onResourceSelected={(resourceId, resourceTitle) => {
+                // Create a message with a link to the resource
+                const resourceLink = `[Resource: ${resourceTitle}](/dashboard/resources?view=${resourceId})`;
+                setNewMessage(prev => prev ? `${prev} ${resourceLink}` : resourceLink);
+              }}
+            />
             <Input
               placeholder="Type your message..."
               value={newMessage}

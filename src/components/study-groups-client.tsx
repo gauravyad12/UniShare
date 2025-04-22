@@ -302,7 +302,7 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
+    <div className="container mx-auto px-4 py-8 flex flex-col gap-8 overflow-x-hidden">
       <header className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-2">
           <h1 className="text-3xl font-bold">Study Groups</h1>
@@ -369,15 +369,15 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
       </header>
 
       <Tabs defaultValue={tab} className="w-full">
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 w-full max-w-full overflow-x-auto">
           <TabsTrigger value="all">All Groups</TabsTrigger>
           <TabsTrigger value="my-groups">My Groups</TabsTrigger>
           <TabsTrigger value="upcoming">Upcoming Meetings</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all" className="space-y-4">
+        <TabsContent value="all" className="space-y-4 overflow-x-hidden">
           {filteredGroups && filteredGroups.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
               {filteredGroups.map((group: any) => (
                 <div key={group.id}>
                   <StudyGroupCard
@@ -423,9 +423,9 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
           )}
         </TabsContent>
 
-        <TabsContent value="my-groups" className="space-y-4">
+        <TabsContent value="my-groups" className="space-y-4 overflow-x-hidden">
           {filteredMyGroups && filteredMyGroups.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
               {/* Log each group as it's being rendered */}
               {filteredMyGroups.map((group: any) => {
                 console.log('Rendering group in My Groups tab:', {
@@ -479,7 +479,7 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
           )}
         </TabsContent>
 
-        <TabsContent value="upcoming" className="space-y-4">
+        <TabsContent value="upcoming" className="space-y-4 overflow-x-hidden">
           <Card className="bg-muted/40">
             <CardContent className="pt-6 flex flex-col items-center justify-center text-center p-10 space-y-4">
               <Calendar className="h-12 w-12 text-muted-foreground" />

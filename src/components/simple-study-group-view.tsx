@@ -24,7 +24,9 @@ import {
   Calendar,
   Loader2,
   MoreVertical,
-  LogOut
+  LogOut,
+  Trash2,
+  Eye
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -38,6 +40,10 @@ import { formatDistanceToNow } from "date-fns";
 import { useToast } from "./ui/use-toast";
 import StudyGroupManagement from "./study-group-management";
 import StudyGroupInvitations from "./study-group-invitations";
+import AddResourceToGroup from "./add-resource-to-group";
+import ScheduleGroupMeeting from "./schedule-group-meeting";
+import GroupMeetingsList from "./group-meetings-list";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface SimpleStudyGroupViewProps {
   group: any;
@@ -57,6 +63,9 @@ export default function SimpleStudyGroupView({
   const [userId, setUserId] = useState<string | null>(null);
   const [joiningGroup, setJoiningGroup] = useState(false);
   const [leavingGroup, setLeavingGroup] = useState(false);
+  const [refreshMeetings, setRefreshMeetings] = useState(0);
+  const [refreshResources, setRefreshResources] = useState(0);
+  const [removingResourceId, setRemovingResourceId] = useState<string | null>(null);
 
   console.log('SimpleStudyGroupView rendering with group:', group);
 
@@ -72,6 +81,7 @@ export default function SimpleStudyGroupView({
     ? formatDistanceToNow(new Date(group.last_message_at), { addSuffix: true })
     : null;
 
+  // Fetch initial data
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -112,23 +122,47 @@ export default function SimpleStudyGroupView({
         setMembers(membersData || []);
       }
 
-      // Get resources using stored procedure
-      const { data: resourcesData, error: resourcesError } = await supabase
-        .rpc('get_study_group_resources', {
-          p_group_id: group.id
-        });
-
-      if (resourcesError) {
-        console.error('Error fetching resources:', resourcesError);
-      } else {
-        setResources(resourcesData || []);
-      }
+      // Get resources using the API endpoint instead of stored procedure
+      await fetchResources();
 
       setLoading(false);
     };
 
     fetchData();
   }, [group.id, group.created_by]);
+
+  // Separate useEffect for refreshing resources
+  useEffect(() => {
+    if (refreshResources > 0) {
+      console.log('Refreshing resources due to refreshResources change:', refreshResources);
+      fetchResources();
+    }
+  }, [refreshResources, group.id]);
+
+  // Function to fetch resources
+  const fetchResources = async () => {
+    try {
+      console.log(`Fetching resources for group ${group.id}`);
+      const response = await fetch(`/api/study-groups/${group.id}/resources`);
+
+      // Log the raw response for debugging
+      console.log('Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Error response (${response.status}):`, errorText);
+        throw new Error(`Failed to fetch resources: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Resources fetched:', data.resources?.length || 0);
+      console.log('Resource data sample:', data.resources?.slice(0, 2) || 'No resources');
+
+      setResources(data.resources || []);
+    } catch (resourcesError) {
+      console.error('Error fetching resources:', resourcesError);
+    }
+  };
 
   const handleJoinGroup = async () => {
     if (!userId) {
@@ -324,6 +358,51 @@ export default function SimpleStudyGroupView({
     }
   };
 
+  const handleRemoveResource = async (resourceId: string) => {
+    if (!userId || !isMember) return;
+
+    try {
+      setRemovingResourceId(resourceId);
+
+      // Call the API to remove the resource
+      const response = await fetch('/api/study-groups/remove-resource', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          groupId: group.id,
+          resourceId
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to remove the resource');
+      }
+
+      toast({
+        title: "Resource Removed",
+        description: "The resource has been removed from the group",
+        variant: "default",
+      });
+
+      // Update the resources list
+      setResources(resources.filter(resource => resource.resource_id !== resourceId));
+
+    } catch (error) {
+      console.error("Error removing resource:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to remove the resource. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setRemovingResourceId(null);
+    }
+  };
+
   if (loading) {
     return (
       <Card className="relative w-full max-w-5xl mx-auto my-8 border-2 border-primary/20 px-2 sm:px-4 md:px-6">
@@ -384,25 +463,27 @@ export default function SimpleStudyGroupView({
       </div>
 
       <CardHeader className="pb-2">
-        <div className="flex items-center mb-2"> {/* Removed right padding since X button is now separate */}
-          <div className="flex items-center gap-2">
+        <div className="mb-2"> {/* Removed flex and right padding */}
+          <div className="flex flex-col gap-2">
             <h1 className="text-2xl font-bold">{group.name}</h1>
-            <Badge variant={group.is_private ? "secondary" : "outline"}>
-              {group.is_private ? (
-                <>
-                  <Lock className="h-3 w-3 mr-1" />
-                  Private
-                </>
-              ) : (
-                <>
-                  <Unlock className="h-3 w-3 mr-1" />
-                  Open
-                </>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant={group.is_private ? "secondary" : "outline"}>
+                {group.is_private ? (
+                  <>
+                    <Lock className="h-3 w-3 mr-1" />
+                    Private
+                  </>
+                ) : (
+                  <>
+                    <Unlock className="h-3 w-3 mr-1" />
+                    Open
+                  </>
+                )}
+              </Badge>
+              {group.course_code && (
+                <Badge variant="outline">{group.course_code}</Badge>
               )}
-            </Badge>
-            {group.course_code && (
-              <Badge variant="outline">{group.course_code}</Badge>
-            )}
+            </div>
           </div>
         </div>
         <CardDescription className="mb-4">
@@ -508,17 +589,19 @@ export default function SimpleStudyGroupView({
                   {members.map((member) => (
                     <div key={member.user_id} className="flex items-center gap-3">
                       <div className="flex-shrink-0">
-                        {member.avatar_url ? (
-                          <img
-                            src={member.avatar_url}
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage
+                            src={member.avatar_url || undefined}
                             alt={member.full_name || member.username || "User"}
-                            className="h-8 w-8 rounded-full"
                           />
-                        ) : (
-                          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                            <Users className="h-4 w-4" />
-                          </div>
-                        )}
+                          <AvatarFallback className="text-xs">
+                            {member.full_name
+                              ? member.full_name.substring(0, 2).toUpperCase()
+                              : member.username
+                                ? member.username.substring(0, 2).toUpperCase()
+                                : "UN"}
+                          </AvatarFallback>
+                        </Avatar>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">
@@ -550,11 +633,11 @@ export default function SimpleStudyGroupView({
       </CardFooter>
 
       {/* Resources and Meetings in a separate card */}
-      <Card className="mt-4 mb-8 w-full max-w-5xl mx-auto px-2 sm:px-4 md:px-6">
-        <CardHeader className="pb-2">
+      <Card className="mt-4 mb-8 w-full max-w-5xl mx-auto px-0 sm:px-4 md:px-6">
+        <CardHeader className="pb-2 px-3 sm:px-6">
           <h2 className="text-xl font-semibold">Group Resources & Meetings</h2>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 sm:px-6">
           <Tabs defaultValue="resources">
             <TabsList>
               <TabsTrigger value="resources">Resources</TabsTrigger>
@@ -565,28 +648,65 @@ export default function SimpleStudyGroupView({
             </TabsList>
             <TabsContent value="resources" className="mt-4">
               <div>
-                <div className="flex flex-row items-center justify-between mb-4">
+                <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between mb-4 gap-2">
                   <h3 className="text-lg font-semibold">Shared Resources</h3>
                   {isMember && (
-                    <Button size="sm">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Add Resource
-                    </Button>
+                    <AddResourceToGroup
+                      groupId={group.id}
+                      onResourceAdded={() => {
+                        // Refresh resources list
+                        setRefreshResources(prev => prev + 1);
+                      }}
+                    />
                   )}
                 </div>
                 {resources && resources.length > 0 ? (
                   <div className="space-y-4">
                     {resources.map((item) => (
-                      <div key={item.resource_id} className="flex items-center justify-between border-b pb-2">
-                        <div>
-                          <h3 className="font-medium">{item.title}</h3>
-                          <p className="text-sm text-muted-foreground">{item.description}</p>
+                      <div key={item.resource_id || item.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b pb-4 gap-3">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium truncate">{item.title}</h3>
+                          <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
+                          <div className="flex flex-col xs:flex-row gap-1 xs:gap-2 mt-1">
+                            <span className="text-xs text-muted-foreground">
+                              Added by {item.creator_full_name || item.creator_username || "Unknown"}
+                            </span>
+                            {item.resource_creator_username && (
+                              <span className="text-xs text-muted-foreground xs:ml-0">
+                                Created by {item.resource_creator_full_name || item.resource_creator_username}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/dashboard/resources?view=${item.resource_id}`}>
-                            View
-                          </Link>
-                        </Button>
+                        <div className="flex gap-2 self-start sm:self-center mt-2 sm:mt-0">
+                          {isMember && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleRemoveResource(item.resource_id)}
+                              disabled={removingResourceId === item.resource_id}
+                              className="hover:bg-destructive/90"
+                            >
+                              {removingResourceId === item.resource_id ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 animate-spin mr-1 sm:mr-0" />
+                                  <span className="sm:hidden">Removing...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Trash2 className="h-4 w-4 mr-1 sm:mr-0" />
+                                  <span className="sm:hidden">Remove</span>
+                                </>
+                              )}
+                            </Button>
+                          )}
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/dashboard/resources?view=${item.resource_id}`}>
+                              <span className="sm:hidden">View</span>
+                              <Eye className="h-4 w-4 hidden sm:block" />
+                            </Link>
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -597,16 +717,22 @@ export default function SimpleStudyGroupView({
             </TabsContent>
             <TabsContent value="meetings" className="mt-4">
               <div>
-                <div className="flex flex-row items-center justify-between mb-4">
+                <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between mb-4 gap-2">
                   <h3 className="text-lg font-semibold">Upcoming Meetings</h3>
                   {isMember && (
-                    <Button size="sm">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Schedule Meeting
-                    </Button>
+                    <ScheduleGroupMeeting
+                      groupId={group.id}
+                      onMeetingScheduled={() => {
+                        // Refresh meetings list
+                        setRefreshMeetings(prev => prev + 1);
+                      }}
+                    />
                   )}
                 </div>
-                <p className="text-muted-foreground">No upcoming meetings scheduled.</p>
+                <GroupMeetingsList
+                  groupId={group.id}
+                  refreshTrigger={refreshMeetings}
+                />
               </div>
             </TabsContent>
             {group.is_private && (
