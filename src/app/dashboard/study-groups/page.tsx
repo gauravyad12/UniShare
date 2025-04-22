@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import StudyGroupsClient from "@/components/study-groups-client";
+import StudyGroupsClientPaginated from "@/components/study-groups-client-paginated";
 import SimpleStudyGroupView from "@/components/simple-study-group-view";
 import SimpleGroupChat from "@/components/simple-group-chat";
 
@@ -15,6 +15,7 @@ export default async function StudyGroupsPage({
     tab?: string;
     search?: string;
     chat?: string;
+    page?: string;
   };
 }) {
   const supabase = await createClient();
@@ -61,7 +62,10 @@ export default async function StudyGroupsPage({
           )}
         </div>
       ) : (
-        <StudyGroupsClient tab={searchParams.tab || "all"} />
+        <StudyGroupsClientPaginated
+          tab={searchParams.tab || "all"}
+          initialPage={searchParams.page ? parseInt(searchParams.page) : 1}
+        />
       )}
     </div>
   );

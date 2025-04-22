@@ -8,6 +8,12 @@ export async function GET(request: NextRequest) {
   try {
     console.log('API: my-groups endpoint called');
     const supabase = createClient();
+    const searchParams = request.nextUrl.searchParams;
+
+    // Pagination parameters
+    const limit = parseInt(searchParams.get('limit') || '2', 10); // Set to 2 for testing pagination
+    const offset = parseInt(searchParams.get('offset') || '0', 10);
+    const search = searchParams.get('search') || '';
 
     const {
       data: { user },
@@ -20,33 +26,49 @@ export async function GET(request: NextRequest) {
 
     console.log('API: User authenticated:', user.id);
 
-    // Use the stored procedure that bypasses RLS to get all study groups the user is a member of
-    console.log('API: Using stored procedure to bypass RLS');
+    // First get the total count of groups the user is a member of
+    console.log('API: Getting total count of user study groups');
     try {
-      const { data: myGroups, error: procError } = await supabase
+      // Get all study groups to count them
+      const { data: allGroups, error: countError } = await supabase
         .rpc('get_user_study_groups_bypass_rls', {
           p_user_id: user.id
         });
 
-      if (procError) {
-        console.error('API: Error calling stored procedure:', procError);
-        throw procError;
+      if (countError) {
+        console.error('API: Error getting total count:', countError);
+        throw countError;
       }
 
-      if (!myGroups || myGroups.length === 0) {
+      // Filter by search if provided
+      let filteredGroups = allGroups || [];
+      if (search && filteredGroups.length > 0) {
+        const searchLower = search.toLowerCase();
+        filteredGroups = filteredGroups.filter(group =>
+          group.name?.toLowerCase().includes(searchLower) ||
+          group.description?.toLowerCase().includes(searchLower) ||
+          group.course_code?.toLowerCase().includes(searchLower)
+        );
+      }
+
+      const totalCount = filteredGroups.length;
+
+      // Apply pagination manually
+      const myGroups = filteredGroups.slice(offset, offset + limit);
+
+      if (!myGroups) {
         console.log('API: No study groups found for user');
-        return NextResponse.json({ myGroups: [] });
+        return NextResponse.json({ myGroups: [], totalCount: 0 });
       }
 
       console.log('API: Found user study groups:', myGroups.length);
+      console.log('API: Total count:', totalCount);
       console.log('API: User study group IDs:', myGroups.map(g => g.id));
-      console.log('API: Group names:', myGroups.map(g => g.name));
-      console.log('API: Private groups:', myGroups.filter(g => g.is_private).length);
-      console.log('API: Private group details:',
-        myGroups.filter(g => g.is_private).map(g => ({ id: g.id, name: g.name }))
-      );
 
-      return NextResponse.json({ myGroups });
+      return NextResponse.json({
+        myGroups,
+        totalCount
+      });
     } catch (err) {
       console.error('API: Error in stored procedure approach:', err);
 
@@ -61,7 +83,7 @@ export async function GET(request: NextRequest) {
 
         if (!memberships || memberships.length === 0) {
           console.log('API: No memberships found');
-          return NextResponse.json({ myGroups: [] });
+          return NextResponse.json({ myGroups: [], totalCount: 0 });
         }
 
         console.log('API: Found memberships:', memberships.length);
@@ -69,24 +91,39 @@ export async function GET(request: NextRequest) {
         // Get the group IDs
         const groupIds = memberships.map(m => m.study_group_id);
 
-        // Get the groups
-        const { data: groups } = await supabase.rpc('get_groups_by_ids_bypass_rls', {
+        // Get all groups first to count and filter
+        const { data: allGroups } = await supabase.rpc('get_groups_by_ids_bypass_rls', {
           p_group_ids: groupIds
         });
 
-        if (!groups || groups.length === 0) {
+        if (!allGroups || allGroups.length === 0) {
           console.log('API: No groups found');
-          return NextResponse.json({ myGroups: [] });
+          return NextResponse.json({ myGroups: [], totalCount: 0 });
         }
 
-        console.log('API: Found groups:', groups.length);
-        return NextResponse.json({ myGroups: groups });
+        // Filter by search if provided
+        let filteredGroups = allGroups;
+        if (search && filteredGroups.length > 0) {
+          const searchLower = search.toLowerCase();
+          filteredGroups = filteredGroups.filter(group =>
+            group.name?.toLowerCase().includes(searchLower) ||
+            group.description?.toLowerCase().includes(searchLower) ||
+            group.course_code?.toLowerCase().includes(searchLower)
+          );
+        }
+
+        const totalCount = filteredGroups.length;
+
+        // Apply pagination manually
+        const myGroups = filteredGroups.slice(offset, offset + limit);
+
+        console.log('API: Found groups:', myGroups.length, 'of', totalCount);
+        return NextResponse.json({ myGroups, totalCount });
       } catch (sqlErr) {
         console.error('API: Error in SQL approach:', sqlErr);
 
-        // Last resort: try to get the groups one by one
-        console.log('API: Trying one-by-one approach');
-        return NextResponse.json({ myGroups: [] });
+        // Last resort: return empty results
+        return NextResponse.json({ myGroups: [], totalCount: 0 });
       }
     }
 

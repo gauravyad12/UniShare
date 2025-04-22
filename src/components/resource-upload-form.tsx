@@ -38,10 +38,10 @@ export default function ResourceUploadForm() {
 
   // Character limits for each field
   const charLimits = {
-    title: 100,
-    description: 500,
-    courseCode: 20,
-    externalLink: 500
+    title: 25,
+    description: 100,
+    courseCode: 10,
+    externalLink: 100
   };
 
   // We'll use the dynamic import of badWords utility instead of maintaining our own list

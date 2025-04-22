@@ -43,10 +43,25 @@ export default function ResourceEditForm({ resource }: { resource: Resource }) {
     external_link: resource.external_link || "",
   });
 
+  // Character limits for each field
+  const charLimits = {
+    title: 25,
+    description: 100,
+    course_code: 10,
+    external_link: 100
+  };
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
+
+    // Check if the value exceeds the character limit
+    const fieldName = name as keyof typeof charLimits;
+    if (charLimits[fieldName] && value.length > charLimits[fieldName]) {
+      return; // Don't update if exceeding the limit
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
 
     // Clear error for this field when user starts typing
@@ -163,6 +178,7 @@ export default function ResourceEditForm({ resource }: { resource: Resource }) {
       <div className="space-y-2">
         <div className="flex justify-between">
           <Label htmlFor="title">Title</Label>
+          <span className="text-xs text-muted-foreground">{formData.title.length}/{charLimits.title}</span>
         </div>
         <Input
           id="title"
@@ -171,6 +187,7 @@ export default function ResourceEditForm({ resource }: { resource: Resource }) {
           onChange={handleChange}
           placeholder="Resource title"
           required
+          maxLength={charLimits.title}
           className={errors.title ? "border-red-500" : ""}
         />
         {errors.title && (
@@ -181,6 +198,7 @@ export default function ResourceEditForm({ resource }: { resource: Resource }) {
       <div className="space-y-2">
         <div className="flex justify-between">
           <Label htmlFor="description">Description</Label>
+          <span className="text-xs text-muted-foreground">{formData.description.length}/{charLimits.description}</span>
         </div>
         <Textarea
           id="description"
@@ -189,6 +207,7 @@ export default function ResourceEditForm({ resource }: { resource: Resource }) {
           onChange={handleChange}
           placeholder="Describe this resource"
           rows={3}
+          maxLength={charLimits.description}
           className={errors.description ? "border-red-500" : ""}
         />
         {errors.description && (
@@ -228,6 +247,7 @@ export default function ResourceEditForm({ resource }: { resource: Resource }) {
         <div className="space-y-2">
           <div className="flex justify-between">
             <Label htmlFor="course_code">Course Code</Label>
+            <span className="text-xs text-muted-foreground">{formData.course_code.length}/{charLimits.course_code}</span>
           </div>
           <Input
             id="course_code"
@@ -235,6 +255,7 @@ export default function ResourceEditForm({ resource }: { resource: Resource }) {
             value={formData.course_code}
             onChange={handleChange}
             placeholder="e.g. CS101"
+            maxLength={charLimits.course_code}
             className={errors.course_code ? "border-red-500" : ""}
           />
           {errors.course_code && (
@@ -247,6 +268,7 @@ export default function ResourceEditForm({ resource }: { resource: Resource }) {
         <div className="space-y-2">
           <div className="flex justify-between">
             <Label htmlFor="external_link">External URL</Label>
+            <span className="text-xs text-muted-foreground">{formData.external_link.length}/{charLimits.external_link}</span>
           </div>
           <Input
             id="external_link"
@@ -255,6 +277,7 @@ export default function ResourceEditForm({ resource }: { resource: Resource }) {
             onChange={handleChange}
             placeholder="https://example.com"
             required={formData.resource_type === "link"}
+            maxLength={charLimits.external_link}
             className={errors.external_link ? "border-red-500" : ""}
           />
           {errors.external_link && (

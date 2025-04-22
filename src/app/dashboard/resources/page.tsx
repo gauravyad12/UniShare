@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Search, Upload } from "lucide-react";
 import ResourcesTabs from "@/components/resources-tabs";
+import PaginationControlWrapper from "@/components/pagination-control-wrapper";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -34,6 +35,7 @@ export default async function ResourcesPage({
     view?: string;
     tab?: string;
     search?: string;
+    page?: string;
   };
 }) {
   const supabase = await createClient();
@@ -55,6 +57,11 @@ export default async function ResourcesPage({
 
   // Determine which tab to show
   const activeTab = searchParams.tab || "all";
+
+  // Pagination parameters
+  const pageSize = 2; // Set to 2 for testing pagination
+  const currentPage = parseInt(searchParams.page || "1", 10);
+  const offset = (currentPage - 1) * pageSize;
 
   // Get resources based on the active tab
   let resourcesQuery = supabase
@@ -85,8 +92,38 @@ export default async function ResourcesPage({
   // Order by created_at
   resourcesQuery = resourcesQuery.order("created_at", { ascending: false });
 
+  // Get total count for pagination
+  const countQuery = supabase
+    .from("resources")
+    .select("*", { count: "exact", head: true })
+    .eq("university_id", userProfile?.university_id)
+    .eq("is_approved", true);
+
+  // Apply the same filters as the main query
+  if (searchParams.search) {
+    const searchTerm = searchParams.search.toLowerCase();
+    countQuery.or(
+      `title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,course_code.ilike.%${searchTerm}%,professor.ilike.%${searchTerm}%`,
+    );
+  }
+
+  if (activeTab === "notes") {
+    countQuery.eq("resource_type", "notes");
+  } else if (activeTab === "textbooks") {
+    countQuery.eq("resource_type", "textbook");
+  } else if (activeTab === "links") {
+    countQuery.eq("resource_type", "link");
+  } else if (activeTab === "my-uploads") {
+    countQuery.eq("author_id", user.id);
+  }
+
+  const { count: totalCount } = await countQuery;
+
+  // Apply pagination to the main query
+  resourcesQuery = resourcesQuery.range(offset, offset + pageSize - 1);
+
   // Execute the query
-  const { data: resources } = await resourcesQuery.limit(20);
+  const { data: resources } = await resourcesQuery;
 
   // If viewing a specific resource
   let viewedResource = null;
@@ -154,11 +191,23 @@ export default async function ResourcesPage({
 
       {/* Resources List */}
       {!searchParams.upload && !viewedResource && (
-        <ResourcesTabs
-          resources={resources || []}
-          initialTab={activeTab}
-          currentUserId={user.id}
-        />
+        <>
+          <ResourcesTabs
+            resources={resources || []}
+            initialTab={activeTab}
+            currentUserId={user.id}
+          />
+
+          {/* Pagination */}
+          <div className="mt-8">
+            <PaginationControlWrapper
+              totalItems={totalCount || 0}
+              pageSize={pageSize}
+              currentPage={currentPage}
+              preserveParams={true}
+            />
+          </div>
+        </>
       )}
     </div>
   );

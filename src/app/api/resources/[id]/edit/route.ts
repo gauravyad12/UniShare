@@ -50,6 +50,43 @@ export async function POST(
     // Get the updated data from the request
     const data = await request.json();
 
+    // Character limits
+    const charLimits = {
+      title: 25,
+      description: 100,
+      course_code: 10,
+      external_link: 100
+    };
+
+    // Check character limits
+    if (data.title && data.title.length > charLimits.title) {
+      return NextResponse.json(
+        { error: `Title must be ${charLimits.title} characters or less` },
+        { status: 400 }
+      );
+    }
+
+    if (data.description && data.description.length > charLimits.description) {
+      return NextResponse.json(
+        { error: `Description must be ${charLimits.description} characters or less` },
+        { status: 400 }
+      );
+    }
+
+    if (data.course_code && data.course_code.length > charLimits.course_code) {
+      return NextResponse.json(
+        { error: `Course code must be ${charLimits.course_code} characters or less` },
+        { status: 400 }
+      );
+    }
+
+    if (data.external_link && data.external_link.length > charLimits.external_link) {
+      return NextResponse.json(
+        { error: `External URL must be ${charLimits.external_link} characters or less` },
+        { status: 400 }
+      );
+    }
+
     // Check for bad words in text fields
     const { containsBadWords } = await import('@/utils/badWords');
 

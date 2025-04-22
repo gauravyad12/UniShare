@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface MobileTabsProps {
@@ -21,6 +21,7 @@ export default function MobileTabs({ tabs, activeTab, className, onTabChange }: 
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Check if scrolling arrows should be shown
   const checkScrollArrows = () => {
@@ -88,11 +89,23 @@ export default function MobileTabs({ tabs, activeTab, className, onTabChange }: 
     scrollContainerRef.current.scrollBy({ left: 100, behavior: 'smooth' });
   };
 
+  // Reset loading state when active tab changes
+  useEffect(() => {
+    setIsLoading(false);
+  }, [activeTab]);
+
   // Handle tab click with callback
   const handleTabClick = (e: React.MouseEvent<HTMLButtonElement>, tabValue: string) => {
     e.preventDefault();
-    if (onTabChange) {
+    if (onTabChange && tabValue !== activeTab) {
+      setIsLoading(true);
       onTabChange(tabValue);
+
+      // Add a safety timeout to reset loading state after 3 seconds
+      // in case the navigation doesn't complete for some reason
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 3000);
     }
   };
 
@@ -130,7 +143,14 @@ export default function MobileTabs({ tabs, activeTab, className, onTabChange }: 
                   : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              {tab.label}
+              {isLoading && activeTab === tab.value ? (
+                <span className="flex items-center">
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                  {tab.label}
+                </span>
+              ) : (
+                tab.label
+              )}
             </button>
           ))}
         </div>

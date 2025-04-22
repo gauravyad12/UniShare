@@ -7,6 +7,12 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const supabase = createClient();
+    const searchParams = request.nextUrl.searchParams;
+
+    // Pagination parameters
+    const limit = parseInt(searchParams.get('limit') || '2', 10); // Set to 2 for testing pagination
+    const offset = parseInt(searchParams.get('offset') || '0', 10);
+    const search = searchParams.get('search') || '';
 
     const {
       data: { user },
@@ -26,11 +32,37 @@ export async function GET(request: NextRequest) {
     // Get public study groups for user's university
     console.log('API: Fetching public study groups for university:', userProfile?.university_id);
 
-    // Use a direct SQL query to avoid RLS recursion issues
-    const { data: studyGroups, error: studyGroupsError } = await supabase
-      .rpc('get_public_study_groups', {
-        p_university_id: userProfile?.university_id
-      });
+    // Get total count first
+    const { count: totalCount, error: countError } = await supabase
+      .from('study_groups')
+      .select('*', { count: 'exact', head: true })
+      .eq('university_id', userProfile?.university_id)
+      .eq('is_private', false);
+
+    if (countError) {
+      console.error('API: Error getting total count:', countError);
+      return NextResponse.json({ error: countError.message }, { status: 500 });
+    }
+
+    // Build query with search if provided
+    let query = supabase
+      .from('study_groups')
+      .select('*')
+      .eq('university_id', userProfile?.university_id)
+      .eq('is_private', false);
+
+    if (search) {
+      query = query.or(
+        `name.ilike.%${search}%,description.ilike.%${search}%,course_code.ilike.%${search}%`
+      );
+    }
+
+    // Apply pagination
+    query = query.order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    // Execute the query
+    const { data: studyGroups, error: studyGroupsError } = await query;
 
     if (studyGroupsError) {
       console.error('API: Error fetching study groups:', studyGroupsError);
@@ -86,7 +118,12 @@ export async function GET(request: NextRequest) {
       myStudyGroupsIds: myStudyGroups?.map(g => g.id) || []
     });
 
-    return NextResponse.json({ studyGroups, userGroupIds, myStudyGroups });
+    return NextResponse.json({
+      studyGroups,
+      userGroupIds,
+      myStudyGroups,
+      totalCount
+    });
   } catch (error) {
     console.error("API: Unexpected error fetching study groups:", error);
     return NextResponse.json(

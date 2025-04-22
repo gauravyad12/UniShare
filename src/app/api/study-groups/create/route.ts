@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
 
     // Character limits
     const charLimits = {
-      name: 50,
-      description: 500,
-      course_code: 20,
+      name: 25,
+      description: 100,
+      course_code: 10,
     };
 
     if (!name) {

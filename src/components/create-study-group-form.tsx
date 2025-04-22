@@ -39,9 +39,9 @@ export default function CreateStudyGroupForm({
 
   // Character limits for each field
   const charLimits = {
-    name: 50,
-    description: 500,
-    courseCode: 20,
+    name: 25,
+    description: 100,
+    courseCode: 10,
   };
   const [formErrors, setFormErrors] = useState<{
     name?: string;
