@@ -558,11 +558,26 @@ export default function InvitePage() {
                   onClick={() => setIsEmailDialogOpen(true)}
                   variant="outline"
                   className="flex-1"
+                  disabled={maxInviteCodesReached || verificationStatus.hasReachedMaxInvites}
+                  title={maxInviteCodesReached
+                    ? "Maximum limit of " + MAX_INVITE_CODES + " invite codes reached"
+                    : verificationStatus.hasReachedMaxInvites
+                    ? "You have already reached the maximum limit of 5 successful invites"
+                    : ""}
                 >
                   <Mail className="mr-2 h-4 w-4" />
                   Email Invite
                 </Button>
-                <Button onClick={shareInvite} className="flex-1">
+                <Button
+                  onClick={shareInvite}
+                  className="flex-1"
+                  disabled={maxInviteCodesReached || verificationStatus.hasReachedMaxInvites}
+                  title={maxInviteCodesReached
+                    ? "Maximum limit of " + MAX_INVITE_CODES + " invite codes reached"
+                    : verificationStatus.hasReachedMaxInvites
+                    ? "You have already reached the maximum limit of 5 successful invites"
+                    : ""}
+                >
                   <Share2 className="mr-2 h-4 w-4" />
                   Share
                 </Button>
@@ -606,7 +621,14 @@ export default function InvitePage() {
                 </Button>
                 <Button
                   onClick={sendInviteEmail}
-                  disabled={sending || !emailInput}
+                  disabled={sending || !emailInput || maxInviteCodesReached || verificationStatus.hasReachedMaxInvites}
+                  title={maxInviteCodesReached
+                    ? "Maximum limit of " + MAX_INVITE_CODES + " invite codes reached"
+                    : verificationStatus.hasReachedMaxInvites
+                    ? "You have already reached the maximum limit of 5 successful invites"
+                    : sending || !emailInput
+                    ? "Please enter a valid email"
+                    : ""}
                 >
                   {sending ? (
                     <>
@@ -746,6 +768,12 @@ export default function InvitePage() {
                         variant="outline"
                         className="mt-4"
                         onClick={() => setIsEmailDialogOpen(true)}
+                        disabled={maxInviteCodesReached || verificationStatus.hasReachedMaxInvites}
+                        title={maxInviteCodesReached
+                          ? "Maximum limit of " + MAX_INVITE_CODES + " invite codes reached"
+                          : verificationStatus.hasReachedMaxInvites
+                          ? "You have already reached the maximum limit of 5 successful invites"
+                          : ""}
                       >
                         <Mail className="mr-2 h-4 w-4" />
                         Send Your First Invitation
@@ -802,6 +830,12 @@ export default function InvitePage() {
                                 setEmailInput(invitation.sent_to_email);
                                 setIsEmailDialogOpen(true);
                               }}
+                              disabled={maxInviteCodesReached || verificationStatus.hasReachedMaxInvites}
+                              title={maxInviteCodesReached
+                                ? "Maximum limit of " + MAX_INVITE_CODES + " invite codes reached"
+                                : verificationStatus.hasReachedMaxInvites
+                                ? "You have already reached the maximum limit of 5 successful invites"
+                                : ""}
                             >
                               <Mail className="mr-1 h-3 w-3" />
                               Resend
