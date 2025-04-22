@@ -11,6 +11,7 @@ import {
   Users,
   UserPlus,
 } from "lucide-react";
+import MobileNotifications from "@/components/mobile-notifications";
 import MeetingCarousel from "@/components/meeting-carousel";
 import Link from "next/link";
 import {
@@ -158,15 +159,21 @@ export default async function Dashboard() {
   return (
     <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
       {/* Welcome Section */}
-      <header className="flex flex-col gap-4">
-        <h1 className="text-3xl font-bold">
-          Welcome,{" "}
-          {userProfile?.full_name ||
-            userProfile?.username ||
-            user?.user_metadata?.full_name ||
-            user?.user_metadata?.username ||
-            user.email}
-        </h1>
+      <header>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-3xl font-bold">
+            Welcome,{" "}
+            {userProfile?.full_name ||
+              userProfile?.username ||
+              user?.user_metadata?.full_name ||
+              user?.user_metadata?.username ||
+              user.email}
+          </h1>
+          {/* Mobile notifications button - only visible on mobile */}
+          <div className="md:hidden">
+            <MobileNotifications />
+          </div>
+        </div>
         <div className="bg-secondary/50 text-sm p-3 px-4 rounded-lg text-muted-foreground flex gap-2 items-center">
           <InfoIcon size="14" />
           <span>
