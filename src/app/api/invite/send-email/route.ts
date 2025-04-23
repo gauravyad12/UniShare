@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { Resend } from "resend";
+import { renderEmailTemplate } from "@/utils/email-templates-server";
 
 export const dynamic = "force-dynamic";
 
@@ -86,24 +87,33 @@ export async function POST(request: NextRequest) {
       senderName || senderProfile?.full_name || "A fellow student";
     const universityName = senderProfile?.university_name || "their university";
 
+    // Prepare variables for template
+    const templateVariables = {
+      senderName: displayName,
+      universityName: universityName,
+      inviteCode: inviteCode,
+      inviteUrl: inviteUrl
+    };
+
+    // Render the email template
+    const renderedEmail = await renderEmailTemplate("invite_email", templateVariables);
+
+    if (!renderedEmail) {
+      console.error("Error rendering email template");
+      return NextResponse.json(
+        { error: "Failed to render email template" },
+        { status: 500 }
+      );
+    }
+
     // Send email using Resend
     try {
       const { data: emailData, error: resendError } = await resend.emails.send({
         from: "UniShare <invites@unishare.app>", // Update with your verified domain
         to: [email],
-        subject: `${displayName} has invited you to join UniShare!`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>You've been invited to UniShare!</h2>
-            <p>${displayName} from ${universityName} has invited you to join UniShare, the academic resource sharing platform for university students.</p>
-            <p>Your personal invite code is: <strong>${inviteCode}</strong></p>
-            <div style="margin: 30px 0;">
-              <a href="${inviteUrl}" style="background-color: #6B7280; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Join UniShare Now</a>
-            </div>
-            <p>This invite link will expire in 7 days.</p>
-            <p>If you have any questions, please contact support@unishare.app</p>
-          </div>
-        `,
+        subject: renderedEmail.subject,
+        html: renderedEmail.html,
+        text: renderedEmail.text
       });
 
       if (resendError) {
