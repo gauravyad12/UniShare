@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   UserCircle,
   Upload,
@@ -23,6 +24,8 @@ import {
   CheckCircle,
   Trash2,
   XCircle,
+  Plus,
+  X,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -52,6 +55,12 @@ export default function EditProfilePage() {
     major: "",
     graduation_year: "",
   });
+
+  // State for managing courses
+  const [courses, setCourses] = useState<string[]>([]);
+  const [newCourse, setNewCourse] = useState("");
+  const courseInputRef = useRef<HTMLInputElement>(null);
+  const [courseError, setCourseError] = useState("");
 
   // Character limits for each field
   const charLimits = {
@@ -146,6 +155,16 @@ export default function EditProfilePage() {
           bio: newFormData.bio.length,
           major: newFormData.major.length
         });
+
+        // Fetch user courses
+        const { data: userCourses } = await supabase
+          .from("user_courses")
+          .select("course_code")
+          .eq("user_id", user.id);
+
+        if (userCourses && userCourses.length > 0) {
+          setCourses(userCourses.map(course => course.course_code));
+        }
       } catch (error) {
         console.error("Error fetching user data:", error);
       } finally {
@@ -253,6 +272,13 @@ export default function EditProfilePage() {
       return;
     }
 
+    // Special handling for course input
+    if (id === "courseInput") {
+      setNewCourse(value.toUpperCase());
+      setCourseError("");
+      return;
+    }
+
     // Update character counts based on field
     if (id === "fullName") {
       setCharCounts(prev => ({
@@ -283,6 +309,51 @@ export default function EditProfilePage() {
               ? "bio"
               : id]: value,
     });
+  };
+
+  // Function to add a new course
+  const handleAddCourse = () => {
+    // Validate course code
+    if (!newCourse) {
+      setCourseError("Please enter a course code");
+      return;
+    }
+
+    // Check if course code is already in the list
+    if (courses.includes(newCourse)) {
+      setCourseError("This course is already in your list");
+      return;
+    }
+
+    // Validate course code format (e.g., CS101, MATH200, etc.)
+    const courseCodeRegex = /^[A-Z]{2,4}\d{3,4}$/;
+    if (!courseCodeRegex.test(newCourse)) {
+      setCourseError("Please enter a valid course code (e.g., CS101, MATH200)");
+      return;
+    }
+
+    // Add course to the list
+    setCourses([...courses, newCourse]);
+    setNewCourse("");
+    setCourseError("");
+
+    // Focus back on the input field
+    if (courseInputRef.current) {
+      courseInputRef.current.focus();
+    }
+  };
+
+  // Function to remove a course
+  const handleRemoveCourse = (courseToRemove: string) => {
+    setCourses(courses.filter(course => course !== courseToRemove));
+  };
+
+  // Handle key press in course input (add course on Enter)
+  const handleCourseKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddCourse();
+    }
   };
 
   const handleSaveChanges = async () => {
@@ -364,6 +435,7 @@ export default function EditProfilePage() {
         ...formData,
         username: formData.username.toLowerCase(), // Convert username to lowercase
         avatar_url: profile?.avatar_url || null,
+        courses: courses, // Add courses to the form data
       };
 
       console.log("Saving profile data:", updatedFormData);
@@ -705,6 +777,54 @@ export default function EditProfilePage() {
                 {formErrors.bio && (
                   <p className="text-xs text-red-500">{formErrors.bio}</p>
                 )}
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="courseInput">My Courses</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Add your courses to receive notifications about new resources matching your courses
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    id="courseInput"
+                    ref={courseInputRef}
+                    value={newCourse}
+                    onChange={handleInputChange}
+                    onKeyDown={handleCourseKeyPress}
+                    placeholder="Enter course code (e.g., CS101)"
+                    className={courseError ? "border-red-500" : ""}
+                    maxLength={10}
+                  />
+                  <Button type="button" onClick={handleAddCourse}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add
+                  </Button>
+                </div>
+                {courseError && (
+                  <p className="text-xs text-red-500">{courseError}</p>
+                )}
+
+                {courses.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {courses.map((course) => (
+                      <Badge key={course} variant="secondary" className="flex items-center gap-1 px-3 py-1">
+                        {course}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCourse(course)}
+                          className="ml-1 text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  When resource notifications are enabled, you'll receive notifications for new resources matching your courses.
+                </p>
               </div>
             </CardContent>
             <CardFooter className="flex justify-between items-center">

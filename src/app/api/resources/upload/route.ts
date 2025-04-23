@@ -201,6 +201,11 @@ export async function POST(request: NextRequest) {
           }),
         });
 
+        // Notifications are now handled by database triggers
+        if (courseCode) {
+          console.log(`Resource created with course code ${courseCode} - notifications will be handled by database triggers`);
+        }
+
         // Add a timeout to ensure we don't wait too long
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => reject(new Error('Thumbnail generation timeout')), 5000);

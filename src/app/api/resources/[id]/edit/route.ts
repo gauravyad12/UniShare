@@ -29,7 +29,7 @@ export async function POST(
     // Check if user is the author of the resource
     const { data: resource, error: resourceError } = await supabase
       .from("resources")
-      .select("author_id, file_url, external_link, resource_type")
+      .select("author_id, file_url, external_link, resource_type, course_code")
       .eq("id", resourceId)
       .single();
 
@@ -139,6 +139,14 @@ export async function POST(
     const needsNewThumbnail =
       (data.resource_type !== resource.resource_type) || // Resource type changed
       (data.external_link !== resource.external_link && data.resource_type === 'link'); // External link changed for link resources
+
+    // Check if course code changed
+    const courseCodeChanged = data.course_code && data.course_code !== resource.course_code;
+
+    // If course code changed and is not empty, log it (notifications are handled by database triggers)
+    if (courseCodeChanged && data.course_code) {
+      console.log(`Resource updated with new course code ${data.course_code} - notifications will be handled by database triggers`);
+    }
 
     if (needsNewThumbnail) {
       try {

@@ -25,6 +25,7 @@ export async function POST(request: NextRequest) {
       graduation_year,
       avatar_url,
       university_id,
+      courses,
     } = formData;
 
     console.log("Updating profile with data:", {
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
       major,
       graduation_year,
       university_id,
+      courses: courses ? `${courses.length} courses` : 'none',
     });
 
     // Check if profile exists
@@ -238,6 +240,44 @@ export async function POST(request: NextRequest) {
     if (authError) {
       console.error("Error updating auth metadata:", authError);
       // Continue despite auth metadata update error
+    }
+
+    // Handle courses update if courses array is provided
+    if (courses && Array.isArray(courses)) {
+      try {
+        // First, delete all existing courses for this user
+        const { error: deleteError } = await supabase
+          .from("user_courses")
+          .delete()
+          .eq("user_id", user.id);
+
+        if (deleteError) {
+          console.error("Error deleting existing courses:", deleteError);
+          // Continue despite error
+        }
+
+        // Then, insert the new courses if there are any
+        if (courses.length > 0) {
+          const coursesToInsert = courses.map(course => ({
+            user_id: user.id,
+            course_code: course,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }));
+
+          const { error: insertError } = await supabase
+            .from("user_courses")
+            .insert(coursesToInsert);
+
+          if (insertError) {
+            console.error("Error inserting courses:", insertError);
+            // Continue despite error
+          }
+        }
+      } catch (courseError) {
+        console.error("Error updating courses:", courseError);
+        // Continue despite error
+      }
     }
 
     return NextResponse.json({ success: true });
