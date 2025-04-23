@@ -492,13 +492,13 @@ export default function SettingsPage() {
                       key="default"
                       className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer overflow-hidden border border-gray-300 ${settings.color_scheme === "default" ? "ring-2 ring-primary ring-offset-2" : ""}`}
                       onClick={() => handleColorChange("default")}
-                      style={{
-                        background:
-                          "linear-gradient(to right, white 50%, black 50%)",
-                      }}
                     >
+                      <div className="flex h-full w-full">
+                        <div className="h-full w-1/2 bg-white"></div>
+                        <div className="h-full w-1/2 bg-black"></div>
+                      </div>
                       {settings.color_scheme === "default" && (
-                        <Check className="h-5 w-5 text-white drop-shadow-[0_0_1px_rgba(0,0,0,1)]" />
+                        <Check className="absolute h-5 w-5 text-white drop-shadow-[0_0_1px_rgba(0,0,0,1)]" />
                       )}
                     </div>
                     {[
