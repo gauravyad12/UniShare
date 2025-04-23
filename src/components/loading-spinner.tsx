@@ -3,15 +3,7 @@
 import { useEffect, useState } from "react";
 
 export default function LoadingSpinner() {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    // Small delay before showing the spinner to avoid flashing on quick loads
-    const timer = setTimeout(() => setIsVisible(true), 100);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (!isVisible) return null;
+  // No delay, show spinner immediately
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">

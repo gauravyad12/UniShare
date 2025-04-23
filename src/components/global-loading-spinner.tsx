@@ -19,10 +19,8 @@ export default function GlobalLoadingSpinner() {
     };
 
     const handleComplete = () => {
-      // Add a small delay before hiding the spinner to prevent flashing
-      navigationTimeoutRef.current = setTimeout(() => {
-        setIsLoading(false);
-      }, 300);
+      // No delay, hide spinner immediately
+      setIsLoading(false);
     };
 
     // Listen for both custom events and Next.js events

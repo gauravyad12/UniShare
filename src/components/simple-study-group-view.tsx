@@ -408,7 +408,7 @@ export default function SimpleStudyGroupView({
       <Card className="relative w-full max-w-5xl mx-auto my-8 border-2 border-primary/20 px-2 sm:px-4 md:px-6">
         <CardHeader>
           <div className="flex justify-between items-start">
-            <div className="h-8 w-64 bg-muted animate-pulse rounded"></div>
+            <div className="h-8 w-64 bg-muted rounded"></div>
             <Button
               variant="ghost"
               size="icon"

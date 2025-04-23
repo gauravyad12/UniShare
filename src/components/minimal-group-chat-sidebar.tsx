@@ -103,10 +103,10 @@ export default function MinimalGroupChatSidebar({
             <div className="p-4 space-y-3">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-muted animate-pulse" />
+                  <div className="w-10 h-10 rounded-full bg-muted" />
                   <div className="space-y-2 flex-1">
-                    <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
-                    <div className="h-3 bg-muted rounded animate-pulse w-1/2" />
+                    <div className="h-4 bg-muted rounded w-3/4" />
+                    <div className="h-3 bg-muted rounded w-1/2" />
                   </div>
                 </div>
               ))}

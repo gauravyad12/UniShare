@@ -29,6 +29,10 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+
+    /* RGB values for gradients and animations */
+    --primary-rgb: 0, 0, 0;
+    --accent-rgb: 0, 0, 0;
   }
 
   .dark {
@@ -56,6 +60,10 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+
+    /* RGB values for gradients and animations */
+    --primary-rgb: 250, 250, 250;
+    --accent-rgb: 38, 38, 38;
   }
 }
 
@@ -83,62 +91,74 @@
 .dashboard-styles[data-accent="blue"] {
   --primary: 221.2 83.2% 53.3%;
   --ring: 221.2 83.2% 53.3%;
+  --primary-rgb: 59, 130, 246;
 }
 
 .dashboard-styles[data-accent="yellow"] {
   --primary: 47.9 95.8% 53.1%;
   --ring: 47.9 95.8% 53.1%;
+  --primary-rgb: 234, 179, 8;
 }
 
 .dashboard-styles[data-accent="pink"] {
   --primary: 328.6 85.5% 70.2%;
   --ring: 328.6 85.5% 70.2%;
+  --primary-rgb: 236, 72, 153;
 }
 
 .dashboard-styles[data-accent="purple"] {
   --primary: 262.1 83.3% 57.8%;
   --ring: 262.1 83.3% 57.8%;
+  --primary-rgb: 147, 51, 234;
 }
 
 .dashboard-styles[data-accent="orange"] {
   --primary: 24.6 95% 53.1%;
   --ring: 24.6 95% 53.1%;
+  --primary-rgb: 249, 115, 22;
 }
 
 .dashboard-styles[data-accent="green"] {
   --primary: 142.1 76.2% 36.3%;
   --ring: 142.1 76.2% 36.3%;
+  --primary-rgb: 34, 197, 94;
 }
 
 /* Dark mode color schemes for dashboard */
 .dark .dashboard-styles[data-accent="blue"] {
   --primary: 217.2 91.2% 59.8%;
   --ring: 217.2 91.2% 59.8%;
+  --primary-rgb: 96, 165, 250;
 }
 
 .dark .dashboard-styles[data-accent="yellow"] {
   --primary: 47.9 95.8% 53.1%;
   --ring: 47.9 95.8% 53.1%;
+  --primary-rgb: 250, 204, 21;
 }
 
 .dark .dashboard-styles[data-accent="pink"] {
   --primary: 328.6 85.5% 70.2%;
   --ring: 328.6 85.5% 70.2%;
+  --primary-rgb: 244, 114, 182;
 }
 
 .dark .dashboard-styles[data-accent="purple"] {
   --primary: 262.1 83.3% 57.8%;
   --ring: 262.1 83.3% 57.8%;
+  --primary-rgb: 167, 139, 250;
 }
 
 .dark .dashboard-styles[data-accent="orange"] {
   --primary: 24.6 95% 53.1%;
   --ring: 24.6 95% 53.1%;
+  --primary-rgb: 251, 146, 60;
 }
 
 .dark .dashboard-styles[data-accent="green"] {
   --primary: 142.1 76.2% 36.3%;
   --ring: 142.1 76.2% 36.3%;
+  --primary-rgb: 74, 222, 128;
 }
 
 /* Custom utility classes */
@@ -198,5 +218,116 @@
   .particles-wrapper {
     max-height: 100vh !important;
     overflow: hidden !important;
+  }
+}
+
+/* Mobile dashboard styles */
+@media (max-width: 768px) {
+  /* Ensure avatar is perfectly circular */
+  .avatar {
+    aspect-ratio: 1/1 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Fix for stretched avatars */
+  .avatar img {
+    object-fit: cover !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* Center popup buttons */
+  .mobile-action-popup-button {
+    position: fixed;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 100%;
+    max-width: 16rem;
+    display: flex;
+    justify-content: center;
+  }
+  .mobile-dashboard-header {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Modern mesh gradient animation */
+  .mesh-gradient-blob {
+    animation: blob-movement 25s ease infinite alternate;
+    transition: all 0.5s ease;
+  }
+
+  .mesh-gradient-blob:nth-child(1) {
+    animation-delay: -5s;
+  }
+
+  .mesh-gradient-blob:nth-child(2) {
+    animation-delay: -10s;
+  }
+
+  .mesh-gradient-blob:nth-child(3) {
+    animation-delay: -15s;
+  }
+
+  @keyframes blob-movement {
+    0% {
+      transform: translate(0%, 0%) scale(1);
+    }
+    33% {
+      transform: translate(5%, -5%) scale(1.05);
+    }
+    66% {
+      transform: translate(-5%, 5%) scale(0.95);
+    }
+    100% {
+      transform: translate(0%, 0%) scale(1);
+    }
+  }
+
+  @keyframes gradientAnimation {
+    0% { background-position: 0% 50% }
+    50% { background-position: 100% 50% }
+    100% { background-position: 0% 50% }
+  }
+
+  /* Card hover effects */
+  .mobile-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .mobile-card:active {
+    transform: scale(0.98);
+  }
+
+  /* Safe area for bottom navigation */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Dashboard specific mobile styles */
+  .dashboard-mobile-section {
+    margin-bottom: 1.5rem;
+    border-radius: 1rem;
+    overflow: hidden;
+  }
+
+  /* Animated dots */
+  .animated-dot {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: hsl(var(--primary));
+    opacity: 0.3;
+  }
+
+  /* Pulse animation */
+  @keyframes pulse {
+    0% { transform: scale(0.8); opacity: 0.3; }
+    50% { transform: scale(1.2); opacity: 0.8; }
+    100% { transform: scale(0.8); opacity: 0.3; }
   }
 }

@@ -11,7 +11,6 @@ import {
   Users,
   UserPlus,
 } from "lucide-react";
-import MobileNotifications from "@/components/mobile-notifications";
 import MeetingCarousel from "@/components/meeting-carousel";
 import Link from "next/link";
 import {
@@ -23,6 +22,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import MobileDashboardHeader from "@/components/mobile-dashboard-header";
+import MobileMeetingsSection from "@/components/mobile-meetings-section";
+import MobileResourcesSection from "@/components/mobile-resources-section";
+import MobileActionPopup from "@/components/mobile-action-popup";
 
 export default async function Dashboard() {
   const supabase = await createClient();
@@ -156,32 +159,89 @@ export default async function Dashboard() {
   // Limit past meetings to only the 4 most recent ones
   const limitedPastMeetings = pastMeetings.slice(0, 4);
 
+  // Fetch recent resources for the mobile dashboard
+  const { data: recentResources, error: resourcesError } = await supabase
+    .from("resources")
+    .select("id, title, description, thumbnail_url, external_link, created_at, course_code")
+    .eq("university_id", userProfile?.university_id)
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  // Map the external_link field to is_external_link for compatibility
+  const mappedResources = recentResources?.map(resource => ({
+    ...resource,
+    is_external_link: !!resource.external_link
+  }));
+
+  if (resourcesError) {
+    console.error("Error fetching recent resources:", resourcesError);
+  }
+
+  // Prepare data for our components
+
+  // Get the user's name for display
+  const userName = userProfile?.full_name ||
+    userProfile?.username ||
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.username ||
+    user.email || "User";
+
+  // Get the university name
+  const universityName = userProfile?.university?.name || "your university";
+
   return (
-    <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
-      {/* Welcome Section */}
-      <header>
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold">
-            Welcome,{" "}
-            {userProfile?.full_name ||
-              userProfile?.username ||
-              user?.user_metadata?.full_name ||
-              user?.user_metadata?.username ||
-              user.email}
-          </h1>
-          {/* Mobile notifications button - only visible on mobile */}
-          <div className="md:hidden">
-            <MobileNotifications />
+    <>
+      {/* Mobile view */}
+      <div className="md:hidden relative">
+        {/* Full page background color */}
+        <div className="fixed inset-0 bg-background -z-30" />
+
+        {/* Modern mesh gradient background with animation */}
+        <div className="fixed top-0 left-0 right-0 h-[40vh] overflow-hidden -z-20">
+          <div className="absolute inset-0 bg-background" />
+          <div className="absolute top-[-50%] left-[-20%] w-[80%] h-[80%] rounded-full bg-primary/5 blur-3xl mesh-gradient-blob" />
+          <div className="absolute top-[-30%] right-[-20%] w-[70%] h-[70%] rounded-full bg-primary/10 blur-3xl mesh-gradient-blob" />
+          <div className="absolute bottom-[-40%] left-[10%] w-[60%] h-[60%] rounded-full bg-secondary/5 blur-3xl mesh-gradient-blob" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
+        </div>
+
+        <MobileDashboardHeader
+          userName={userName}
+          universityName={universityName}
+          avatarUrl={userProfile?.avatar_url}
+          resourceCount={resourceCount || 0}
+          studyGroupCount={studyGroupCount || 0}
+          username={userProfile?.username}
+        />
+
+        <div className="px-4 -mt-4">
+          <MobileMeetingsSection
+            upcomingMeetings={limitedUpcomingMeetings}
+            pastMeetings={limitedPastMeetings}
+          />
+
+          <MobileResourcesSection
+            resources={mappedResources || []}
+          />
+        </div>
+      </div>
+
+      {/* Desktop view */}
+      <div className="hidden md:flex container mx-auto px-4 py-8 flex-col gap-8">
+        {/* Welcome Section */}
+        <header>
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-3xl font-bold">
+              Welcome, {userName}
+            </h1>
           </div>
-        </div>
-        <div className="bg-secondary/50 text-sm p-3 px-4 rounded-lg text-muted-foreground flex gap-2 items-center">
-          <InfoIcon size="14" />
-          <span>
-            Welcome to {userProfile?.university?.name || "your university"}'s
-            study hub
-          </span>
-        </div>
-      </header>
+          <div className="bg-secondary/50 text-sm p-3 px-4 rounded-lg text-muted-foreground flex gap-2 items-center">
+            <InfoIcon size="14" />
+            <span>
+              Welcome to {universityName}'s study hub
+            </span>
+          </div>
+        </header>
 
       {/* Quick Actions */}
       <section className="mb-6">
@@ -367,5 +427,6 @@ export default async function Dashboard() {
         </Card>
       </section>
     </div>
+    </>
   );
 }

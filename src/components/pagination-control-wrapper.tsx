@@ -19,7 +19,7 @@ export default function PaginationControlWrapper(props: PaginationControlWrapper
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center py-2">
-        <div className="h-10 w-64 bg-muted animate-pulse rounded"></div>
+        <div className="h-10 w-64 bg-muted rounded"></div>
       </div>
     }>
       <PaginationControl {...props} />

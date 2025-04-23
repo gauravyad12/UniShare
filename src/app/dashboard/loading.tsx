@@ -1,7 +1,7 @@
 export default function DashboardLoading() {
   return (
     <div className="container mx-auto px-4 py-8 flex flex-col gap-8 items-center justify-center min-h-[60vh]">
-      <div className="animate-pulse space-y-4 w-full max-w-3xl">
+      <div className="space-y-4 w-full max-w-3xl">
         <div className="h-8 bg-secondary/50 rounded w-1/3"></div>
         <div className="h-4 bg-secondary/30 rounded w-full"></div>
 

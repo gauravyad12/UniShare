@@ -713,12 +713,7 @@ export default function SimpleGroupChat({
             <div className="space-y-3 pt-3">
               <AnimatePresence initial={false}>
                 {[...messages].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map((message) => (
-                  <motion.div
-                    key={message.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
+                  <div key={message.id}>
                     <div
                       className={`flex gap-2 ${message.sender_id === userId ? 'justify-end' : 'justify-start'}`}
                     >
@@ -819,24 +814,19 @@ export default function SimpleGroupChat({
                     </Avatar>
                   )}
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </AnimatePresence>
               <div ref={messagesEndRef} />
             </div>
           ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-              className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-6 pt-12"
-            >
+            <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-6 pt-12">
               <div className="bg-muted/30 p-8 rounded-full mb-4">
                 <MessageSquare className="h-12 w-12 opacity-30 text-primary" />
               </div>
               <h3 className="text-xl font-medium mb-2">No messages yet</h3>
               <p className="text-sm max-w-xs">Be the first to send a message in this group chat!</p>
-            </motion.div>
+            </div>
           )}
         </div>
 
@@ -867,7 +857,7 @@ export default function SimpleGroupChat({
 
           {/* Typing indicator */}
           {Object.keys(typingUsers).length > 0 && (
-            <div className="flex items-center mb-2 text-sm text-muted-foreground animate-pulse mx-auto max-w-3xl">
+            <div className="flex items-center mb-2 text-sm text-muted-foreground mx-auto max-w-3xl">
               <span>
                 {Object.keys(typingUsers).length === 1
                   ? `${Object.values(typingUsers)[0].full_name || Object.values(typingUsers)[0].username || 'Someone'} is typing`

@@ -149,7 +149,7 @@ export default function DashboardNavbar() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
                 {isLoading ? (
-                  <UserCircle className="h-6 w-6 animate-pulse" />
+                  <UserCircle className="h-6 w-6" />
                 ) : avatarUrl ? (
                   <Avatar className="h-8 w-8">
                     <AvatarImage
