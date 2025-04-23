@@ -1,11 +1,15 @@
-import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
-import StudyGroupsClientPaginated from "@/components/study-groups-client-paginated";
-import SimpleStudyGroupView from "@/components/simple-study-group-view";
-import SimpleGroupChat from "@/components/simple-group-chat";
-
 export const dynamic = "force-dynamic";
 
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
+import SimpleStudyGroupView from "@/components/simple-study-group-view";
+import SimpleGroupChat from "@/components/simple-group-chat";
+import { Button } from "@/components/ui/button";
+import { Plus, Link as LinkIcon } from "lucide-react";
+import SearchBarWithClear from "@/components/search-bar-with-clear";
+import Link from "next/link";
+import StudyGroupsTabs from "@/components/study-groups-tabs";
+import PaginationControlWrapper from "@/components/pagination-control-wrapper";
 
 export default async function StudyGroupsPage({
   searchParams,
@@ -28,45 +32,191 @@ export default async function StudyGroupsPage({
     return redirect("/sign-in");
   }
 
+  // Get user's university
+  const { data: userProfile } = await supabase
+    .from("user_profiles")
+    .select("university_id")
+    .eq("id", user.id)
+    .single();
+
   // If viewing a specific study group
   let viewedGroup = null;
   if (searchParams.view) {
-    console.log('Fetching study group with ID:', searchParams.view);
-
     // Use the stored procedure to avoid RLS recursion issues
     const { data, error } = await supabase
       .rpc('get_study_group_by_id', {
         p_group_id: searchParams.view
       });
 
-    if (error) {
-      console.error('Error fetching study group:', error);
-    }
-
     if (data && data.length > 0) {
-      console.log('Found study group:', data[0]);
       viewedGroup = data[0];
-    } else {
-      console.log('Study group not found');
     }
   }
 
+  // If viewing a specific group, render the group view
+  if (viewedGroup) {
+    return (
+      <div className="study-group-view-container px-2 sm:px-4 md:px-6">
+        {searchParams.chat ? (
+          <SimpleGroupChat group={viewedGroup} />
+        ) : (
+          <SimpleStudyGroupView group={viewedGroup} />
+        )}
+      </div>
+    );
+  }
+
+  // Determine which tab to show
+  const activeTab = searchParams.tab || "all";
+
+  // Pagination parameters
+  const pageSize = 9; // Number of items per page
+  const currentPage = parseInt(searchParams.page || "1", 10);
+  const offset = (currentPage - 1) * pageSize;
+  const searchTerm = searchParams.search || "";
+
+  // Get public study groups
+  let publicGroupsQuery = supabase
+    .from("study_groups")
+    .select("*")
+    .eq("university_id", userProfile?.university_id)
+    .eq("is_private", false);
+
+  // Apply search filter if provided
+  if (searchTerm) {
+    publicGroupsQuery = publicGroupsQuery.or(
+      `name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,course_code.ilike.%${searchTerm}%`
+    );
+  }
+
+  // Order by created_at
+  publicGroupsQuery = publicGroupsQuery.order("created_at", { ascending: false });
+
+  // Get total count for pagination
+  let countQuery = supabase
+    .from("study_groups")
+    .select("*", { count: "exact", head: true })
+    .eq("university_id", userProfile?.university_id)
+    .eq("is_private", false);
+
+  // Apply the same search filter to count query
+  if (searchTerm) {
+    countQuery = countQuery.or(
+      `name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,course_code.ilike.%${searchTerm}%`
+    );
+  }
+
+  const { count: totalPublicCount } = await countQuery;
+
+  // Apply pagination to the main query
+  publicGroupsQuery = publicGroupsQuery.range(offset, offset + pageSize - 1);
+
+  // Execute the query
+  const { data: publicGroups } = await publicGroupsQuery;
+
+  // Get user's study groups (including private ones)
+  // First get all groups the user is a member of
+  const { data: memberGroups } = await supabase
+    .from("study_group_members")
+    .select("study_group_id")
+    .eq("user_id", user.id);
+
+  const memberGroupIds = memberGroups?.map(g => g.study_group_id) || [];
+
+  let myGroups = [];
+  let totalMyGroupsCount = 0;
+
+  if (memberGroupIds.length > 0) {
+    // Get total count for my groups
+    let myGroupsCountQuery = supabase
+      .from("study_groups")
+      .select("*", { count: "exact", head: true })
+      .in("id", memberGroupIds);
+
+    // Apply search filter if provided
+    if (searchTerm) {
+      myGroupsCountQuery = myGroupsCountQuery.or(
+        `name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,course_code.ilike.%${searchTerm}%`
+      );
+    }
+
+    const { count: myCount } = await myGroupsCountQuery;
+    totalMyGroupsCount = myCount || 0;
+
+    // Get paginated my groups
+    let myGroupsQuery = supabase
+      .from("study_groups")
+      .select("*")
+      .in("id", memberGroupIds)
+      .order("created_at", { ascending: false });
+
+    // Apply search filter if provided
+    if (searchTerm) {
+      myGroupsQuery = myGroupsQuery.or(
+        `name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,course_code.ilike.%${searchTerm}%`
+      );
+    }
+
+    // Apply pagination
+    myGroupsQuery = myGroupsQuery.range(offset, offset + pageSize - 1);
+
+    // Execute the query
+    const { data: myGroupsData } = await myGroupsQuery;
+    myGroups = myGroupsData || [];
+  }
+
+  // Get user's group IDs for highlighting
+  const userGroupIds = memberGroupIds || [];
+
+  // Determine total count based on active tab
+  const totalCount = activeTab === "my-groups" ? totalMyGroupsCount : totalPublicCount;
+
   return (
-    <div className="study-groups-container px-2 sm:px-4 md:px-6">
-      {viewedGroup ? (
-        <div className="study-group-view-container px-2 sm:px-4 md:px-6">
-          {searchParams.chat ? (
-            <SimpleGroupChat group={viewedGroup} />
-          ) : (
-            <SimpleStudyGroupView group={viewedGroup} />
-          )}
+    <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
+      <header className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-2">
+          <h1 className="text-3xl font-bold">Study Groups</h1>
+          <div className="flex flex-wrap w-full sm:w-auto gap-2">
+            <Button variant="outline" asChild>
+              <Link href="/dashboard/study-groups/join">
+                <LinkIcon className="mr-2 h-4 w-4" /> Join with Code
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/dashboard/study-groups/create">
+                <Plus className="mr-2 h-4 w-4" /> Create Group
+              </Link>
+            </Button>
+          </div>
         </div>
-      ) : (
-        <StudyGroupsClientPaginated
-          tab={searchParams.tab || "all"}
-          initialPage={searchParams.page ? parseInt(searchParams.page) : 1}
+        <div className="w-full">
+          <SearchBarWithClear
+            placeholder="Search study groups by name, course code, or description..."
+            defaultValue={searchParams.search || ""}
+            baseUrl="/dashboard/study-groups"
+            tabParam={searchParams.tab}
+          />
+        </div>
+      </header>
+
+      {/* Study Groups Tabs */}
+      <StudyGroupsTabs
+        initialTab={activeTab}
+        allGroups={publicGroups || []}
+        myGroups={myGroups}
+        userGroupIds={userGroupIds}
+      />
+
+      {/* Pagination */}
+      <div className="mt-6">
+        <PaginationControlWrapper
+          totalItems={totalCount || 0}
+          pageSize={pageSize}
+          currentPage={currentPage}
+          baseUrl="/dashboard/study-groups"
+          preserveParams={true}
         />
-      )}
+      </div>
     </div>
   );
 }

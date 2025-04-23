@@ -37,7 +37,6 @@ export default function Messages() {
   const [groups, setGroups] = useState<GroupWithLatestMessage[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0); // For future implementation
   const supabase = createClient();
 
   // Fetch user's study groups with latest messages
@@ -61,16 +60,27 @@ export default function Messages() {
       if (data.groups && Array.isArray(data.groups)) {
         console.log(`Received ${data.groups.length} user groups with messages`);
 
-        // Log each group's latest message for debugging
-        data.groups.forEach((group: GroupWithLatestMessage) => {
-          console.log(`Group ${group.name} latest message:`, group.latestMessage);
+        // Process groups and handle potential null/undefined values
+        const processedGroups = data.groups.map((group: GroupWithLatestMessage) => {
+          // Ensure latestMessage is properly structured
           if (group.latestMessage) {
-            console.log(`  - sender_name: ${group.latestMessage.sender_name}`);
-            console.log(`  - content: ${group.latestMessage.content}`);
+            // Make sure all required properties exist
+            return {
+              ...group,
+              latestMessage: {
+                id: group.latestMessage.id || '',
+                content: group.latestMessage.content || '',
+                created_at: group.latestMessage.created_at || new Date().toISOString(),
+                sender_id: group.latestMessage.sender_id || '',
+                sender_name: group.latestMessage.sender_name || 'Unknown',
+                avatar_url: group.latestMessage.avatar_url || ''
+              }
+            };
           }
+          return group;
         });
 
-        setGroups(data.groups);
+        setGroups(processedGroups);
       } else {
         console.warn('Received unexpected data format for user groups:', data);
         setGroups([]);
@@ -124,14 +134,6 @@ export default function Messages() {
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <MessageSquare className="h-5 w-5" />
-          {unreadCount > 0 && (
-            <Badge
-              className="absolute -top-1 -right-1 px-1.5 py-0.5 min-w-[1.25rem] h-5 flex items-center justify-center"
-              variant="destructive"
-            >
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </Badge>
-          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0 max-w-[320px]" align="end">
@@ -183,9 +185,9 @@ export default function Messages() {
                                 ? `${group.latestMessage.sender_name.split(' ')[0]}: `
                                 : ""}
                             </span>
-                            {group.latestMessage.content.length > 15
+                            {group.latestMessage.content && group.latestMessage.content.length > 15
                               ? `${group.latestMessage.content.substring(0, 15)}...`
-                              : group.latestMessage.content}
+                              : group.latestMessage.content || 'New message'}
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
                             {group.latestMessage.created_at ?

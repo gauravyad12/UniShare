@@ -9,6 +9,7 @@ interface PaginationControlWrapperProps {
   currentPage: number;
   siblingCount?: number;
   className?: string;
+  onPageChange?: (page: number) => void;
   baseUrl?: string;
   preserveParams?: boolean;
 }

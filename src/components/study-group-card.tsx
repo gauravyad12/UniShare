@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createClient } from "@/utils/supabase/client";
+import { useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -14,7 +13,6 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Calendar, Users, Lock, Unlock, MessageSquare } from "lucide-react";
 import Link from "next/link";
-import RealtimeUnreadBadge from "./realtime-unread-badge";
 
 interface StudyGroupCardProps {
   group: {
@@ -46,8 +44,6 @@ export default function StudyGroupCard({
   onView,
   isPublicView = false,
 }: StudyGroupCardProps) {
-  const [userId, setUserId] = useState<string>("");
-
   // Log the group data for debugging
   useEffect(() => {
     console.log('Study group card rendered:', {
@@ -57,18 +53,6 @@ export default function StudyGroupCard({
       isMember
     });
   }, [group, isMember]);
-
-  useEffect(() => {
-    const fetchUserId = async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-      }
-    };
-
-    fetchUserId();
-  }, []);
   // Format date
   const formattedDate = new Date(group.created_at).toLocaleDateString("en-US", {
     year: "numeric",
@@ -177,18 +161,10 @@ export default function StudyGroupCard({
             <Button
               size="sm"
               asChild
-              className="relative"
             >
               <Link href={`/dashboard/study-groups?view=${group.id}&chat=true`}>
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Chat
-                {userId && !isPublicView && (
-                  <RealtimeUnreadBadge
-                    groupId={group.id}
-                    userId={userId}
-                    className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs"
-                  />
-                )}
               </Link>
             </Button>
           </>

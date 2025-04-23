@@ -57,24 +57,53 @@ export default function RealtimeUnreadBadge({
     try {
       setIsLoading(true);
 
-      // Count all messages that don't have a read status for this user
-      const { count, error } = await supabase
+      // First check if there are any messages at all for this group
+      const { count: totalCount, error: totalError } = await supabase
         .from('group_chat_messages')
         .select('*', { count: 'exact', head: true })
-        .eq('study_group_id', groupId)
-        .not('id', 'in', (
-          supabase
-            .from('message_read_status')
-            .select('message_id')
-            .eq('user_id', userId)
-        ));
+        .eq('study_group_id', groupId);
 
-      if (error) {
-        console.error("Error in unread count query:", error);
+      if (totalError) {
+        console.error("Error checking total messages:", totalError);
         return;
       }
 
-      setUnreadCount(count || 0);
+      // If there are no messages at all, we can skip the more complex query
+      if (totalCount === 0) {
+        setUnreadCount(0);
+        setIsLoading(false);
+        return;
+      }
+
+      // Get read message IDs for this user
+      const { data: readStatuses, error: readError } = await supabase
+        .from('message_read_status')
+        .select('message_id')
+        .eq('user_id', userId);
+
+      if (readError) {
+        console.error("Error fetching read statuses:", readError);
+        return;
+      }
+
+      // Get all messages for this group
+      const { data: messages, error: messagesError } = await supabase
+        .from('group_chat_messages')
+        .select('id')
+        .eq('study_group_id', groupId);
+
+      if (messagesError) {
+        console.error("Error fetching messages:", messagesError);
+        return;
+      }
+
+      // Create a set of read message IDs for faster lookup
+      const readMessageIds = new Set(readStatuses?.map(status => status.message_id) || []);
+
+      // Count messages that aren't in the read set
+      const unread = messages?.filter(msg => !readMessageIds.has(msg.id)).length || 0;
+
+      setUnreadCount(unread);
     } catch (err) {
       console.error("Error fetching unread count:", err);
     } finally {

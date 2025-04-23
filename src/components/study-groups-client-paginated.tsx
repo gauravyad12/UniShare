@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -45,7 +45,7 @@ export default function StudyGroupsClientPaginated({
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [joiningGroup, setJoiningGroup] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || "");
   const [filteredGroups, setFilteredGroups] = useState<any[]>([]);
   const [filteredMyGroups, setFilteredMyGroups] = useState<any[]>([]);
 
@@ -55,14 +55,25 @@ export default function StudyGroupsClientPaginated({
   const [totalMyGroups, setTotalMyGroups] = useState(0);
   const pageSize = 2; // Set to 2 for testing pagination
 
-  // Update URL when page changes
-  const updateUrlWithPage = useCallback((page: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("page", page.toString());
-    router.push(`/dashboard/study-groups?${params.toString()}`);
-  }, [router, searchParams]);
+  // Initialize state from URL parameters on mount
+  useEffect(() => {
+    // Get page from URL
+    const pageParam = searchParams.get('page');
+    if (pageParam) {
+      const parsedPage = parseInt(pageParam, 10);
+      if (!isNaN(parsedPage) && parsedPage > 0) {
+        setCurrentPage(parsedPage);
+      }
+    }
 
-  // First useEffect for data fetching
+    // Get search from URL
+    const searchParam = searchParams.get('search');
+    if (searchParam !== null) {
+      setSearchQuery(searchParam);
+    }
+  }, []); // Empty dependency array means this runs only once on mount
+
+  // Data fetching effect
   useEffect(() => {
     async function fetchData() {
       try {
@@ -75,6 +86,9 @@ export default function StudyGroupsClientPaginated({
 
         // Fetch public study groups with pagination
         const publicResponse = await fetch(`/api/study-groups/list?limit=${pageSize}&offset=${offset}&search=${encodeURIComponent(searchQuery)}`);
+        if (!publicResponse.ok) {
+          throw new Error(`Failed to fetch study groups: ${publicResponse.status}`);
+        }
         const publicResult = await publicResponse.json();
 
         // Get total count for pagination
@@ -85,6 +99,9 @@ export default function StudyGroupsClientPaginated({
         let myGroupsTotal = 0;
         try {
           const myGroupsResponse = await fetch(`/api/study-groups/my-groups?limit=${pageSize}&offset=${offset}&search=${encodeURIComponent(searchQuery)}`);
+          if (!myGroupsResponse.ok) {
+            throw new Error(`Failed to fetch my study groups: ${myGroupsResponse.status}`);
+          }
           const myGroupsResult = await myGroupsResponse.json();
           myGroups = myGroupsResult.myGroups || [];
           myGroupsTotal = myGroupsResult.totalCount || 0;
@@ -104,7 +121,7 @@ export default function StudyGroupsClientPaginated({
                 .select("study_group_id")
                 .eq("user_id", user.id);
 
-              const memberGroupIds = memberGroups?.map(g => g.study_group_id) || [];
+              const memberGroupIds = memberGroups?.map((g: { study_group_id: string }) => g.study_group_id) || [];
 
               // Get total count first
               if (memberGroupIds.length > 0) {
@@ -161,9 +178,10 @@ export default function StudyGroupsClientPaginated({
   }, [currentPage, searchQuery, toast]);
 
   // Make sure userGroupIds includes all IDs from myStudyGroups
-  const { studyGroups = [], userGroupIds = [], myStudyGroups = [] } = data || {};
+  const { userGroupIds = [], myStudyGroups = [] } = data || {};
   const myGroupIds = myStudyGroups.map((group: any) => group.id);
-  const allUserGroupIds = [...new Set([...userGroupIds, ...myGroupIds])];
+  // Combine and deduplicate IDs
+  const allUserGroupIds = Array.from(new Set([...userGroupIds, ...myGroupIds]));
 
   // Function to handle joining a group with an invitation code
   const handleJoinGroup = async () => {
@@ -216,19 +234,32 @@ export default function StudyGroupsClientPaginated({
     }
   };
 
-  // Handle page change
+  // Simple function to handle page changes
   const handlePageChange = (page: number) => {
+    if (page === currentPage) return;
+
+    // Update the URL with the new page
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", page.toString());
+    router.replace(`/dashboard/study-groups?${params.toString()}`, { scroll: false });
+
+    // Update the state
     setCurrentPage(page);
-    updateUrlWithPage(page);
   };
 
-  // Handle search input change
+  // Simple function to handle search changes
   const handleSearchChange = (query: string) => {
     setSearchQuery(query);
-    // Reset to first page when search changes
+
+    // Update URL with search parameter and reset to page 1
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("search", query);
+    params.set("page", "1"); // Always reset to page 1 when search changes
+    router.replace(`/dashboard/study-groups?${params.toString()}`, { scroll: false });
+
+    // Update the state
     if (currentPage !== 1) {
       setCurrentPage(1);
-      updateUrlWithPage(1);
     }
   };
 
@@ -336,7 +367,7 @@ export default function StudyGroupsClientPaginated({
           totalItems={tab === "my-groups" ? totalMyGroups : totalGroups}
           pageSize={pageSize}
           currentPage={currentPage}
-          preserveParams={true}
+          onPageChange={handlePageChange}
         />
       </div>
 

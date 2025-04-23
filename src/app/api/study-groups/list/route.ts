@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
 
     // Pagination parameters
-    const limit = parseInt(searchParams.get('limit') || '2', 10); // Set to 2 for testing pagination
+    const limit = parseInt(searchParams.get('limit') || '9', 10); // Number of items per page
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const search = searchParams.get('search') || '';
 
@@ -33,11 +33,20 @@ export async function GET(request: NextRequest) {
     console.log('API: Fetching public study groups for university:', userProfile?.university_id);
 
     // Get total count first
-    const { count: totalCount, error: countError } = await supabase
+    let countQuery = supabase
       .from('study_groups')
       .select('*', { count: 'exact', head: true })
       .eq('university_id', userProfile?.university_id)
       .eq('is_private', false);
+
+    // Apply search filter to count query if provided
+    if (search) {
+      countQuery = countQuery.or(
+        `name.ilike.%${search}%,description.ilike.%${search}%,course_code.ilike.%${search}%`
+      );
+    }
+
+    const { count: totalCount, error: countError } = await countQuery;
 
     if (countError) {
       console.error('API: Error getting total count:', countError);

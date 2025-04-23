@@ -18,6 +18,7 @@ interface PaginationControlProps {
   currentPage: number;
   siblingCount?: number;
   className?: string;
+  onPageChange?: (page: number) => void;
   baseUrl?: string;
   preserveParams?: boolean;
 }
@@ -28,25 +29,33 @@ export default function PaginationControl({
   currentPage,
   siblingCount = 1,
   className,
+  onPageChange,
   baseUrl = "",
   preserveParams = true,
 }: PaginationControlProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 
   // Generate URL for a specific page
   const generatePageUrl = useCallback((page: number) => {
-    const params = new URLSearchParams(preserveParams ? searchParams.toString() : "");
+    if (!preserveParams) return `${baseUrl}?page=${page}`;
+
+    const params = new URLSearchParams(searchParams.toString());
     params.set("page", page.toString());
     return `${baseUrl}?${params.toString()}`;
   }, [baseUrl, preserveParams, searchParams]);
 
   // Handle page change
   const handlePageChange = useCallback((page: number) => {
-    router.push(generatePageUrl(page));
-  }, [generatePageUrl, router]);
+    if (onPageChange) {
+      // If onPageChange is provided, use it (client-side pagination)
+      onPageChange(page);
+    } else {
+      // Otherwise, use router navigation (server-side pagination)
+      router.push(generatePageUrl(page));
+    }
+  }, [onPageChange, router, generatePageUrl]);
 
   // Generate page numbers to display
   const generatePagination = useCallback(() => {
@@ -106,7 +115,7 @@ export default function PaginationControl({
       <PaginationContent>
         <PaginationItem>
           <PaginationPrevious
-            href={generatePageUrl(Math.max(1, currentPage - 1))}
+            href="#"
             onClick={(e) => {
               e.preventDefault();
               handlePageChange(Math.max(1, currentPage - 1));
@@ -134,7 +143,7 @@ export default function PaginationControl({
           return (
             <PaginationItem key={pageNum}>
               <PaginationLink
-                href={generatePageUrl(pageNum)}
+                href="#"
                 onClick={(e) => {
                   e.preventDefault();
                   handlePageChange(pageNum);
@@ -149,7 +158,7 @@ export default function PaginationControl({
 
         <PaginationItem>
           <PaginationNext
-            href={generatePageUrl(Math.min(totalPages, currentPage + 1))}
+            href="#"
             onClick={(e) => {
               e.preventDefault();
               handlePageChange(Math.min(totalPages, currentPage + 1));

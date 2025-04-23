@@ -49,10 +49,21 @@ export async function GET(request: Request) {
         console.log(`API: Fetching latest message for group ${group.id}`);
 
         // Try using the new stored procedure that includes profile information
-        const { data: messageWithProfileData, error: profileProcError } = await supabase
-          .rpc('get_latest_message_with_profile', {
-            p_group_id: group.id
-          });
+        let messageWithProfileData = null;
+        let profileProcError = null;
+
+        try {
+          const result = await supabase
+            .rpc('get_latest_message_with_profile', {
+              p_group_id: group.id
+            });
+
+          messageWithProfileData = result.data;
+          profileProcError = result.error;
+        } catch (err) {
+          console.error(`API: Error calling get_latest_message_with_profile for group ${group.id}:`, err);
+          profileProcError = { message: 'Failed to fetch latest message' };
+        }
 
         let messageWithProfile = null;
 
@@ -60,16 +71,27 @@ export async function GET(request: Request) {
           console.error(`API: Error using get_latest_message_with_profile for group ${group.id}:`, profileProcError);
 
           // Fall back to direct query with join if stored procedure fails
-          const { data: directMessage, error: messageError } = await supabase
-            .from('group_chat_messages')
-            .select(`
-              *,
-              sender:sender_id(id, full_name, username, avatar_url)
-            `)
-            .eq('study_group_id', group.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
+          let directMessage = null;
+          let messageError = null;
+
+          try {
+            const result = await supabase
+              .from('group_chat_messages')
+              .select(`
+                *,
+                sender:sender_id(id, full_name, username, avatar_url)
+              `)
+              .eq('study_group_id', group.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .single();
+
+            directMessage = result.data;
+            messageError = result.error;
+          } catch (err) {
+            console.error(`API: Error in direct query for group ${group.id}:`, err);
+            messageError = { message: 'Failed to fetch message', code: 'QUERY_ERROR' };
+          }
 
           if (messageError && messageError.code !== 'PGRST116') { // PGRST116 is the error code for no rows returned
             console.error(`API: Error fetching latest message for group ${group.id}:`, messageError);

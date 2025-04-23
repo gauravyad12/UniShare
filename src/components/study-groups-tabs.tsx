@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import MobileTabs from "@/components/mobile-tabs";
 import { Card, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,7 +15,7 @@ interface StudyGroupsTabsProps {
   allGroups: any[];
   myGroups: any[];
   userGroupIds: string[];
-  onSearch: (query: string) => void;
+  onSearch?: (query: string) => void;
 }
 
 export default function StudyGroupsTabs({
@@ -29,28 +29,46 @@ export default function StudyGroupsTabs({
   const [activeTab, setActiveTab] = useState(initialTab);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Create a stable reference to the router
+  const stableRouter = useRef(router);
+
+  // Update router ref when router changes
+  useEffect(() => {
+    stableRouter.current = router;
+  }, [router]);
+
   // Handle tab change
-  const handleTabChange = (value: string) => {
+  const handleTabChange = useCallback((value: string) => {
+    // Only proceed if the tab is actually changing
+    if (value === activeTab) return;
+
     setActiveTab(value);
-    
-    // Update URL without navigation
+
+    // Use server-side navigation to fetch the correct groups for the new tab
     const url = new URL(window.location.href);
     url.searchParams.set("tab", value);
-    window.history.pushState(null, "", url.toString());
-  };
+
+    // Reset to page 1 when changing tabs
+    url.searchParams.set("page", "1");
+
+    // Use router.replace to avoid adding to browser history
+    stableRouter.current.replace(url.toString(), { scroll: false });
+  }, [activeTab]); // Only depend on activeTab
 
   // Handle search input change
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onSearch(searchQuery);
-    }, 300);
+    if (onSearch) {
+      const timer = setTimeout(() => {
+        onSearch(searchQuery);
+      }, 300);
 
-    return () => clearTimeout(timer);
+      return () => clearTimeout(timer);
+    }
   }, [searchQuery, onSearch]);
 
   return (
     <Tabs value={activeTab} className="w-full">
-      <MobileTabs 
+      <MobileTabs
         tabs={[
           { value: "all", label: "All Groups" },
           { value: "my-groups", label: "My Groups" },
@@ -86,7 +104,14 @@ export default function StudyGroupsTabs({
                 className="mt-2"
                 onClick={() => {
                   setSearchQuery('');
-                  onSearch('');
+                  if (onSearch) onSearch('');
+                  else {
+                    // Use server-side navigation to clear search
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('search');
+                    url.searchParams.set('page', '1');
+                    router.replace(url.toString());
+                  }
                 }}
               >
                 Clear Search
@@ -137,7 +162,14 @@ export default function StudyGroupsTabs({
                 className="mt-2"
                 onClick={() => {
                   setSearchQuery('');
-                  onSearch('');
+                  if (onSearch) onSearch('');
+                  else {
+                    // Use server-side navigation to clear search
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('search');
+                    url.searchParams.set('page', '1');
+                    router.replace(url.toString());
+                  }
                 }}
               >
                 Clear Search

@@ -10,7 +10,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Search, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
+import SearchBarWithClear from "@/components/search-bar-with-clear";
 import ResourcesTabs from "@/components/resources-tabs";
 import PaginationControlWrapper from "@/components/pagination-control-wrapper";
 import { Input } from "@/components/ui/input";
@@ -59,7 +60,7 @@ export default async function ResourcesPage({
   const activeTab = searchParams.tab || "all";
 
   // Pagination parameters
-  const pageSize = 2; // Set to 2 for testing pagination
+  const pageSize = 9; // Number of items per page
   const currentPage = parseInt(searchParams.page || "1", 10);
   const offset = (currentPage - 1) * pageSize;
 
@@ -151,19 +152,14 @@ export default async function ResourcesPage({
             </Link>
           </Button>
         </div>
-        <form action="/dashboard/resources" method="get" className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            name="search"
+        <div className="w-full">
+          <SearchBarWithClear
             placeholder="Search resources by title, course code, or professor..."
-            className="pl-10"
             defaultValue={searchParams.search || ""}
+            baseUrl="/dashboard/resources"
+            tabParam={searchParams.tab}
           />
-          {/* Preserve other query parameters */}
-          {searchParams.tab && (
-            <input type="hidden" name="tab" value={searchParams.tab} />
-          )}
-        </form>
+        </div>
       </header>
 
       {/* Upload Form Dialog */}
@@ -204,6 +200,7 @@ export default async function ResourcesPage({
               totalItems={totalCount || 0}
               pageSize={pageSize}
               currentPage={currentPage}
+              baseUrl="/dashboard/resources"
               preserveParams={true}
             />
           </div>
