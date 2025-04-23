@@ -10,6 +10,7 @@ import {
   UserCircle,
   Users,
   UserPlus,
+  CheckSquare,
 } from "lucide-react";
 import MeetingCarousel from "@/components/meeting-carousel";
 import Link from "next/link";
@@ -25,7 +26,9 @@ import { Button } from "@/components/ui/button";
 import MobileDashboardHeader from "@/components/mobile-dashboard-header";
 import MobileMeetingsSection from "@/components/mobile-meetings-section";
 import MobileResourcesSection from "@/components/mobile-resources-section";
+import MobileTodoSection from "@/components/mobile-todo-section";
 import MobileActionPopup from "@/components/mobile-action-popup";
+import TodoList from "@/components/todo-list";
 
 export default async function Dashboard() {
   const supabase = await createClient();
@@ -223,6 +226,8 @@ export default async function Dashboard() {
           <MobileResourcesSection
             resources={mappedResources || []}
           />
+
+          <MobileTodoSection />
         </div>
       </div>
 
@@ -361,7 +366,7 @@ export default async function Dashboard() {
         </Card>
       </div>
 
-      {/* User Profile Section */}
+      {/* User Profile and To-Do List Section */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="md:col-span-1">
           <CardHeader>
@@ -394,6 +399,22 @@ export default async function Dashboard() {
         </Card>
 
         <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>To-Do List</CardTitle>
+            <CardDescription>Manage your tasks</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TodoList />
+          </CardContent>
+          <CardFooter>
+            <Button asChild variant="outline" size="sm" className="w-full">
+              <Link href="/dashboard/todos">View All Tasks</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+
+        {/* Study Group Meetings - Full Width */}
+        <Card className="md:col-span-3">
           <CardHeader>
             <CardTitle>Study Group Meetings</CardTitle>
             <CardDescription>Your scheduled study sessions</CardDescription>

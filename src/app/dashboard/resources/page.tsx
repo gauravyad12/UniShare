@@ -84,6 +84,12 @@ export default async function ResourcesPage({
     resourcesQuery = resourcesQuery.eq("resource_type", "notes");
   } else if (activeTab === "textbooks") {
     resourcesQuery = resourcesQuery.eq("resource_type", "textbook");
+  } else if (activeTab === "solutions") {
+    resourcesQuery = resourcesQuery.eq("resource_type", "solution");
+  } else if (activeTab === "study-guides") {
+    resourcesQuery = resourcesQuery.eq("resource_type", "study guide");
+  } else if (activeTab === "practice-exams") {
+    resourcesQuery = resourcesQuery.eq("resource_type", "practice exam");
   } else if (activeTab === "links") {
     resourcesQuery = resourcesQuery.eq("resource_type", "link");
   } else if (activeTab === "my-uploads") {
@@ -112,6 +118,12 @@ export default async function ResourcesPage({
     countQuery.eq("resource_type", "notes");
   } else if (activeTab === "textbooks") {
     countQuery.eq("resource_type", "textbook");
+  } else if (activeTab === "solutions") {
+    countQuery.eq("resource_type", "solution");
+  } else if (activeTab === "study-guides") {
+    countQuery.eq("resource_type", "study guide");
+  } else if (activeTab === "practice-exams") {
+    countQuery.eq("resource_type", "practice exam");
   } else if (activeTab === "links") {
     countQuery.eq("resource_type", "link");
   } else if (activeTab === "my-uploads") {

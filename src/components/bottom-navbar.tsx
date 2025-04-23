@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Home, User, BookOpen, Settings, Plus, X } from "lucide-react";
+import { Home, User, BookOpen, Settings, Plus, X, CheckSquare } from "lucide-react";
 import { useThemeContext } from "./theme-context";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
@@ -70,14 +70,14 @@ export default function BottomNavbar() {
       label: "",
     },
     {
+      path: "/dashboard/todos",
+      icon: CheckSquare,
+      label: "To-Do",
+    },
+    {
       path: "/dashboard/profile/edit",
       icon: User,
       label: "Profile",
-    },
-    {
-      path: "/dashboard/settings",
-      icon: Settings,
-      label: "Settings",
     },
   ];
 

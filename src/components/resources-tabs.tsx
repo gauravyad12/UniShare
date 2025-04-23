@@ -46,6 +46,12 @@ export default function ResourcesTabs({ resources, initialTab, currentUserId }: 
       filtered = resources.filter(resource => resource.resource_type === "notes");
     } else if (activeTab === "textbooks") {
       filtered = resources.filter(resource => resource.resource_type === "textbook");
+    } else if (activeTab === "solutions") {
+      filtered = resources.filter(resource => resource.resource_type === "solution");
+    } else if (activeTab === "study-guides") {
+      filtered = resources.filter(resource => resource.resource_type === "study guide");
+    } else if (activeTab === "practice-exams") {
+      filtered = resources.filter(resource => resource.resource_type === "practice exam");
     } else if (activeTab === "links") {
       filtered = resources.filter(resource => resource.resource_type === "link");
     } else if (activeTab === "my-uploads") {
@@ -88,6 +94,9 @@ export default function ResourcesTabs({ resources, initialTab, currentUserId }: 
             { value: "all", label: "All Resources" },
             { value: "notes", label: "Notes" },
             { value: "textbooks", label: "Textbooks" },
+            { value: "solutions", label: "Solutions" },
+            { value: "study-guides", label: "Study Guides" },
+            { value: "practice-exams", label: "Practice Exams" },
             { value: "links", label: "External Links" },
             { value: "my-uploads", label: "My Uploads" },
           ]}

@@ -70,6 +70,12 @@ export default function ResourceTabContent({
             <FileText className="h-12 w-12 text-muted-foreground" />
           ) : activeTab === "links" ? (
             <LinkIcon className="h-12 w-12 text-muted-foreground" />
+          ) : activeTab === "solutions" ? (
+            <FileText className="h-12 w-12 text-muted-foreground" />
+          ) : activeTab === "study-guides" ? (
+            <FileText className="h-12 w-12 text-muted-foreground" />
+          ) : activeTab === "practice-exams" ? (
+            <FileText className="h-12 w-12 text-muted-foreground" />
           ) : (
             <BookOpen className="h-12 w-12 text-muted-foreground" />
           )}
