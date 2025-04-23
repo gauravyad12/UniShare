@@ -24,6 +24,7 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
+  LogOut,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -59,8 +60,17 @@ export default function SettingsPage() {
   } = useThemeContext();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
+  // Track loading and success states for each card separately
+  const [savingStates, setSavingStates] = useState({
+    notifications: false,
+    appearance: false,
+    privacy: false
+  });
+  const [successStates, setSuccessStates] = useState({
+    notifications: false,
+    appearance: false,
+    privacy: false
+  });
   const [settings, setSettings] = useState({
     email_notifications: true,
     study_group_notifications: true,
@@ -94,8 +104,10 @@ export default function SettingsPage() {
           .single();
 
         if (userSettings) {
+          const emailNotificationsEnabled = userSettings.email_notifications ?? true;
+
           setSettings({
-            email_notifications: userSettings.email_notifications ?? true,
+            email_notifications: emailNotificationsEnabled,
             study_group_notifications:
               userSettings.study_group_notifications ?? true,
             resource_notifications: userSettings.resource_notifications ?? true,
@@ -104,6 +116,51 @@ export default function SettingsPage() {
             color_scheme: userSettings.color_scheme || "default",
             font_size: userSettings.font_size || 2,
           });
+
+          // Update Resend audience subscription status based on email notifications setting
+          if (user.email) {
+            try {
+              // Get user profile for full name
+              const { data: profileData } = await supabase
+                .from('user_profiles')
+                .select('full_name')
+                .eq('id', user.id)
+                .single();
+
+              // Prepare the request data
+              const requestData = {
+                email: user.email,
+                fullName: profileData?.full_name || '',
+                userId: user.id,
+                fromServer: false,
+                unsubscribe: !emailNotificationsEnabled // Set unsubscribe based on email notifications setting
+              };
+
+              // Add/update user in Resend audience with appropriate subscription status
+              const resendResponse = await fetch('/api/resend/audience', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData),
+              });
+
+              const resendData = await resendResponse.json();
+
+              if (resendData.success) {
+                toast({
+                  title: "Success",
+                  description: "Email notification settings updated.",
+                  variant: "default",
+                });
+              } else if (resendData.error) {
+                console.error('Error updating Resend audience subscription:', resendData.error);
+              }
+            } catch (resendError) {
+              console.error('Error updating Resend audience subscription:', resendError);
+              // Continue despite Resend error
+            }
+          }
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -163,10 +220,14 @@ export default function SettingsPage() {
   }, [setTheme, theme]);
 
   const handleSwitchChange = (id: string) => {
+    const newValue = !settings[id as keyof typeof settings];
+
     setSettings({
       ...settings,
-      [id]: !settings[id as keyof typeof settings],
+      [id]: newValue,
     });
+
+    // No immediate API calls - will be handled when Save Settings is clicked
   };
 
   const handleThemeChange = (newTheme: string) => {
@@ -206,7 +267,7 @@ export default function SettingsPage() {
     broadcastThemeChange(newTheme);
 
     // Save to database immediately to prevent losing changes on refresh
-    handleSaveSettings();
+    handleSaveSettings('appearance');
   };
 
   const handleColorChange = (color: string) => {
@@ -247,15 +308,66 @@ export default function SettingsPage() {
     document.documentElement.style.fontSize = `${rootSize}px`;
   };
 
-  const handleSaveSettings = async () => {
-    setSaving(true);
-    setSaveSuccess(false);
+  const handleSaveSettings = async (cardType: 'notifications' | 'appearance' | 'privacy') => {
+    // Set the specific card to loading state
+    setSavingStates(prev => ({
+      ...prev,
+      [cardType]: true
+    }));
+
+    // Reset success state for this card
+    setSuccessStates(prev => ({
+      ...prev,
+      [cardType]: false
+    }));
 
     try {
       // Apply theme, accent color, and font size changes to the context
       setTheme(settings.theme_preference);
       setAccentColor(settings.color_scheme);
       setFontSize(settings.font_size);
+
+      // Log the settings being saved
+      console.log(`Saving ${cardType} settings to database:`, {
+        ...settings,
+        profile_visibility: settings.profile_visibility // Explicitly log profile visibility
+      });
+
+      // If saving notifications settings, handle Resend audience update
+      if (cardType === 'notifications' && user?.email) {
+        try {
+          console.log('Updating Resend audience subscription status based on email_notifications setting');
+
+          // Get user profile for full name
+          const supabase = createClient();
+          const { data: profileData } = await supabase
+            .from('user_profiles')
+            .select('full_name')
+            .eq('id', user?.id)
+            .single();
+
+          // Update Resend audience subscription status
+          const resendResponse = await fetch('/api/resend/audience', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: user.email,
+              fullName: profileData?.full_name || '',
+              userId: user.id,
+              fromServer: false,
+              unsubscribe: !settings.email_notifications // Unsubscribe if email_notifications is false
+            }),
+          });
+
+          const resendData = await resendResponse.json();
+          console.log(`Resend audience update (${settings.email_notifications ? 'subscribe' : 'unsubscribe'}):`, resendData);
+        } catch (resendError) {
+          console.error('Error updating Resend audience:', resendError);
+          // Continue despite Resend error - we'll still save the settings to the database
+        }
+      }
 
       // Save to database
       const response = await fetch("/api/settings/update", {
@@ -269,14 +381,24 @@ export default function SettingsPage() {
       const data = await response.json();
 
       if (data.success) {
-        setSaveSuccess(true);
+        // Set success state for this specific card
+        setSuccessStates(prev => ({
+          ...prev,
+          [cardType]: true
+        }));
+
         toast({
           title: "Settings updated",
           description: "Your settings have been successfully updated.",
         });
 
         // Clear success message after 3 seconds
-        setTimeout(() => setSaveSuccess(false), 3000);
+        setTimeout(() => {
+          setSuccessStates(prev => ({
+            ...prev,
+            [cardType]: false
+          }));
+        }, 3000);
       } else {
         toast({
           title: "Error",
@@ -292,11 +414,33 @@ export default function SettingsPage() {
         variant: "destructive",
       });
     } finally {
-      setSaving(false);
+      // Reset loading state for this specific card
+      setSavingStates(prev => ({
+        ...prev,
+        [cardType]: false
+      }));
     }
   };
 
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.push("/");
+    } catch (error) {
+      console.error("Error logging out:", error);
+      toast({
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive",
+      });
+      setLoggingOut(false);
+    }
+  };
 
   const handleDeleteAccount = async () => {
     setDeletingAccount(true);
@@ -414,6 +558,26 @@ export default function SettingsPage() {
               </div>
             </div>
           </CardContent>
+          <CardFooter className="flex justify-between items-center">
+            {successStates.notifications && (
+              <div className="flex items-center text-green-500">
+                <CheckCircle className="h-4 w-4 mr-2" />
+                <span>Settings saved successfully</span>
+              </div>
+            )}
+            <div className="ml-auto">
+              <Button onClick={() => handleSaveSettings('notifications')} disabled={savingStates.notifications}>
+                {savingStates.notifications ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </div>
+          </CardFooter>
         </Card>
 
         <Card>
@@ -525,15 +689,15 @@ export default function SettingsPage() {
             </div>
           </CardContent>
           <CardFooter className="flex justify-between items-center">
-            {saveSuccess && (
+            {successStates.appearance && (
               <div className="flex items-center text-green-500">
                 <CheckCircle className="h-4 w-4 mr-2" />
                 <span>Settings saved successfully</span>
               </div>
             )}
             <div className="ml-auto">
-              <Button onClick={handleSaveSettings} disabled={saving}>
-                {saving ? (
+              <Button onClick={() => handleSaveSettings('appearance')} disabled={savingStates.appearance}>
+                {savingStates.appearance ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Saving...
@@ -568,9 +732,13 @@ export default function SettingsPage() {
                 <Switch
                   id="profile_visibility"
                   checked={settings.profile_visibility}
-                  onCheckedChange={() =>
-                    handleSwitchChange("profile_visibility")
-                  }
+                  onCheckedChange={(checked) => {
+                    // Just update the settings state without auto-saving
+                    setSettings(prev => ({
+                      ...prev,
+                      profile_visibility: checked
+                    }));
+                  }}
                 />
               </div>
             </div>
@@ -585,6 +753,66 @@ export default function SettingsPage() {
               </Button>
             </div>
           </CardContent>
+          <CardFooter className="flex justify-between items-center">
+            {successStates.privacy && (
+              <div className="flex items-center text-green-500">
+                <CheckCircle className="h-4 w-4 mr-2" />
+                <span>Settings saved successfully</span>
+              </div>
+            )}
+            <div className="ml-auto">
+              <Button onClick={() => handleSaveSettings('privacy')} disabled={savingStates.privacy}>
+                {savingStates.privacy ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </div>
+          </CardFooter>
+        </Card>
+
+        {/* Mobile-only logout card */}
+        <Card className="md:hidden">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <LogOut className="h-5 w-5" />
+              Account
+            </CardTitle>
+            <CardDescription>
+              Sign out of your account
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Log out of your account on this device
+              </p>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="w-full"
+            >
+              {loggingOut ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Logging out...
+                </>
+              ) : (
+                <>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </>
+              )}
+            </Button>
+          </CardFooter>
         </Card>
 
         <Card className="border-destructive/50">

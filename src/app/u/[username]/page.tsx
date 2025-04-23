@@ -27,6 +27,8 @@ export default function UserProfilePage({
   const [resources, setResources] = useState<any[]>([]);
   const [studyGroups, setStudyGroups] = useState<any[]>([]);
   const [notFound, setNotFound] = useState(false);
+  const [profileHidden, setProfileHidden] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [followStats, setFollowStats] = useState({
     followersCount: 0,
     followingCount: 0
@@ -40,6 +42,8 @@ export default function UserProfilePage({
         const { data: { session } } = await supabase.auth.getSession();
 
         if (session) {
+          // Store the current user ID
+          setCurrentUserId(session.user.id);
           // Set redirecting state to true
           setIsRedirecting(true);
           // Redirect to dashboard profile
@@ -104,6 +108,20 @@ export default function UserProfilePage({
 
         // Ensure we have a valid profile data object
         setProfileData(finalProfileData || {});
+
+        // Check if the profile is visible
+        const { data: userSettings } = await supabase
+          .from("user_settings")
+          .select("profile_visibility")
+          .eq("user_id", finalProfileData.id)
+          .maybeSingle();
+
+        // If profile visibility is explicitly set to false and this is not the user's own profile
+        if (userSettings && userSettings.profile_visibility === false && currentUserId !== finalProfileData.id) {
+          setProfileHidden(true);
+          setLoading(false);
+          return;
+        }
 
         // Fetch public resources by this user
         const { data: resourcesData = [] } = await supabase
@@ -247,6 +265,18 @@ export default function UserProfilePage({
       <div className="container mx-auto py-8 text-center">
         <h1 className="text-2xl font-bold mb-6">User Not Found</h1>
         <p>The profile you're looking for doesn't exist or is not public.</p>
+      </div>
+    );
+  }
+
+  if (profileHidden) {
+    return (
+      <div className="container mx-auto py-8 text-center">
+        <h1 className="text-2xl font-bold mb-6">Profile Not Visible</h1>
+        <p className="mb-4">This user has opted out of public profile visibility.</p>
+        <p className="text-sm text-muted-foreground">
+          Sign in to connect with users and access more features.
+        </p>
       </div>
     );
   }

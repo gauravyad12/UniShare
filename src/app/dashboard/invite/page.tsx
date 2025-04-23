@@ -535,42 +535,44 @@ export default function InvitePage() {
               )}
             </CardContent>
             {inviteCode && (
-              <CardFooter className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  onClick={generateInviteCode}
-                  disabled={generating || maxInviteCodesReached || verificationStatus.hasReachedMaxInvites}
-                  className="flex-1"
-                  title={maxInviteCodesReached
-                    ? "Maximum limit of " + MAX_INVITE_CODES + " invite codes reached"
-                    : verificationStatus.hasReachedMaxInvites
-                    ? "You have already reached the maximum limit of 5 successful invites"
-                    : ""}
-                >
-                  {generating ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                  )}
-                  New Code
-                </Button>
-                <Button
-                  onClick={() => setIsEmailDialogOpen(true)}
-                  variant="outline"
-                  className="flex-1"
-                  disabled={maxInviteCodesReached || verificationStatus.hasReachedMaxInvites}
-                  title={maxInviteCodesReached
-                    ? "Maximum limit of " + MAX_INVITE_CODES + " invite codes reached"
-                    : verificationStatus.hasReachedMaxInvites
-                    ? "You have already reached the maximum limit of 5 successful invites"
-                    : ""}
-                >
-                  <Mail className="mr-2 h-4 w-4" />
-                  Email Invite
-                </Button>
+              <CardFooter className="grid grid-cols-3 gap-2 max-[970px]:grid-cols-1">
+                <div className="col-span-2 grid grid-cols-2 gap-2 max-[970px]:grid-cols-2">
+                  <Button
+                    variant="outline"
+                    onClick={generateInviteCode}
+                    disabled={generating || maxInviteCodesReached || verificationStatus.hasReachedMaxInvites}
+                    className="w-full"
+                    title={maxInviteCodesReached
+                      ? "Maximum limit of " + MAX_INVITE_CODES + " invite codes reached"
+                      : verificationStatus.hasReachedMaxInvites
+                      ? "You have already reached the maximum limit of 5 successful invites"
+                      : ""}
+                  >
+                    {generating ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                    )}
+                    New Code
+                  </Button>
+                  <Button
+                    onClick={() => setIsEmailDialogOpen(true)}
+                    variant="outline"
+                    className="w-full"
+                    disabled={maxInviteCodesReached || verificationStatus.hasReachedMaxInvites}
+                    title={maxInviteCodesReached
+                      ? "Maximum limit of " + MAX_INVITE_CODES + " invite codes reached"
+                      : verificationStatus.hasReachedMaxInvites
+                      ? "You have already reached the maximum limit of 5 successful invites"
+                      : ""}
+                  >
+                    <Mail className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Email</span>&nbsp;<span>Invite</span>
+                  </Button>
+                </div>
                 <Button
                   onClick={shareInvite}
-                  className="flex-1"
+                  className="w-full"
                   disabled={maxInviteCodesReached || verificationStatus.hasReachedMaxInvites}
                   title={maxInviteCodesReached
                     ? "Maximum limit of " + MAX_INVITE_CODES + " invite codes reached"
@@ -776,7 +778,7 @@ export default function InvitePage() {
                           : ""}
                       >
                         <Mail className="mr-2 h-4 w-4" />
-                        Send Your First Invitation
+                        <span className="hidden sm:inline">Send Your First</span>&nbsp;<span>Invite</span>
                       </Button>
                     )}
                   </div>

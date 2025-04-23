@@ -27,6 +27,10 @@ export async function POST(request: NextRequest) {
     } = formData;
 
     console.log("Received settings update:", {
+      email_notifications,
+      study_group_notifications,
+      resource_notifications,
+      profile_visibility,
       theme_preference,
       color_scheme,
       font_size,
@@ -90,7 +94,8 @@ export async function POST(request: NextRequest) {
         .eq("user_id", user.id);
     }
 
-    const { error } = await updateMethod;
+    console.log('Executing update method with profile_visibility:', profile_visibility);
+    const { data, error } = await updateMethod;
 
     if (error) {
       console.error("Error updating settings:", error);
@@ -100,6 +105,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Note: Resend audience updates are now handled in the frontend
+    // to avoid rate limiting issues and to only update when the user
+    // explicitly clicks the Save Settings button
+
+    console.log('Settings updated successfully:', { profile_visibility, data });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Unexpected error:", error);

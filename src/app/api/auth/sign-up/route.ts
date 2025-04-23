@@ -274,7 +274,7 @@ export async function POST(request: NextRequest) {
           email: email,
           username: username,
         },
-        emailRedirectTo: `${request.headers.get("origin")}/auth/callback`,
+        emailRedirectTo: `https://unishare.app/auth/verification-success`,
       },
     });
 
@@ -560,6 +560,41 @@ export async function POST(request: NextRequest) {
         } catch (cookieError) {
           console.error("Error removing invite code cookie:", cookieError);
           // Continue despite cookie removal error
+        }
+
+        // Add user to Resend audience if they have email notifications enabled
+        try {
+          // Get user settings to check if email notifications are enabled
+          const { data: userSettings } = await supabase
+            .from("user_settings")
+            .select("email_notifications")
+            .eq("user_id", user.id)
+            .single();
+
+          // Default to true if not explicitly set to false
+          const emailNotificationsEnabled = userSettings?.email_notifications !== false;
+
+          if (emailNotificationsEnabled) {
+            // Add user to Resend audience
+            const resendResponse = await fetch(new URL('/api/resend/audience', request.url), {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                email,
+                fullName: full_name || '',
+                userId: user.id,
+                fromServer: true
+              }),
+            });
+
+            const resendData = await resendResponse.json();
+            console.log('Resend audience response:', resendData);
+          }
+        } catch (resendError) {
+          console.error('Error adding user to Resend audience:', resendError);
+          // Continue despite Resend error
         }
 
         return NextResponse.json({

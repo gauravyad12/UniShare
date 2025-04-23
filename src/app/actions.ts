@@ -238,6 +238,7 @@ export async function signUpAction(formData: FormData) {
         email: email,
         username: username,
       },
+      emailRedirectTo: `https://unishare.app/auth/verification-success`,
     },
   });
 
