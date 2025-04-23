@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { InfoIcon, Sparkles, BookOpen, MessageSquare, UserPlus, Users } from "lucide-react";
+import { InfoIcon, Sparkles, BookOpen, MessageSquare, UserPlus, Users, Search } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import MobileNotifications from "./mobile-notifications";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { useRouter } from "next/navigation";
+import SearchBarWithClear from "./search-bar-with-clear";
 
 interface MobileDashboardHeaderProps {
   userName: string;
@@ -87,6 +90,16 @@ export default function MobileDashboardHeader({
           <span>
             Welcome to {universityName}'s study hub
           </span>
+        </div>
+
+        {/* Search bar */}
+        <div className="mb-6">
+          <SearchBarWithClear
+            placeholder="Search for resources, notes, textbooks..."
+            defaultValue=""
+            baseUrl="/dashboard/resources"
+            className="bg-background/70 backdrop-blur-md shadow-sm border border-primary/10 rounded-lg"
+          />
         </div>
 
         {/* Stats cards */}

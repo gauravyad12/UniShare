@@ -11,6 +11,7 @@ interface SearchBarWithClearProps {
   defaultValue?: string;
   baseUrl: string;
   tabParam?: string;
+  className?: string;
 }
 
 export default function SearchBarWithClear({
@@ -18,6 +19,7 @@ export default function SearchBarWithClear({
   defaultValue = "",
   baseUrl,
   tabParam,
+  className,
 }: SearchBarWithClearProps) {
   const router = useRouter();
   const [searchValue, setSearchValue] = useState(defaultValue);
@@ -31,15 +33,15 @@ export default function SearchBarWithClear({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Build the URL with search parameter
     const params = new URLSearchParams();
     if (searchValue) params.set("search", searchValue);
     if (tabParam) params.set("tab", tabParam);
-    
+
     // Reset to page 1 when search changes
     params.set("page", "1");
-    
+
     // Navigate to the URL
     router.push(`${baseUrl}?${params.toString()}`);
   };
@@ -47,14 +49,14 @@ export default function SearchBarWithClear({
   const handleClear = () => {
     setSearchValue("");
     setShowClearButton(false);
-    
+
     // Build the URL without search parameter
     const params = new URLSearchParams();
     if (tabParam) params.set("tab", tabParam);
-    
+
     // Reset to page 1
     params.set("page", "1");
-    
+
     // Navigate to the URL
     const queryString = params.toString() ? `?${params.toString()}` : "";
     router.push(`${baseUrl}${queryString}`);
@@ -66,7 +68,7 @@ export default function SearchBarWithClear({
       <Input
         name="search"
         placeholder={placeholder}
-        className="pl-10 pr-10"
+        className={`pl-10 pr-10 ${className || ''}`}
         value={searchValue}
         onChange={(e) => {
           setSearchValue(e.target.value);
