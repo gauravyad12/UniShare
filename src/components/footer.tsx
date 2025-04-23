@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Twitter, Facebook, Instagram } from "lucide-react";
 
@@ -13,20 +15,40 @@ export default function Footer() {
             <h3 className="font-semibold text-foreground mb-4">Platform</h3>
             <ul className="space-y-2">
               <li>
-                <Link
-                  href="/#platform-features"
-                  className="text-muted-foreground hover:text-primary"
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-primary bg-transparent border-none cursor-pointer p-0 m-0"
+                  onClick={() => {
+                    // Direct scroll without any router involvement
+                    const featuresSection = document.getElementById("platform-features");
+                    if (featuresSection) {
+                      featuresSection.scrollIntoView({ behavior: "smooth" });
+                    } else if (window.location.pathname !== "/") {
+                      // If not on homepage, navigate to homepage with hash
+                      window.location.href = "/#platform-features";
+                    }
+                  }}
                 >
                   Features
-                </Link>
+                </button>
               </li>
               <li>
-                <Link
-                  href="/#how-it-works"
-                  className="text-muted-foreground hover:text-primary"
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-primary bg-transparent border-none cursor-pointer p-0 m-0"
+                  onClick={() => {
+                    // Direct scroll without any router involvement
+                    const howItWorksSection = document.getElementById("how-it-works");
+                    if (howItWorksSection) {
+                      howItWorksSection.scrollIntoView({ behavior: "smooth" });
+                    } else if (window.location.pathname !== "/") {
+                      // If not on homepage, navigate to homepage with hash
+                      window.location.href = "/#how-it-works";
+                    }
+                  }}
                 >
                   How It Works
-                </Link>
+                </button>
               </li>
               <li>
                 <Link

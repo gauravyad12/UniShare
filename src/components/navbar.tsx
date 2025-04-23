@@ -134,18 +134,38 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden lg:flex gap-6 items-center">
-          <Link
-            href="/#platform-features"
-            className="text-foreground/80 hover:text-primary font-medium"
+          <button
+            type="button"
+            className="text-foreground/80 hover:text-primary font-medium bg-transparent border-none cursor-pointer p-0 m-0"
+            onClick={() => {
+              // Direct scroll without any router involvement
+              const featuresSection = document.getElementById("platform-features");
+              if (featuresSection) {
+                featuresSection.scrollIntoView({ behavior: "smooth" });
+              } else if (window.location.pathname !== "/") {
+                // If not on homepage, navigate to homepage with hash
+                window.location.href = "/#platform-features";
+              }
+            }}
           >
             Features
-          </Link>
-          <Link
-            href="/#how-it-works"
-            className="text-foreground/80 hover:text-primary font-medium"
+          </button>
+          <button
+            type="button"
+            className="text-foreground/80 hover:text-primary font-medium bg-transparent border-none cursor-pointer p-0 m-0"
+            onClick={() => {
+              // Direct scroll without any router involvement
+              const howItWorksSection = document.getElementById("how-it-works");
+              if (howItWorksSection) {
+                howItWorksSection.scrollIntoView({ behavior: "smooth" });
+              } else if (window.location.pathname !== "/") {
+                // If not on homepage, navigate to homepage with hash
+                window.location.href = "/#how-it-works";
+              }
+            }}
           >
             How It Works
-          </Link>
+          </button>
           <Link
             href="/universities"
             className="text-foreground/80 hover:text-primary font-medium"

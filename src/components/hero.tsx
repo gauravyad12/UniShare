@@ -60,7 +60,7 @@ export default function Hero() {
   return (
     <div
       className="relative overflow-hidden bg-background"
-      style={{ position: "relative", isolation: "isolate" }}
+      style={{ position: "relative", isolation: "isolate", contain: "layout" }}
     >
       {/* Particles background - contained within hero section */}
       <div
@@ -70,7 +70,10 @@ export default function Hero() {
           overflow: "hidden",
           height: "100%",
           zIndex: 0,
+          contain: "strict",
+          clipPath: "inset(0)",
         }}
+        className="particles-wrapper"
       >
         <ParticlesBackground />
       </div>
@@ -114,20 +117,19 @@ export default function Hero() {
                 </Link>
               )}
 
-              <Link
-                href="/#how-it-works"
+              <button
+                type="button"
                 className="inline-flex items-center px-8 py-4 text-foreground bg-secondary rounded-lg hover:bg-secondary/80 transition-colors text-lg font-medium"
-                onClick={(e) => {
-                  if (window.location.pathname === "/") {
-                    e.preventDefault();
-                    document
-                      .getElementById("how-it-works")
-                      ?.scrollIntoView({ behavior: "smooth" });
+                onClick={() => {
+                  // Direct scroll without any router involvement
+                  const howItWorksSection = document.getElementById("how-it-works");
+                  if (howItWorksSection) {
+                    howItWorksSection.scrollIntoView({ behavior: "smooth" });
                   }
                 }}
               >
                 How It Works
-              </Link>
+              </button>
             </div>
 
             <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import Particles from "react-tsparticles";
 import { loadFull } from "tsparticles";
 
@@ -9,11 +9,48 @@ export default function ParticlesBackground() {
     await loadFull(engine);
   }, []);
 
+  // Add a style element to fix Chrome-specific issues
+  useEffect(() => {
+    // Create a style element for browser-specific fixes
+    const styleElement = document.createElement("style");
+    styleElement.id = "particles-chrome-fix";
+    styleElement.textContent = `
+      /* Fix for Chrome to contain particles within the hero section */
+      #tsparticles {
+        contain: strict;
+        isolation: isolate;
+        overflow: hidden;
+        clip-path: inset(0);
+      }
+
+      /* Ensure the container is properly contained */
+      .particles-container {
+        contain: content;
+        isolation: isolate;
+        overflow: hidden;
+      }
+    `;
+
+    // Add the style element to the document head
+    if (!document.getElementById("particles-chrome-fix")) {
+      document.head.appendChild(styleElement);
+    }
+
+    // Clean up function
+    return () => {
+      const existingStyle = document.getElementById("particles-chrome-fix");
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+    };
+  }, []);
+
   return (
-    <Particles
-      id="tsparticles"
-      init={particlesInit}
-      options={{
+    <div className="particles-container" style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden" }}>
+      <Particles
+        id="tsparticles"
+        init={particlesInit}
+        options={{
         background: {
           color: {
             value: "transparent",
@@ -124,7 +161,10 @@ export default function ParticlesBackground() {
         top: 0,
         left: 0,
         pointerEvents: "none",
+        contain: "strict",
+        overflow: "hidden",
       }}
     />
+    </div>
   );
 }

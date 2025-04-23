@@ -34,13 +34,20 @@ export default function GlobalLoadingSpinner() {
     // Also handle link clicks directly
     const handleLinkClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
+
+      // Skip if the click is on or inside a scroll-link element
+      if (target.closest('.scroll-link')) {
+        return;
+      }
+
       const link = target.closest("a");
       if (
         link &&
         link.href &&
         !link.target &&
         !link.hasAttribute("download") &&
-        link.hostname === window.location.hostname
+        link.hostname === window.location.hostname &&
+        !link.classList.contains('scroll-link') // Also check the link itself
       ) {
         handleStart();
       }

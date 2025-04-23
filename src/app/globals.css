@@ -170,3 +170,33 @@
 #global-download-overlay {
   animation: slide-in 0.3s ease forwards;
 }
+
+/* Particles background containment fixes */
+.particles-wrapper {
+  contain: layout paint size;
+  isolation: isolate;
+}
+
+/* Chrome-specific fixes for particles */
+@supports (-webkit-appearance:none) {
+  #tsparticles {
+    contain: strict;
+    isolation: isolate;
+    overflow: hidden !important;
+    clip-path: inset(0) !important;
+    height: 100% !important;
+    max-height: 100vh !important;
+  }
+
+  .particles-container {
+    contain: content;
+    isolation: isolate;
+    overflow: hidden !important;
+    max-height: 100% !important;
+  }
+
+  .particles-wrapper {
+    max-height: 100vh !important;
+    overflow: hidden !important;
+  }
+}
