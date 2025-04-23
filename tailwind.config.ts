@@ -23,6 +23,7 @@ const config = {
       'md': '768px',
       'lg': '1024px',
       'xl': '1280px',
+      'wide': '1258px',
       '2xl': '1536px',
     },
     extend: {

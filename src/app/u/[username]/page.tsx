@@ -348,7 +348,7 @@ export default function UserProfilePage({
           <TabsContent value="resources" className="mt-6">
             <h2 className="text-xl font-semibold mb-4">Public Resources</h2>
             {resources && resources.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {resources.map((resource) => (
                   <ResourceCard
                     key={resource.id}
@@ -376,7 +376,7 @@ export default function UserProfilePage({
           <TabsContent value="studyGroups" className="mt-6">
             <h2 className="text-xl font-semibold mb-4">Public Study Groups</h2>
             {studyGroups && studyGroups.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 wide:grid-cols-3 gap-8">
                 {studyGroups.map((group) => (
                   <StudyGroupCard key={group.id} group={group} isPublicView={true} />
                 ))}
