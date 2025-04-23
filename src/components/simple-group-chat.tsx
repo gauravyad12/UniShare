@@ -21,7 +21,9 @@ import {
   Send,
   Loader2,
   FileText,
-  ChevronDown
+  ChevronDown,
+  Menu,
+  ArrowUp
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +58,7 @@ export default function SimpleGroupChat({
   const [cleanupFunction, setCleanupFunction] = useState<(() => void) | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingCooldownRef = useRef<NodeJS.Timeout | null>(null);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
   // Component state initialized
 
@@ -157,9 +160,16 @@ export default function SimpleGroupChat({
       // Start fade out animation
       setIsButtonVisible(false);
 
-      // Scroll to bottom
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-      setIsAtBottom(true);
+      // Scroll to bottom - use a more forceful approach
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+
+      // Also set a timeout to ensure we're really at the bottom
+      setTimeout(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
+          setIsAtBottom(true);
+        }
+      }, 300);
     }
   }, []);
 
@@ -459,14 +469,20 @@ export default function SimpleGroupChat({
                 console.error('Error fetching messages:', messagesError);
                 // Fallback if the API fails
                 setMessages(prevMessages => [...prevMessages, payload.new]);
+                // Scroll to bottom after adding the new message
+                setTimeout(() => scrollToBottom(), 200);
               } else if (messagesData) {
                 console.log('Refreshed messages with profiles');
                 setMessages(messagesData);
+                // Scroll to bottom after refreshing messages
+                setTimeout(() => scrollToBottom(), 200);
               }
             } catch (error) {
               console.error('Error fetching messages:', error);
               // Fallback if the API fails
               setMessages(prevMessages => [...prevMessages, payload.new]);
+              // Scroll to bottom after adding the new message
+              setTimeout(() => scrollToBottom(), 200);
             }
           })
           .subscribe((status: any) => {
@@ -569,10 +585,11 @@ export default function SimpleGroupChat({
         // Add the message to the chat
         setMessages(prevMessages => [...prevMessages, data[0]]);
 
-        // Scroll to the bottom
+        // Always scroll to the bottom when sending a message
+        // Use a slightly longer timeout to ensure the message is rendered
         setTimeout(() => {
           scrollToBottom();
-        }, 100);
+        }, 200);
       } else {
         // Fallback: Fetch all messages again immediately
         console.log('No message data returned, refreshing all messages');
@@ -588,6 +605,8 @@ export default function SimpleGroupChat({
             console.error('Error fetching messages:', messagesError);
           } else {
             setMessages(messagesData || []);
+            // Scroll to bottom after refreshing messages
+            setTimeout(() => scrollToBottom(), 200);
           }
         } catch (error) {
           console.error('Error fetching messages:', error);
@@ -612,6 +631,10 @@ export default function SimpleGroupChat({
     router.push(url.toString());
   };
 
+  const toggleMobileSidebar = () => {
+    setShowMobileSidebar(prev => !prev);
+  };
+
   // No longer needed as we redirect non-members
 
   if (loading) {
@@ -621,16 +644,16 @@ export default function SimpleGroupChat({
           <div className="hidden md:block w-80 h-[calc(100vh-69px)]">
             <Card className="h-full border-r border-b-0 border-t-0 border-l-0 rounded-none shadow-none">
               <CardHeader className="px-4 py-3 border-b">
-                <div className="h-8 w-40 bg-muted animate-pulse rounded mb-2"></div>
-                <div className="h-10 w-full bg-muted animate-pulse rounded mt-2"></div>
+                <div className="h-8 w-40 bg-muted rounded mb-2"></div>
+                <div className="h-10 w-full bg-muted rounded mt-2"></div>
               </CardHeader>
               <CardContent className="p-4 space-y-3">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-muted animate-pulse" />
+                    <div className="w-10 h-10 rounded-full bg-muted" />
                     <div className="space-y-2 flex-1">
-                      <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
-                      <div className="h-3 bg-muted rounded animate-pulse w-1/2" />
+                      <div className="h-4 bg-muted rounded w-3/4" />
+                      <div className="h-3 bg-muted rounded w-1/2" />
                     </div>
                   </div>
                 ))}
@@ -639,8 +662,14 @@ export default function SimpleGroupChat({
           </div>
           <Card className="relative flex-1 border-none shadow-none px-0 sm:px-0 md:px-0 overflow-hidden flex flex-col pb-16 md:pb-4 h-screen md:h-[calc(100vh-69px)]">
             <CardHeader className="bg-background border-b px-3 sm:px-4 md:px-6">
-              <div className="flex justify-between items-start">
-                <div className="h-8 w-64 bg-muted animate-pulse rounded"></div>
+              <div className="flex items-center gap-2 mb-2 pr-8 w-full">
+                <div className="h-8 w-8 bg-muted rounded-full flex items-center justify-center">
+                  <Menu className="h-4 w-4 text-muted-foreground/50" />
+                </div>
+                <div className="flex-1">
+                  <div className="h-6 w-48 bg-muted rounded mb-2"></div>
+                  <div className="h-4 w-16 bg-muted rounded"></div>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -650,6 +679,7 @@ export default function SimpleGroupChat({
                   <X className="h-4 w-4" />
                 </Button>
               </div>
+              <div className="h-4 w-32 bg-muted rounded"></div>
             </CardHeader>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -664,13 +694,58 @@ export default function SimpleGroupChat({
   return (
     <div className="fixed z-20 flex top-0 md:top-[69px] left-0 right-0 bottom-0 border-t border-border md:border-t">
       <div className="container mx-auto flex px-0 sm:px-0 md:px-4">
+        {/* Desktop sidebar - always visible */}
         <div className="hidden md:block w-80 h-[calc(100vh-69px)]">
           <MinimalGroupChatSidebar
             currentGroupId={group.id}
             groupName={group.name}
             groupImage={group.image_url}
+            onChatSelect={toggleMobileSidebar}
           />
         </div>
+
+        {/* Mobile sidebar with animation - conditionally visible */}
+        <AnimatePresence>
+          {showMobileSidebar && (
+            <>
+              {/* Backdrop overlay */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 bg-background/80 backdrop-blur-sm z-30 md:hidden"
+                onClick={toggleMobileSidebar}
+              />
+
+              {/* Sidebar */}
+              <motion.div
+                initial={{ x: "-100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "-100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="fixed top-0 left-0 bottom-0 w-full z-40 md:hidden bg-background shadow-lg"
+              >
+                <div className="h-full relative">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-2 z-50"
+                    onClick={toggleMobileSidebar}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <MinimalGroupChatSidebar
+                    currentGroupId={group.id}
+                    groupName={group.name}
+                    groupImage={group.image_url}
+                    onChatSelect={toggleMobileSidebar}
+                  />
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
         <Card className="relative flex-1 border-none shadow-none px-0 sm:px-0 md:px-0 overflow-hidden flex flex-col pb-16 md:pb-4 h-screen md:h-[calc(100vh-69px)]">
       <Button
         variant="ghost"
@@ -683,7 +758,15 @@ export default function SimpleGroupChat({
 
       <CardHeader className="pb-2 bg-background border-b flex items-center px-3 sm:px-4 md:px-6">
         <div className="flex items-center gap-2 mb-2 pr-8 w-full"> {/* Added right padding for X button */}
-          <Button variant="ghost" size="sm" className="rounded-full mr-2 p-0 h-8 w-8" onClick={handleClose}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="rounded-full mr-2 p-0 h-8 w-8 md:hidden flex items-center justify-center"
+            onClick={toggleMobileSidebar}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="sm" className="rounded-full mr-2 p-0 h-8 w-8 hidden md:flex" onClick={handleClose}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex-1">
@@ -713,7 +796,13 @@ export default function SimpleGroupChat({
             <div className="space-y-3 pt-3">
               <AnimatePresence initial={false}>
                 {[...messages].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).map((message) => (
-                  <div key={message.id}>
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                  >
                     <div
                       className={`flex gap-2 ${message.sender_id === userId ? 'justify-end' : 'justify-start'}`}
                     >
@@ -814,7 +903,7 @@ export default function SimpleGroupChat({
                     </Avatar>
                   )}
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </AnimatePresence>
               <div ref={messagesEndRef} />
@@ -879,36 +968,38 @@ export default function SimpleGroupChat({
                 setNewMessage(prev => prev ? `${prev} ${resourceLink}` : resourceLink);
               }}
             />
-            <Input
-              placeholder="Type your message..."
-              value={newMessage}
-              className="rounded-full bg-muted/50 focus-visible:ring-primary/50"
-              onChange={(e) => {
-                setNewMessage(e.target.value);
-                // Only update typing status if we're not in a cooldown period
-                if (!typingCooldownRef.current) {
-                  updateTypingStatus(true);
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-            />
-            <Button
-              onClick={handleSendMessage}
-              disabled={sending || !newMessage.trim()}
-              size="icon"
-              className="rounded-full h-10 w-10 aspect-square flex items-center justify-center p-0"
-            >
-              {sending ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Send className="h-5 w-5" />
-              )}
-            </Button>
+            <div className="relative flex-1">
+              <Input
+                placeholder="Type your message..."
+                value={newMessage}
+                className="rounded-full bg-muted/50 focus-visible:ring-primary/50 pr-10"
+                onChange={(e) => {
+                  setNewMessage(e.target.value);
+                  // Only update typing status if we're not in a cooldown period
+                  if (!typingCooldownRef.current) {
+                    updateTypingStatus(true);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+              />
+              <Button
+                onClick={handleSendMessage}
+                disabled={sending || !newMessage.trim()}
+                size="icon"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full h-6 w-6 flex items-center justify-center p-0 bg-transparent hover:bg-muted/80"
+              >
+                {sending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                ) : (
+                  <ArrowUp className="h-3.5 w-3.5 text-primary" />
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </CardContent>

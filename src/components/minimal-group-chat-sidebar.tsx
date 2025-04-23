@@ -13,6 +13,7 @@ type MinimalGroupChatSidebarProps = {
   currentGroupId: string;
   groupName: string;
   groupImage?: string;
+  onChatSelect?: () => void;
 };
 
 interface GroupWithLatestMessage {
@@ -28,7 +29,8 @@ interface GroupWithLatestMessage {
 export default function MinimalGroupChatSidebar({
   currentGroupId,
   groupName,
-  groupImage
+  groupImage,
+  onChatSelect
 }: MinimalGroupChatSidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [groups, setGroups] = useState<GroupWithLatestMessage[]>([]);
@@ -77,8 +79,8 @@ export default function MinimalGroupChatSidebar({
   );
 
   return (
-    <div className="h-full border-r border-b-0 border-t-0 border-l border-border rounded-none shadow-none">
-      <div className="px-4 py-3 border-b">
+    <div className="h-full border-r border-b-0 border-t-0 border-l border-border rounded-none shadow-none bg-background">
+      <div className="px-4 py-3 border-b bg-background">
         <div className="flex items-center justify-between">
           <div className="text-lg flex items-center gap-2 font-medium">
             <MessageSquare className="h-5 w-5 text-primary" />
@@ -97,8 +99,8 @@ export default function MinimalGroupChatSidebar({
         </div>
       </div>
 
-      <div className="p-0">
-        <ScrollArea className="h-[calc(100vh-69px-7.5rem)]">
+      <div className="p-0 bg-background">
+        <ScrollArea className="h-[calc(100vh-69px-7.5rem)] bg-background">
           {loading ? (
             <div className="p-4 space-y-3">
               {[1, 2, 3].map((i) => (
@@ -130,6 +132,7 @@ export default function MinimalGroupChatSidebar({
                   key={group.id}
                   href={`/dashboard/study-groups?view=${group.id}&chat=true`}
                   className={`block p-3 hover:bg-muted/50 transition-colors ${currentGroupId === group.id ? "bg-muted" : ""}`}
+                  onClick={() => onChatSelect && onChatSelect()}
                 >
                   <div className="flex items-start gap-3">
                     <Avatar className="h-10 w-10">
@@ -184,7 +187,7 @@ export default function MinimalGroupChatSidebar({
                 Join or create a study group to start chatting
               </p>
               <Button asChild variant="outline" size="sm" className="mt-4">
-                <Link href="/dashboard/study-groups">Browse Study Groups</Link>
+                <Link href="/dashboard/study-groups" onClick={() => onChatSelect && onChatSelect()}>Browse Study Groups</Link>
               </Button>
             </div>
           )}

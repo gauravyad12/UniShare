@@ -146,7 +146,7 @@ export default function ShareGroupResource({
           <Plus className="h-5 w-5" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
+      <PopoverContent className="w-80 p-0" align="start">
         <div className="p-4 pb-0">
           <div className="font-medium mb-2">Share Resource</div>
           <div className="text-sm text-muted-foreground mb-4">
