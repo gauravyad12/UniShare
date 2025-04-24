@@ -38,6 +38,7 @@ export default function ProfilePage({
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isCurrentUserProfile, setIsCurrentUserProfile] = useState(false);
+  const [profileHidden, setProfileHidden] = useState(false);
   const [followStats, setFollowStats] = useState({
     followersCount: 0,
     followingCount: 0,
@@ -145,7 +146,24 @@ export default function ProfilePage({
 
         console.log("Profile data fetched:", profileData);
         setProfile(profileData);
-        setIsCurrentUserProfile(userData.user?.id === profileData.id);
+
+        // Determine if this is the current user's profile
+        const isOwnProfile = userData.user?.id === profileData.id;
+        setIsCurrentUserProfile(isOwnProfile);
+
+        // Check if the profile is visible
+        const { data: userSettings } = await supabase
+          .from("user_settings")
+          .select("profile_visibility")
+          .eq("user_id", profileData.id)
+          .maybeSingle();
+
+        // If profile visibility is explicitly set to false and this is not the user's own profile
+        if (userSettings && userSettings.profile_visibility === false && !isOwnProfile) {
+          setProfileHidden(true);
+          setIsLoading(false);
+          return;
+        }
 
         // Get user's public resources
         const { data: resourcesData, error: resourcesError } = await supabase
@@ -233,6 +251,19 @@ export default function ProfilePage({
           <h1 className="text-2xl font-bold mb-4">Profile Not Found</h1>
           <p>
             The user profile you're looking for doesn't exist or is private.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (profileHidden) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Profile Not Visible</h1>
+          <p className="mb-4">
+            This user has opted out of profile visibility.
           </p>
         </div>
       </div>
