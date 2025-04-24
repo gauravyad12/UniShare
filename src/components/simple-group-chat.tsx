@@ -138,9 +138,14 @@ export default function SimpleGroupChat({
     if (!messagesContainerRef.current) return;
 
     const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-    // Consider not at bottom if scrolled up more than 10px
+
+    // Use different thresholds for desktop and mobile
+    // Desktop needs a larger threshold because of different scroll behavior
+    const isMobile = window.innerWidth < 768; // md breakpoint in Tailwind
+    const threshold = isMobile ? 10 : 50; // 50px threshold for desktop, 10px for mobile
+
     const scrolledFromBottom = scrollHeight - scrollTop - clientHeight;
-    const isAtBottomNow = scrolledFromBottom < 10;
+    const isAtBottomNow = scrolledFromBottom < threshold;
 
     // Only update state if it's changed to avoid unnecessary re-renders
     if (isAtBottomNow !== isAtBottom) {
@@ -149,6 +154,9 @@ export default function SimpleGroupChat({
       // Show button with animation when scrolling up
       if (!isAtBottomNow) {
         setIsButtonVisible(true);
+      } else {
+        // Explicitly hide button when at bottom
+        setIsButtonVisible(false);
       }
     }
   }, [isAtBottom]);
