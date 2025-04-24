@@ -161,6 +161,53 @@
   --primary-rgb: 74, 222, 128;
 }
 
+/* Custom media query for intermediate screen sizes */
+/* Custom layout for profile edit page */
+.profile-card-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.profile-card-container > * {
+  height: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-content {
+  flex: 1;
+}
+
+/* Media query for tablets and small desktops */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .profile-card-container {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .profile-card-container > * {
+    flex: 1;
+    margin: 0;
+    min-height: 0;
+  }
+
+  .profile-card-container .card-content {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+  }
+
+  .profile-card-container .card-footer {
+    margin-top: auto;
+  }
+
+  /* Fix spacing in Canvas integration card */
+  .canvas-integration-responsive .flex-col {
+    gap: 0.75rem;
+  }
+}
+
 /* Custom utility classes */
 @layer utilities {
   /* Hide scrollbar but keep functionality */

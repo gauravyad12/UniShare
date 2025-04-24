@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Home, User, BookOpen, Settings, Plus, X, CheckSquare } from "lucide-react";
+import { Home, User, BookOpen, Settings, Plus, X } from "lucide-react";
 import { useThemeContext } from "./theme-context";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
@@ -13,7 +13,6 @@ export default function BottomNavbar() {
   const pathname = usePathname();
   const { accentColor, theme } = useThemeContext();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [username, setUsername] = useState<string | null>(null);
   const [isActionOpen, setIsActionOpen] = useState(false);
   const supabase = createClient();
 
@@ -26,30 +25,6 @@ export default function BottomNavbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  // Fetch current user's username
-  useEffect(() => {
-    const fetchUsername = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data } = await supabase
-            .from('user_profiles')
-            .select('username')
-            .eq('id', user.id)
-            .single();
-
-          if (data?.username) {
-            setUsername(data.username);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching username:', error);
-      }
-    };
-
-    fetchUsername();
-  }, [supabase]);
 
   // Define navigation items with their paths, icons, and labels
   const navItems = [
@@ -70,14 +45,14 @@ export default function BottomNavbar() {
       label: "",
     },
     {
-      path: "/dashboard/todos",
-      icon: CheckSquare,
-      label: "To-Do",
-    },
-    {
       path: "/dashboard/profile/edit",
       icon: User,
       label: "Profile",
+    },
+    {
+      path: "/dashboard/settings",
+      icon: Settings,
+      label: "Settings",
     },
   ];
 
@@ -136,8 +111,11 @@ export default function BottomNavbar() {
 
             // Standard check for paths
             const isActive = pathname === item.path ||
-              (pathname.startsWith(`${item.path}/`) &&
-                item.path !== "/dashboard");
+              (pathname.startsWith(`${item.path}/`) && item.path !== "/dashboard") ||
+              // Special case for profile edit path
+              (item.label === "Profile" && pathname === "/dashboard/profile/edit") ||
+              // Special case for settings path
+              (item.label === "Settings" && pathname.startsWith("/dashboard/settings"));
 
             return (
               <Link

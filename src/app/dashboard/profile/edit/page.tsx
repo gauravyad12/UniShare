@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import CanvasIntegrationCard from "@/components/canvas-integration-card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -552,50 +553,54 @@ export default function EditProfilePage() {
         </p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Picture</CardTitle>
-              <CardDescription>
-                Upload a profile picture to personalize your account
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center">
-              <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                {profile?.avatar_url ? (
-                  <img
-                    src={profile.avatar_url}
-                    alt="Profile"
-                    className="w-full h-full rounded-full object-cover"
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1">
+          <div className="profile-card-container">
+            <Card>
+              <CardHeader>
+                <CardTitle>Profile Picture</CardTitle>
+                <CardDescription>
+                  Upload a profile picture to personalize your account
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center justify-center card-content">
+                <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  {profile?.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt="Profile"
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <UserCircle className="w-20 h-20 text-primary" />
+                  )}
+                </div>
+                <div className="relative">
+                  <input
+                    type="file"
+                    id="avatar-upload"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleImageUpload}
                   />
-                ) : (
-                  <UserCircle className="w-20 h-20 text-primary" />
-                )}
-              </div>
-              <div className="relative">
-                <input
-                  type="file"
-                  id="avatar-upload"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                />
-                <Button
-                  className="mt-2"
-                  onClick={() =>
-                    document.getElementById("avatar-upload")?.click()
-                  }
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload Image
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                  <Button
+                    className="mt-2"
+                    onClick={() =>
+                      document.getElementById("avatar-upload")?.click()
+                    }
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload Image
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <CanvasIntegrationCard />
+          </div>
         </div>
 
-        <div className="md:col-span-2">
+        <div className="lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>Personal Information</CardTitle>
