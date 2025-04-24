@@ -22,6 +22,7 @@ import {
 import { useEffect, useCallback } from "react";
 import Link from "next/link";
 import SuspenseSearchParams from "@/components/suspense-search-params";
+import StructuredData from "@/components/structured-data";
 
 export default function Home() {
   // Handle search params changes
@@ -56,8 +57,36 @@ export default function Home() {
     return () => document.removeEventListener("click", handleAnchorClick);
   }, []);
 
+  const websiteStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "UniShare",
+    "url": "https://unishare.app",
+    "description": "An exclusive platform for university students to collaborate, share academic resources, and form study groups in a secure environment.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://unishare.app/dashboard/resources?search={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  };
+
+  const organizationStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "UniShare",
+    "url": "https://unishare.app",
+    "logo": "https://unishare.app/android-chrome-512x512.png",
+    "sameAs": [
+      "https://twitter.com/useunishare",
+      "https://facebook.com/useunishare",
+      "https://instagram.com/useunishare"
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-background/95">
+      <StructuredData data={websiteStructuredData} />
+      <StructuredData data={organizationStructuredData} />
       <SuspenseSearchParams onParamsChange={handleParamsChange} fallback={<div>Loading...</div>} />
       <ClientNavbar />
       <Hero />

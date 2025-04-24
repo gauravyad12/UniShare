@@ -64,7 +64,9 @@ export default function SearchBarWithClear({
 
   return (
     <form onSubmit={handleSubmit} className="relative">
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center z-10 search-icon-wrapper">
+        <Search className="h-4 w-4 text-primary search-icon" />
+      </div>
       <Input
         name="search"
         placeholder={placeholder}
@@ -76,16 +78,18 @@ export default function SearchBarWithClear({
         }}
       />
       {showClearButton && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full"
-          onClick={handleClear}
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Clear search</span>
-        </Button>
+        <div className="absolute right-1 top-1/2 -translate-y-1/2 z-10 search-icon-wrapper">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-full bg-background/80 hover:bg-background"
+            onClick={handleClear}
+          >
+            <X className="h-4 w-4 text-primary search-icon" />
+            <span className="sr-only">Clear search</span>
+          </Button>
+        </div>
       )}
     </form>
   );

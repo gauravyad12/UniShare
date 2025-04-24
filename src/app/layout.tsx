@@ -19,6 +19,62 @@ export const metadata: Metadata = {
   title: "UniShare | Academic Resource Sharing Platform",
   description:
     "An exclusive platform for university students to collaborate, share academic resources, and form study groups in a secure environment.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://unishare.app'),
+  keywords: [
+    "university", "student", "academic", "resources", "study groups",
+    "collaboration", "education", "learning", "college", "university resources"
+  ],
+  authors: [{ name: "UniShare Team" }],
+  creator: "UniShare",
+  publisher: "UniShare",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://unishare.app",
+    title: "UniShare | Academic Resource Sharing Platform",
+    description: "An exclusive platform for university students to collaborate, share academic resources, and form study groups in a secure environment.",
+    siteName: "UniShare",
+    images: [
+      {
+        url: "https://unishare.app/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "UniShare - Academic Resource Sharing Platform",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "UniShare | Academic Resource Sharing Platform",
+    description: "An exclusive platform for university students to collaborate, share academic resources, and form study groups in a secure environment.",
+    creator: "@useunishare",
+    images: ["https://unishare.app/og-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION,
+    yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION,
+    yahoo: process.env.NEXT_PUBLIC_YAHOO_VERIFICATION,
+    bing: process.env.NEXT_PUBLIC_BING_VERIFICATION,
+  },
+  alternates: {
+    canonical: "/",
+  },
 };
 
 export default function RootLayout({
@@ -28,8 +84,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head />
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#000000" />
+        <link rel="manifest" href="/site.webmanifest" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#000000" />
+        <meta name="msapplication-TileColor" content="#000000" />
+      </head>
       <Script src="https://api.tempolabs.ai/proxy-asset?url=https://storage.googleapis.com/tempo-public-assets/error-handling.js" />
+      <Script src="/sw-register.js" strategy="afterInteractive" />
       <body
         className={`${inter.className} min-h-screen flex flex-col bg-background`}
       >

@@ -244,7 +244,7 @@
   isolation: isolate;
 }
 
-/* Chrome-specific fixes for particles */
+/* Chrome-specific fixes for particles and search icons */
 @supports (-webkit-appearance:none) {
   #tsparticles {
     contain: strict;
@@ -265,6 +265,20 @@
   .particles-wrapper {
     max-height: 100vh !important;
     overflow: hidden !important;
+  }
+
+  /* Fix for search icons in Chrome */
+  .search-icon-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 10 !important;
+  }
+
+  .search-icon {
+    color: hsl(var(--primary)) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
   }
 }
 

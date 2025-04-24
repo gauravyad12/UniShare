@@ -1,0 +1,11 @@
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Disallow admin and API routes
+Disallow: /api/
+Disallow: /dashboard/admin/
+Disallow: /dashboard/settings/
+
+# Sitemap location
+Sitemap: https://unishare.app/sitemap.xml
