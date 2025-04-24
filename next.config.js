@@ -81,16 +81,4 @@ const nextConfig = {
 
 };
 
-// Configure SWC plugins for Tempo - only in development
-if (process.env.NEXT_PUBLIC_TEMPO && process.env.NODE_ENV === 'development') {
-  // Preserve existing experimental settings
-  const currentExperimental = nextConfig.experimental || {};
-
-  nextConfig["experimental"] = {
-    ...currentExperimental,
-    // NextJS 14.2.x
-    swcPlugins: [[require.resolve("tempo-devtools/swc/0.90"), {}]],
-  };
-}
-
 module.exports = nextConfig;

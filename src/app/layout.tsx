@@ -4,7 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeSync } from "@/components/theme-sync";
-import { TempoInit } from "@/components/tempo-init";
+
 import { NavigationEvents } from "@/components/navigation-events";
 import GlobalLoadingSpinner from "@/components/global-loading-spinner";
 import { GlobalStylesProvider } from "@/components/global-styles-provider";
@@ -95,7 +95,7 @@ export default function RootLayout({
         <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#000000" />
         <meta name="msapplication-TileColor" content="#000000" />
       </head>
-      <Script src="https://api.tempolabs.ai/proxy-asset?url=https://storage.googleapis.com/tempo-public-assets/error-handling.js" />
+
       <Script src="/sw-register.js" strategy="afterInteractive" />
       <body
         className={`${inter.className} min-h-screen flex flex-col bg-background`}
@@ -106,7 +106,7 @@ export default function RootLayout({
           <GlobalLoadingSpinner />
           {children}
           <NavigationEvents />
-          <TempoInit />
+
           <SpeedInsights />
           <Analytics />
         </ThemeProvider>

@@ -23,8 +23,7 @@ export async function middleware(req: NextRequest) {
       pathname === "/favicon.ico" || // Skip for favicon
       pathname === "/" || // Skip for home page to prevent redirect loops
       pathname === "/universities" || // Skip for universities page
-      pathname === "/success" || // Skip for success page
-      pathname.startsWith("/tempobook/") // Skip for tempobook pages
+      pathname === "/success" // Skip for success page
     ) {
       const response = NextResponse.next();
       // Add cache control headers to prevent caching issues

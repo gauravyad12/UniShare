@@ -40,11 +40,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Tempo
-
+# Duplicated entries
 node_modules/
-**/tempobook/dynamic/
-**/tempobook/storyboards/
 
 # I want to ignore the git folder
 .git
