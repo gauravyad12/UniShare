@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/utils/supabase/client";
 import {
   DropdownMenu,
@@ -12,12 +13,9 @@ import { Button } from "./ui/button";
 import {
   UserCircle,
   Home,
-  GraduationCap,
   BookOpen,
   Users,
   Settings,
-  Bell,
-  MessageSquare,
   LogOut,
   UserPlus,
 } from "lucide-react";
@@ -107,7 +105,13 @@ export default function DashboardNavbar() {
       <div className="container mx-auto px-4 flex justify-between items-center">
         <div className="flex items-center gap-4">
           <Link href="/" prefetch className="flex items-center gap-2">
-            <GraduationCap className="h-8 w-8 text-primary" />
+            <Image
+              src="/android-chrome-192x192.png"
+              alt="UniShare Logo"
+              width={32}
+              height={32}
+              className="h-8 w-8"
+            />
             <span className="text-xl font-bold">UniShare</span>
           </Link>
 

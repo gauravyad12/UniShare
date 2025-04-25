@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "./ui/button";
-import { GraduationCap, BookOpen, Users, Search } from "lucide-react";
+
 import UserProfile from "./user-profile";
 import { ThemeToggle } from "./theme-toggle";
 import { useEffect, useState } from "react";
@@ -56,7 +57,13 @@ export default function ClientNavbar() {
           className="flex items-center gap-2"
           onClick={handleNavigation}
         >
-          <GraduationCap className="h-8 w-8 text-primary" />
+          <Image
+            src="/android-chrome-192x192.png"
+            alt="UniShare Logo"
+            width={32}
+            height={32}
+            className="h-8 w-8"
+          />
           <span className="text-xl font-bold">UniShare</span>
         </Link>
 

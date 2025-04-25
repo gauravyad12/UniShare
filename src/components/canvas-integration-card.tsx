@@ -815,7 +815,7 @@ export default function CanvasIntegrationCard() {
                         ({courses.length} courses found)
                       </p>
                     </div>
-                    <div className="space-y-3">
+                    <div className="space-y-3 max-h-[200px] overflow-y-auto pr-1">
                       {courses.map((course) => (
                         <div key={course.id} className="flex flex-col sm:flex-row items-start gap-3 p-3 border rounded-md hover:bg-muted/30 transition-colors">
                         <div className="pt-0.5 flex-shrink-0">

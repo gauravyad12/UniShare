@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "./ui/button";
-import { GraduationCap } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import { useEffect, useState } from "react";
 
@@ -114,7 +114,13 @@ export default function Navbar() {
       <nav className="w-full border-b border-border bg-background py-4">
         <div className="container mx-auto px-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
-            <GraduationCap className="h-8 w-8 text-primary" />
+            <Image
+              src="/android-chrome-192x192.png"
+              alt="UniShare Logo"
+              width={32}
+              height={32}
+              className="h-8 w-8"
+            />
             <span className="text-xl font-bold">UniShare</span>
           </Link>
           <div className="flex gap-4 items-center">
@@ -129,7 +135,13 @@ export default function Navbar() {
     <nav className="w-full border-b border-border bg-background py-4">
       <div className="container mx-auto px-4 flex justify-between items-center">
         <Link href="/" className="flex items-center gap-2">
-          <GraduationCap className="h-8 w-8 text-primary" />
+          <Image
+            src="/android-chrome-192x192.png"
+            alt="UniShare Logo"
+            width={32}
+            height={32}
+            className="h-8 w-8"
+          />
           <span className="text-xl font-bold">UniShare</span>
         </Link>
 
