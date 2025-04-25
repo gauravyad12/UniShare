@@ -1,12 +1,14 @@
 // Service Worker for UniShare PWA
 
-const CACHE_NAME = 'unishare-cache-v1';
+const CACHE_NAME = 'unishare-cache-v2';
 const urlsToCache = [
   '/',
   '/sign-in',
   '/sign-up',
   '/dashboard',
+  '/app-entry',
   '/offline.html',
+  '/manifest.json',
   '/site.webmanifest',
   '/favicon.ico',
   '/apple-touch-icon.png',
@@ -51,7 +53,7 @@ self.addEventListener('activate', (event) => {
 // Fetch event - serve from cache or network
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests and browser extensions
-  if (event.request.method !== 'GET' || 
+  if (event.request.method !== 'GET' ||
       !event.request.url.startsWith('http')) {
     return;
   }
