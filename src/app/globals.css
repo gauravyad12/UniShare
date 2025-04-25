@@ -73,6 +73,19 @@
   }
   body {
     @apply bg-background text-foreground;
+    touch-action: manipulation;
+  }
+
+  /* Prevent zoom on input focus for iOS devices */
+  input, textarea, select {
+    font-size: 16px; /* Prevents iOS zoom */
+  }
+
+  @supports (-webkit-touch-callout: none) {
+    /* iOS-specific fixes */
+    input, textarea, select {
+      font-size: 16px !important; /* Ensures iOS doesn't zoom */
+    }
   }
 }
 
