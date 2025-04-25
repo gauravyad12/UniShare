@@ -6,7 +6,7 @@ import SimpleStudyGroupView from "@/components/simple-study-group-view";
 import SimpleGroupChat from "@/components/simple-group-chat";
 import { Button } from "@/components/ui/button";
 import { Plus, Link as LinkIcon } from "lucide-react";
-import SearchBarWithClear from "@/components/search-bar-with-clear";
+import StyledSearchBarWrapper from "@/components/styled-search-bar-wrapper";
 import Link from "next/link";
 import StudyGroupsTabs from "@/components/study-groups-tabs";
 import PaginationControlWrapper from "@/components/pagination-control-wrapper";
@@ -190,8 +190,8 @@ export default async function StudyGroupsPage({
           </div>
         </div>
         <div className="w-full">
-          <SearchBarWithClear
-            placeholder="Search study groups by name, course code, or description..."
+          <StyledSearchBarWrapper
+            placeholder="Search by name, course code..."
             defaultValue={searchParams.search || ""}
             baseUrl="/dashboard/study-groups"
             tabParam={searchParams.tab}

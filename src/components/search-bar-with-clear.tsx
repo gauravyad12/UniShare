@@ -63,14 +63,15 @@ export default function SearchBarWithClear({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="relative">
-      <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center z-10 search-icon-wrapper">
-        <Search className="h-4 w-4 text-primary search-icon" />
+    <form onSubmit={handleSubmit} className="relative w-full">
+      <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center z-10 search-icon-wrapper">
+        <Search className="h-4 w-4 text-primary/80 search-icon" />
       </div>
       <Input
         name="search"
         placeholder={placeholder}
-        className={`pl-10 pr-10 ${className || ''}`}
+        className={`pl-11 pr-11 ${className || ''} w-full placeholder:text-muted-foreground/70 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none focus-visible:outline-none active:outline-none rounded-full outline-none search-input-no-outline border-transparent`}
+        style={{ textOverflow: 'ellipsis' }}
         value={searchValue}
         onChange={(e) => {
           setSearchValue(e.target.value);
@@ -78,15 +79,15 @@ export default function SearchBarWithClear({
         }}
       />
       {showClearButton && (
-        <div className="absolute right-1 top-1/2 -translate-y-1/2 z-10 search-icon-wrapper">
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10 search-icon-wrapper">
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="h-8 w-8 rounded-full bg-background/80 hover:bg-background"
+            className="h-8 w-8 rounded-full bg-background/80 hover:bg-primary/10 transition-colors duration-200"
             onClick={handleClear}
           >
-            <X className="h-4 w-4 text-primary search-icon" />
+            <X className="h-4 w-4 text-primary/80 search-icon" />
             <span className="sr-only">Clear search</span>
           </Button>
         </div>

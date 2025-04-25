@@ -4,8 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "./ui/button";
 import ResourceUploadDialog from "./resource-upload-dialog";
 import ResourceClientWrapper from "./resource-client-wrapper";
-import { Search } from "lucide-react";
-import { Input } from "./ui/input";
+import StyledSearchBarWrapper from "./styled-search-bar-wrapper";
 import { useState, useEffect } from "react";
 import LoadingSpinner from "./loading-spinner";
 
@@ -80,15 +79,14 @@ export default function ClientResourcePage({
           <h1 className="text-3xl font-bold">Resources</h1>
           <ResourceUploadDialog />
         </div>
-        <form onSubmit={handleSearch} className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
+        <div className="w-full">
+          <StyledSearchBarWrapper
             placeholder="Search resources by title, course code, or professor..."
-            className="pl-10"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            defaultValue={searchQuery}
+            baseUrl="/dashboard/resources"
+            tabParam={searchParams.get("tab") || undefined}
           />
-        </form>
+        </div>
       </header>
 
       {searchParams.has("view") && (

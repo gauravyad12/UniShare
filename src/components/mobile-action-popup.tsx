@@ -37,7 +37,7 @@ export default function MobileActionPopup({
         <Button
           onClick={togglePopup}
           size="icon"
-          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 rounded-full shadow-lg h-14 w-14 bg-primary hover:bg-primary/90"
+          className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 rounded-full shadow-lg h-14 w-14 bg-primary hover:bg-primary/90"
         >
           {isOpen ? (
             <X className="h-6 w-6 text-primary-foreground" />
@@ -71,7 +71,7 @@ export default function MobileActionPopup({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.8 }}
               transition={{ duration: 0.2, delay: 0.1 }}
-              className="fixed bottom-36 z-50 mobile-action-popup-button"
+              className="fixed bottom-44 z-50 mobile-action-popup-button"
               style={{ maxWidth: '90vw' }}
             >
               <Link href="/dashboard/study-groups/create" onClick={togglePopup}>
@@ -91,7 +91,7 @@ export default function MobileActionPopup({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.8 }}
               transition={{ duration: 0.2 }}
-              className="fixed bottom-20 z-50 mobile-action-popup-button"
+              className="fixed bottom-28 z-50 mobile-action-popup-button"
               style={{ maxWidth: '90vw' }}
             >
               <Link href="/dashboard/resources?upload=true" onClick={togglePopup}>

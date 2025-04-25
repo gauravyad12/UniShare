@@ -14,7 +14,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import StudyGroupsTabs from "@/components/study-groups-tabs";
-import { Calendar, Plus, Search, Users, Loader2, Link as LinkIcon } from "lucide-react";
+import { Calendar, Plus, Users, Loader2, Link as LinkIcon } from "lucide-react";
+import StyledSearchBarWrapper from "./styled-search-bar-wrapper";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -341,13 +342,12 @@ export default function StudyGroupsClientPaginated({
             </Button>
           </div>
         </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search study groups by name, course code, or description..."
-            className="pl-10"
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
+        <div className="w-full">
+          <StyledSearchBarWrapper
+            placeholder="Search by name, course code..."
+            defaultValue={searchQuery}
+            baseUrl="/dashboard/study-groups"
+            tabParam={tab}
           />
         </div>
       </header>

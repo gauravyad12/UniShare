@@ -218,6 +218,8 @@ export default async function Dashboard() {
         />
 
         <div className="px-4 -mt-4">
+          <MobileTodoSection />
+
           <MobileMeetingsSection
             upcomingMeetings={limitedUpcomingMeetings}
             pastMeetings={limitedPastMeetings}
@@ -226,8 +228,6 @@ export default async function Dashboard() {
           <MobileResourcesSection
             resources={mappedResources || []}
           />
-
-          <MobileTodoSection />
         </div>
       </div>
 

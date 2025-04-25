@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Upload } from "lucide-react";
-import SearchBarWithClear from "@/components/search-bar-with-clear";
+import StyledSearchBarWrapper from "@/components/styled-search-bar-wrapper";
 import ResourcesTabs from "@/components/resources-tabs";
 import PaginationControlWrapper from "@/components/pagination-control-wrapper";
 import { Input } from "@/components/ui/input";
@@ -162,8 +162,8 @@ export default async function ResourcesPage({
           </Button>
         </div>
         <div className="w-full">
-          <SearchBarWithClear
-            placeholder="Search resources by title, course code, or professor..."
+          <StyledSearchBarWrapper
+            placeholder="Search by title, course code..."
             defaultValue={searchParams.search || ""}
             baseUrl="/dashboard/resources"
             tabParam={searchParams.tab}

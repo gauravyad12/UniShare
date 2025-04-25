@@ -94,12 +94,14 @@ export default function MobileDashboardHeader({
 
         {/* Search bar */}
         <div className="mb-6">
-          <SearchBarWithClear
-            placeholder="Search for resources, notes, textbooks..."
-            defaultValue=""
-            baseUrl="/dashboard/resources"
-            className="bg-background/70 backdrop-blur-md shadow-sm border border-primary/10 rounded-lg"
-          />
+          <div className="bg-background/80 backdrop-blur-md rounded-full px-3 py-1 shadow-sm border border-primary/10 hover:border-primary/20 transition-all duration-300 search-bar-container w-full">
+            <SearchBarWithClear
+              placeholder="Search resources..."
+              defaultValue=""
+              baseUrl="/dashboard/resources"
+              className="bg-transparent border-none shadow-none rounded-full transition-all duration-300"
+            />
+          </div>
         </div>
 
         {/* Stats cards */}
