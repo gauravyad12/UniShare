@@ -5,11 +5,16 @@ import { createClient } from '@/utils/supabase/server';
 export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
+  console.log('🔍 Study Group OG Image Generation - Request received:', request.url);
+
   try {
     const { searchParams } = new URL(request.url);
     const groupId = searchParams.get('id');
 
+    console.log('🔍 Study Group OG Image - Group ID:', groupId);
+
     if (!groupId) {
+      console.log('⚠️ Study Group OG Image - No group ID provided, returning default image');
       return new ImageResponse(
         (
           <div
@@ -37,14 +42,24 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch study group data
+    console.log('🔍 Study Group OG Image - Fetching group data from Supabase');
     const supabase = createClient();
-    const { data: group } = await supabase
+
+    const { data: group, error } = await supabase
       .from('study_groups')
-      .select('title, description, course_code, created_by, created_at')
+      .select('name, description, course_code, created_by, created_at')
       .eq('id', groupId)
       .single();
 
+    console.log('🔍 Study Group OG Image - Supabase response:', { group, error });
+
+    if (error) {
+      console.error('❌ Study Group OG Image - Supabase error:', error);
+      throw error;
+    }
+
     if (!group) {
+      console.log('⚠️ Study Group OG Image - No group found with ID:', groupId);
       return new ImageResponse(
         (
           <div
@@ -72,17 +87,32 @@ export async function GET(request: NextRequest) {
     }
 
     // Get creator info
-    const { data: creator } = await supabase
+    console.log('🔍 Study Group OG Image - Fetching creator info');
+    const { data: creator, error: creatorError } = await supabase
       .from('user_profiles')
       .select('username, full_name')
       .eq('id', group.created_by)
       .single();
+
+    if (creatorError) {
+      console.error('⚠️ Study Group OG Image - Error fetching creator:', creatorError);
+    }
+
+    console.log('🔍 Study Group OG Image - Creator data:', creator);
 
     const creatorName = creator?.full_name || creator?.username || 'UniShare User';
     const courseCode = group.course_code || 'General Study';
     const createdDate = new Date(group.created_at).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
+    });
+
+    console.log('🔍 Study Group OG Image - Generating image with data:', {
+      title: group.name,
+      description: group.description,
+      courseCode,
+      creatorName,
+      createdDate
     });
 
     return new ImageResponse(
@@ -108,29 +138,13 @@ export async function GET(request: NextRequest) {
               alignItems: 'center',
             }}
           >
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 2L2 7L12 12L22 7L12 2Z"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M2 17L12 22L22 17"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M2 12L12 17L22 12"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <img
+              src={`${process.env.NEXT_PUBLIC_APP_URL || 'https://unishare.app'}/android-chrome-512x512.png`}
+              width="40"
+              height="40"
+              alt="UniShare Logo"
+              style={{ objectFit: 'contain' }}
+            />
             <span style={{ marginLeft: 16, fontSize: 30 }}>UniShare</span>
           </div>
 
@@ -193,10 +207,13 @@ export async function GET(request: NextRequest) {
               </svg>
               <div
                 style={{
+                  display: 'flex',
                   padding: '8px 20px',
                   background: 'rgba(255, 255, 255, 0.1)',
                   borderRadius: '20px',
                   fontSize: 30,
+                  justifyContent: 'center',
+                  alignItems: 'center',
                 }}
               >
                 Study Group
@@ -210,17 +227,19 @@ export async function GET(request: NextRequest) {
                 lineHeight: 1.2,
               }}
             >
-              {group.title}
+              {group.name}
             </h1>
 
             <div
               style={{
-                display: 'inline-block',
+                display: 'flex',
                 padding: '8px 20px',
                 background: 'rgba(255, 255, 255, 0.1)',
                 borderRadius: '20px',
                 fontSize: 30,
                 marginBottom: 30,
+                justifyContent: 'center',
+                alignItems: 'center',
               }}
             >
               {courseCode}
@@ -276,8 +295,16 @@ export async function GET(request: NextRequest) {
         height: 630,
       },
     );
-  } catch (error) {
-    console.error('Error generating OG image:', error);
+  } catch (error: any) {
+    console.error('❌ Study Group OG Image - Error generating image:', error);
+    console.error('❌ Study Group OG Image - Error details:', {
+      message: error?.message || 'Unknown error',
+      stack: error?.stack || 'No stack trace',
+      name: error?.name || 'Unknown error type'
+    });
+
+    // Return a fallback image
+    console.log('🔍 Study Group OG Image - Returning fallback image');
     return new ImageResponse(
       (
         <div

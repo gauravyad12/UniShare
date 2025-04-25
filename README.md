@@ -30,6 +30,16 @@ This project is currently in Beta.
   - Built-in Website Unblocker
   - Distribute resumes
 
+## Tech Stack
+- Next.js 14
+- TypeScript
+- Tailwind CSS
+- Supabase
+- Stripe
+- Vercel
+- Apillix
+- Resend
+
 ## Purpose
 This project is an attempt to make an all-in-one student portal. The goal of the project is to create a fully functioning web app and mobile app that offers various features and tools for students to use to learn and grow in a University environment.
 

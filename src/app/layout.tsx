@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     siteName: "UniShare",
     images: [
       {
-        url: "https://unishare.app/og-image.png",
+        url: "https://unishare.app/api/og/default",
         width: 1200,
         height: 630,
         alt: "UniShare - Academic Resource Sharing Platform",
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
     title: "UniShare | Academic Resource Sharing Platform",
     description: "An exclusive platform for university students to collaborate, share academic resources, and form study groups in a secure environment.",
     creator: "@useunishare",
-    images: ["https://unishare.app/og-image.png"],
+    images: ["https://unishare.app/api/og/default"],
   },
   robots: {
     index: true,

@@ -23,10 +23,7 @@ import ResourceTabContent from "@/components/resource-tab-content";
 import { Suspense } from "react";
 import { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "UniShare | Resources",
-  description: "Browse and share academic resources with your university peers",
-};
+// Metadata is now handled in metadata.ts
 
 export default async function ResourcesPage({
   searchParams,

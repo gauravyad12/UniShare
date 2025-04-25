@@ -28,29 +28,13 @@ export async function GET(request: NextRequest) {
               marginBottom: 40,
             }}
           >
-            <svg width="80" height="80" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 2L2 7L12 12L22 7L12 2Z"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M2 17L12 22L22 17"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M2 12L12 17L22 12"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <img
+              src={`${process.env.NEXT_PUBLIC_APP_URL || 'https://unishare.app'}/android-chrome-512x512.png`}
+              width="80"
+              height="80"
+              alt="UniShare Logo"
+              style={{ objectFit: 'contain' }}
+            />
             <span style={{ marginLeft: 20, fontSize: 80, fontWeight: 'bold' }}>UniShare</span>
           </div>
 

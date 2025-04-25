@@ -73,8 +73,10 @@ export async function GET(request: NextRequest) {
 
     const displayName = profile.full_name || profile.username;
     const universityName = profile.university?.name || 'University Student';
-    const avatarUrl = profile.avatar_url || 'https://unishare.app/default-avatar.png';
     const isVerified = profile.is_verified;
+
+    // Determine if user has a profile image
+    const hasProfileImage = !!profile.avatar_url;
 
     return new ImageResponse(
       (
@@ -102,29 +104,13 @@ export async function GET(request: NextRequest) {
               alignItems: 'center',
             }}
           >
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 2L2 7L12 12L22 7L12 2Z"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M2 17L12 22L22 17"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M2 12L12 17L22 12"
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <img
+              src={`${process.env.NEXT_PUBLIC_APP_URL || 'https://unishare.app'}/android-chrome-512x512.png`}
+              width="40"
+              height="40"
+              alt="UniShare Logo"
+              style={{ objectFit: 'contain' }}
+            />
             <span style={{ marginLeft: 16, fontSize: 30 }}>UniShare</span>
           </div>
 
@@ -138,17 +124,40 @@ export async function GET(request: NextRequest) {
               marginTop: 20,
             }}
           >
-            <img
-              src={avatarUrl}
-              width={180}
-              height={180}
-              style={{
-                borderRadius: '50%',
-                border: '4px solid white',
-                marginBottom: 20,
-              }}
-              alt={displayName}
-            />
+{hasProfileImage ? (
+              <img
+                src={profile.avatar_url}
+                width={180}
+                height={179}
+                style={{
+                  borderRadius: '50%',
+                  border: '4px solid white',
+                  marginBottom: 20,
+                  objectFit: 'cover',
+                }}
+                alt={displayName}
+              />
+            ) : (
+              // Render a circle with the user's initials for users without a profile image
+              <div
+                style={{
+                  width: '180px',
+                  height: '179px',
+                  borderRadius: '50%',
+                  border: '4px solid white',
+                  marginBottom: 20,
+                  backgroundColor: '#1a1a1a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 70,
+                  fontWeight: 'bold',
+                  color: 'white',
+                }}
+              >
+                {displayName.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
               <h1 style={{ margin: 0, fontSize: 60 }}>{displayName}</h1>
               {isVerified && (
