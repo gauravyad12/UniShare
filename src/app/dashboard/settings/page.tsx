@@ -562,7 +562,8 @@ export default function SettingsPage() {
             {successStates.notifications && (
               <div className="flex items-center text-green-500">
                 <CheckCircle className="h-4 w-4 mr-2" />
-                <span>Settings saved successfully</span>
+                <span className="hidden md:inline">Settings saved successfully</span>
+                <span className="md:hidden">Success</span>
               </div>
             )}
             <div className="ml-auto">
@@ -570,10 +571,13 @@ export default function SettingsPage() {
                 {savingStates.notifications ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
+                    <span className="md:inline">Saving...</span>
                   </>
                 ) : (
-                  "Save Changes"
+                  <>
+                    <span className="hidden md:inline">Save Changes</span>
+                    <span className="md:hidden">Save</span>
+                  </>
                 )}
               </Button>
             </div>
@@ -692,7 +696,8 @@ export default function SettingsPage() {
             {successStates.appearance && (
               <div className="flex items-center text-green-500">
                 <CheckCircle className="h-4 w-4 mr-2" />
-                <span>Settings saved successfully</span>
+                <span className="hidden md:inline">Settings saved successfully</span>
+                <span className="md:hidden">Success</span>
               </div>
             )}
             <div className="ml-auto">
@@ -700,10 +705,13 @@ export default function SettingsPage() {
                 {savingStates.appearance ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
+                    <span className="md:inline">Saving...</span>
                   </>
                 ) : (
-                  "Save Changes"
+                  <>
+                    <span className="hidden md:inline">Save Changes</span>
+                    <span className="md:hidden">Save</span>
+                  </>
                 )}
               </Button>
             </div>
@@ -757,7 +765,8 @@ export default function SettingsPage() {
             {successStates.privacy && (
               <div className="flex items-center text-green-500">
                 <CheckCircle className="h-4 w-4 mr-2" />
-                <span>Settings saved successfully</span>
+                <span className="hidden md:inline">Settings saved successfully</span>
+                <span className="md:hidden">Success</span>
               </div>
             )}
             <div className="ml-auto">
@@ -765,10 +774,13 @@ export default function SettingsPage() {
                 {savingStates.privacy ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
+                    <span className="md:inline">Saving...</span>
                   </>
                 ) : (
-                  "Save Changes"
+                  <>
+                    <span className="hidden md:inline">Save Changes</span>
+                    <span className="md:hidden">Save</span>
+                  </>
                 )}
               </Button>
             </div>

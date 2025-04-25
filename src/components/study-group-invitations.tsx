@@ -38,7 +38,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Copy, Check, Link as LinkIcon, Clock, Users, RefreshCw, Trash } from "lucide-react";
+import { Loader2, Check, Link as LinkIcon, Clock, Users, RefreshCw, Trash } from "lucide-react";
+import CopyButton from "@/components/copy-button";
 import { formatDistanceToNow } from "date-fns";
 
 interface StudyGroupInvitationsProps {
@@ -349,22 +350,21 @@ export default function StudyGroupInvitations({
                     <TableCell>{invitation.created_by_name}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button
+                        <CopyButton
+                          text={invitation.code}
                           variant="ghost"
                           size="sm"
-                          onClick={() => copyInvitationCode(invitation.code)}
                           title="Copy code"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
+                        />
+                        <CopyButton
+                          text={`${window.location.origin}/join?code=${invitation.code}`}
                           variant="ghost"
                           size="sm"
-                          onClick={() => copyInvitationLink(invitation.code)}
                           title="Copy link"
+                          iconOnly={true}
                         >
                           <LinkIcon className="h-4 w-4" />
-                        </Button>
+                        </CopyButton>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -385,24 +385,22 @@ export default function StudyGroupInvitations({
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    <Button
+                    <CopyButton
+                      text={invitation.code}
                       variant="ghost"
                       size="sm"
-                      onClick={() => copyInvitationCode(invitation.code)}
                       title="Copy code"
                       className="h-8 w-8 p-0"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button
+                    />
+                    <CopyButton
+                      text={`${window.location.origin}/join?code=${invitation.code}`}
                       variant="ghost"
                       size="sm"
-                      onClick={() => copyInvitationLink(invitation.code)}
                       title="Copy link"
                       className="h-8 w-8 p-0"
                     >
                       <LinkIcon className="h-4 w-4" />
-                    </Button>
+                    </CopyButton>
                   </div>
                 </div>
 

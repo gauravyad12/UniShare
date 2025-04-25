@@ -17,7 +17,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import {
-  Copy,
   RefreshCw,
   Share2,
   Users,
@@ -30,6 +29,7 @@ import {
   Sparkles,
   GraduationCap,
 } from "lucide-react";
+import CopyButton from "@/components/copy-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -449,13 +449,11 @@ export default function InvitePage() {
                         readOnly
                         className="rounded-r-none font-mono text-center text-lg tracking-wider"
                       />
-                      <Button
-                        onClick={() => copyToClipboard(inviteCode)}
-                        className="rounded-l-none"
+                      <CopyButton
+                        text={inviteCode}
+                        className="rounded-l-none h-9"
                         variant="secondary"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
+                      />
                     </div>
                   </div>
 
@@ -468,13 +466,11 @@ export default function InvitePage() {
                         readOnly
                         className="rounded-r-none text-sm"
                       />
-                      <Button
-                        onClick={() => copyToClipboard(inviteUrl)}
-                        className="rounded-l-none"
+                      <CopyButton
+                        text={inviteUrl}
+                        className="rounded-l-none h-9"
                         variant="secondary"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
+                      />
                     </div>
                   </div>
 
