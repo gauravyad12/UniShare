@@ -14,6 +14,7 @@ import SearchBarWithClear from "./search-bar-with-clear";
 interface MobileDashboardHeaderProps {
   userName: string;
   universityName: string;
+  universityLogoUrl?: string | null;
   avatarUrl?: string | null;
   resourceCount: number;
   studyGroupCount: number;
@@ -23,6 +24,7 @@ interface MobileDashboardHeaderProps {
 export default function MobileDashboardHeader({
   userName,
   universityName,
+  universityLogoUrl,
   avatarUrl,
   resourceCount,
   studyGroupCount,
@@ -85,10 +87,22 @@ export default function MobileDashboardHeader({
         </div>
 
         {/* University info */}
-        <div className="bg-background/70 backdrop-blur-md text-sm p-3 px-4 rounded-lg text-muted-foreground flex gap-2 items-center mb-6 shadow-sm border border-primary/5">
-          <InfoIcon size="14" className="text-primary" />
-          <span>
-            Welcome to {universityName}'s study hub
+        <div className="bg-background/70 backdrop-blur-md text-xs py-2 px-3 rounded-full text-muted-foreground flex gap-2 items-center mb-5 shadow-sm border border-primary/5 w-fit mx-auto">
+          {universityLogoUrl ? (
+            <img
+              src={universityLogoUrl}
+              alt={`${universityName} logo`}
+              className="h-4 w-4 object-contain"
+            />
+          ) : (
+            <div className="h-4 w-4 bg-primary/10 rounded-full flex items-center justify-center">
+              <span className="text-[10px] text-primary font-medium">
+                {universityName.substring(0, 1)}
+              </span>
+            </div>
+          )}
+          <span className="font-medium">
+            {universityName}
           </span>
         </div>
 

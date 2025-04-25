@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Download, Sparkles, BookOpen, Users, CheckCircle2, Clock, Shield } from "lucide-react";
+import { ArrowRight, Download, Sparkles, BookOpen, Users } from "lucide-react";
 
 export default function AppEntryPage() {
   const router = useRouter();
@@ -16,6 +16,7 @@ export default function AppEntryPage() {
 
   // Check if the user is on desktop and redirect if needed
   useEffect(() => {
+    // Check if on desktop
     const checkDevice = () => {
       const isDesktopDevice = window.innerWidth >= 768; // md breakpoint in Tailwind
       setIsDesktop(isDesktopDevice);
@@ -42,6 +43,8 @@ export default function AppEntryPage() {
     });
 
     checkDevice();
+
+    // Add resize listener for device check
     window.addEventListener('resize', checkDevice);
 
     return () => {
@@ -259,35 +262,7 @@ export default function AppEntryPage() {
           Your academic resource sharing platform for university students
         </motion.p>
 
-        <motion.p
-          className="text-xs text-muted-foreground/80 mb-3 max-w-[250px]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.6 }}
-        >
-          Join thousands of students boosting their grades through collaborative learning
-        </motion.p>
 
-        {/* Quick benefits */}
-        <motion.div
-          className="flex justify-center gap-4 mb-5"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7, duration: 0.5 }}
-        >
-          <div className="flex items-center">
-            <CheckCircle2 className="h-3 w-3 text-green-500 mr-1" />
-            <span className="text-xs">Verified</span>
-          </div>
-          <div className="flex items-center">
-            <Clock className="h-3 w-3 text-blue-500 mr-1" />
-            <span className="text-xs">2 min setup</span>
-          </div>
-          <div className="flex items-center">
-            <Shield className="h-3 w-3 text-purple-500 mr-1" />
-            <span className="text-xs">Private</span>
-          </div>
-        </motion.div>
       </motion.div>
 
       {/* Features */}

@@ -46,7 +46,7 @@ export default async function Dashboard() {
   const { data: userProfile } = await supabase
     .from("user_profiles")
     .select(
-      "university_id, full_name, username, avatar_url, university:universities(name)",
+      "university_id, full_name, username, avatar_url, university:universities(name, logo_url)",
     )
     .eq("id", user.id)
     .single();
@@ -211,6 +211,7 @@ export default async function Dashboard() {
         <MobileDashboardHeader
           userName={userName}
           universityName={universityName}
+          universityLogoUrl={userProfile?.university?.logo_url}
           avatarUrl={userProfile?.avatar_url}
           resourceCount={resourceCount || 0}
           studyGroupCount={studyGroupCount || 0}

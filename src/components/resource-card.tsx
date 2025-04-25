@@ -17,6 +17,7 @@ import {
   CheckCircle,
   Share2,
   UserCircle,
+  Eye,
 } from "lucide-react";
 import ResourcePreview from "./resource-preview";
 import { useRouter } from "next/navigation";
@@ -480,7 +481,7 @@ export default function ResourceCard({
           ))}
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between pt-2 border-t">
+      <CardFooter className="flex justify-between pt-2 border-t px-2 md:px-6">
         <div className="flex items-center text-sm text-gray-500">
           {/* Only show download count for non-link resources */}
           {resource.resource_type !== "link" && (
@@ -497,7 +498,7 @@ export default function ResourceCard({
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-1 md:gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -510,11 +511,14 @@ export default function ResourceCard({
               shareResource();
             }}
           >
-            <Share2 className="h-4 w-4 mr-2" />
-            Share
+            <Share2 className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Share</span>
           </Button>
           <Button variant="outline" size="sm" onClick={handleViewClick}>
-            View
+            <span className="flex items-center justify-center w-full">
+              <Eye className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">View</span>
+            </span>
           </Button>
           <Button
             size="sm"
@@ -527,23 +531,23 @@ export default function ResourceCard({
           >
               {isDownloading ? (
                 <span className="flex items-center justify-center w-full">
-                  <Download className="animate-bounce h-4 w-4 mr-2" />
-                  Downloading...
+                  <Download className="animate-bounce h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Downloading...</span>
                 </span>
               ) : downloadSuccess ? (
                 <span className="flex items-center justify-center w-full">
-                  <CheckCircle className="text-green-500 h-4 w-4 mr-2" />
-                  Downloaded
+                  <CheckCircle className="text-green-500 h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Downloaded</span>
                 </span>
               ) : resource.resource_type === "link" ? (
                 <span className="flex items-center justify-center w-full">
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  View Link
+                  <ExternalLink className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">View Link</span>
                 </span>
               ) : (
                 <span className="flex items-center justify-center w-full">
-                  <Download className="h-4 w-4 mr-2" />
-                  Download
+                  <Download className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Download</span>
                 </span>
               )}
             </Button>

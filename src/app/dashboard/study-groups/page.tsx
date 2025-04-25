@@ -5,11 +5,12 @@ import { redirect } from "next/navigation";
 import SimpleStudyGroupView from "@/components/simple-study-group-view";
 import SimpleGroupChat from "@/components/simple-group-chat";
 import { Button } from "@/components/ui/button";
-import { Plus, Link as LinkIcon } from "lucide-react";
+import { Plus } from "lucide-react";
 import StyledSearchBarWrapper from "@/components/styled-search-bar-wrapper";
 import Link from "next/link";
 import StudyGroupsTabs from "@/components/study-groups-tabs";
 import PaginationControlWrapper from "@/components/pagination-control-wrapper";
+import ResponsiveJoinButton from "@/components/responsive-join-button";
 
 export default async function StudyGroupsPage({
   searchParams,
@@ -177,11 +178,7 @@ export default async function StudyGroupsPage({
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-2">
           <h1 className="text-3xl font-bold">Study Groups</h1>
           <div className="flex flex-wrap w-full sm:w-auto gap-2">
-            <Button variant="outline" asChild>
-              <Link href="/dashboard/study-groups/join">
-                <LinkIcon className="mr-2 h-4 w-4" /> Join with Code
-              </Link>
-            </Button>
+            <ResponsiveJoinButton />
             <Button asChild>
               <Link href="/dashboard/study-groups/create">
                 <Plus className="mr-2 h-4 w-4" /> Create Group
