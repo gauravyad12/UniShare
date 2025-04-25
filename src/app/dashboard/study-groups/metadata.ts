@@ -6,12 +6,14 @@ type Props = {
 };
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  // We can't get the origin from the request in metadata.ts, so we'll use the environment variable
+  // This is a limitation of Next.js metadata API
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unishare.app';
-  
+
   // If viewing a specific study group
   if (searchParams.view) {
     const groupId = searchParams.view;
-    
+
     // Fetch study group data
     const supabase = createClient();
     const { data: group } = await supabase
@@ -19,20 +21,20 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
       .select('title, description, course_code, created_by')
       .eq('id', groupId)
       .single();
-    
+
     if (!group) {
       return {
         title: 'Study Group | UniShare',
         description: 'Join study groups on UniShare to collaborate with fellow students.',
       };
     }
-    
+
     const title = group.title;
-    const description = group.description 
+    const description = group.description
       ? `${group.description.substring(0, 150)}${group.description.length > 150 ? '...' : ''}`
       : `Join this study group on UniShare to collaborate with fellow students.`;
     const courseCode = group.course_code ? `${group.course_code} - ` : '';
-    
+
     return {
       title: `${courseCode}${title} | UniShare Study Group`,
       description,
@@ -40,9 +42,9 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
         type: 'website',
         title: `${courseCode}${title} | UniShare Study Group`,
         description,
-        url: `${baseUrl}/dashboard/study-groups?view=${groupId}`,
+        url: `${baseUrl}/study-group/${groupId}`,
         images: [{
-          url: `${baseUrl}/api/og/study-group?id=${groupId}`,
+          url: `${baseUrl}/study-group/${groupId}/opengraph-image`,
           width: 1200,
           height: 630,
           alt: `${title} Study Group on UniShare`,
@@ -52,14 +54,14 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
         card: 'summary_large_image',
         title: `${courseCode}${title} | UniShare Study Group`,
         description,
-        images: [`${baseUrl}/api/og/study-group?id=${groupId}`],
+        images: [`${baseUrl}/study-group/${groupId}/opengraph-image`],
       },
       alternates: {
-        canonical: `${baseUrl}/dashboard/study-groups?view=${groupId}`,
+        canonical: `${baseUrl}/study-group/${groupId}`,
       },
     };
   }
-  
+
   // Default metadata for the study groups page
   return {
     title: 'Study Groups | UniShare',

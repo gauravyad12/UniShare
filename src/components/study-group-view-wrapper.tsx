@@ -10,7 +10,6 @@ import {
   CardDescription,
   CardFooter,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -28,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import RealtimeUnreadBadgeWrapper from "@/components/realtime-unread-badge-wrapper";
+import ShareStudyGroupButton from "@/components/share-study-group-button";
 import { useToast } from "./ui/use-toast";
 
 interface StudyGroupViewWrapperProps {
@@ -37,7 +37,6 @@ interface StudyGroupViewWrapperProps {
 
 export default function StudyGroupViewWrapper({
   group,
-  isOwner = false,
 }: StudyGroupViewWrapperProps) {
   console.log('StudyGroupViewWrapper rendering with group:', group);
   const router = useRouter();
@@ -46,6 +45,7 @@ export default function StudyGroupViewWrapper({
   const [isAdmin, setIsAdmin] = useState(false);
   const [members, setMembers] = useState<any[]>([]);
   const [resources, setResources] = useState<any[]>([]);
+  // Loading state is used in useEffect but not in rendering
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
 
@@ -218,19 +218,27 @@ export default function StudyGroupViewWrapper({
           </div>
           <div className="flex items-center gap-2">
             {isMember ? (
-              <Button asChild className="relative">
-                <Link href={`/dashboard/study-groups?view=${group.id}&chat=true`}>
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  Group Chat
-                  {userId && (
-                    <RealtimeUnreadBadgeWrapper
-                      groupId={group.id}
-                      userId={userId}
-                      className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs"
-                    />
-                  )}
-                </Link>
-              </Button>
+              <>
+                <Button asChild className="relative">
+                  <Link href={`/dashboard/study-groups?view=${group.id}&chat=true`}>
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Group Chat
+                    {userId && (
+                      <RealtimeUnreadBadgeWrapper
+                        groupId={group.id}
+                        userId={userId}
+                        className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs"
+                      />
+                    )}
+                  </Link>
+                </Button>
+                <ShareStudyGroupButton
+                  groupId={group.id}
+                  groupName={group.name}
+                  groupDescription={group.description}
+                  className="relative"
+                />
+              </>
             ) : (
               <Button onClick={handleJoinGroup}>
                 Join Group

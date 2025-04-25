@@ -6,8 +6,20 @@ export async function middleware(req: NextRequest) {
   try {
     // SECURITY FIX: Block requests with x-middleware-subrequest header to prevent authorization bypass
     // See: https://github.com/advisories/GHSA-f82v-jwr5-mffw
+    // But allow specific subrequests for OG image generation and static assets
     if (req.headers.get('x-middleware-subrequest')) {
-      console.warn('Blocked potential middleware authorization bypass attempt');
+      const { pathname } = req.nextUrl;
+      // Allow subrequests for static assets like the logo
+      if (pathname.includes('android-chrome-512x512.png') ||
+          pathname.includes('favicon.ico') ||
+          pathname.includes('logo.png') ||
+          pathname.startsWith('/public/') ||
+          pathname.startsWith('/_next/')) {
+        // Allow these subrequests
+        return NextResponse.next();
+      }
+
+      console.warn('Blocked potential middleware authorization bypass attempt for:', pathname);
       return new NextResponse('Unauthorized', { status: 401 });
     }
     // Skip middleware for static assets, API routes, and error pages
@@ -15,6 +27,7 @@ export async function middleware(req: NextRequest) {
     if (
       pathname.startsWith("/_next") ||
       pathname.startsWith("/api/") ||
+      pathname.startsWith("/og-assets/") || // Skip for OG image assets
       pathname.includes(".") || // Files with extensions like .jpg, .css, etc.
       pathname === "/error" || // Skip middleware for error page to prevent redirect loops
       pathname === "/fallback-error" || // Skip for fallback error page
@@ -148,6 +161,6 @@ export async function middleware(req: NextRequest) {
 // Specify which routes this middleware should run on
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|public|api/payments/webhook|api/debug|api/restart|api/healthcheck).*)",
+    "/((?!_next/static|_next/image|favicon.ico|og-assets|public|api/payments/webhook|api/debug|api/restart|api/healthcheck|opengraph-image).*)",
   ],
 };

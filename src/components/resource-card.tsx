@@ -86,7 +86,8 @@ export default function ResourceCard({
 
   // Function to share resource
   const shareResource = async () => {
-    const shareUrl = `${window.location.origin}/dashboard/resources?view=${resource.id}`;
+    // Use the public-facing URL format for sharing
+    const shareUrl = `${window.location.origin}/resource/${resource.id}`;
 
     if (navigator.share) {
       try {
@@ -95,10 +96,9 @@ export default function ResourceCard({
           text: resource.description,
           url: shareUrl,
         });
-      } catch (error) {
+      } catch (error: any) {
         // Handle AbortError (user cancelled) and NotAllowedError (permission denied)
         if (error.name !== "AbortError") {
-          console.error("Error sharing:", error);
           // Fall back to clipboard copy only for non-abort errors
           copyToClipboard(shareUrl);
         }
@@ -162,15 +162,15 @@ export default function ResourceCard({
   // Get likes count - ensure it's a number
   const likesCount = typeof resource.likes === "number" ? resource.likes : 0;
 
-  // Format date
-  const formattedDate = new Date(resource.created_at).toLocaleDateString(
-    "en-US",
-    {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    },
-  );
+  // Format date - will be used in future UI updates
+  // const formattedDate = new Date(resource.created_at).toLocaleDateString(
+  //   "en-US",
+  //   {
+  //     year: "numeric",
+  //     month: "short",
+  //     day: "numeric",
+  //   },
+  // );
 
   // Get resource type color
   const getTypeColor = (type: string) => {
@@ -206,6 +206,7 @@ export default function ResourceCard({
           `/sign-in?redirect=/dashboard/resources?view=${resource.id}`,
         );
       } else {
+        // Use the dashboard URL for viewing (not the public-facing URL)
         router.push(`/dashboard/resources?view=${resource.id}`);
       }
     }
@@ -309,6 +310,7 @@ export default function ResourceCard({
         );
       } else {
         if (resource.resource_type === "link") {
+          // Use the dashboard URL for viewing (not the public-facing URL)
           router.push(`/dashboard/resources?view=${resource.id}`);
         } else {
           // Set downloading state

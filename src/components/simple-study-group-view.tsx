@@ -43,6 +43,7 @@ import StudyGroupInvitations from "./study-group-invitations";
 import AddResourceToGroup from "./add-resource-to-group";
 import ScheduleGroupMeeting from "./schedule-group-meeting";
 import GroupMeetingsList from "./group-meetings-list";
+import ShareStudyGroupButton from "./share-study-group-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface SimpleStudyGroupViewProps {
@@ -59,7 +60,7 @@ export default function SimpleStudyGroupView({
   const [isCreator, setIsCreator] = useState(false);
   const [members, setMembers] = useState<any[]>([]);
   const [resources, setResources] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Used for conditional rendering below
   const [userId, setUserId] = useState<string | null>(null);
   const [joiningGroup, setJoiningGroup] = useState(false);
   const [leavingGroup, setLeavingGroup] = useState(false);
@@ -502,6 +503,12 @@ export default function SimpleStudyGroupView({
                   <MessageSquare className="mr-2 h-4 w-4" />
                   Group Chat
                 </Button>
+                <ShareStudyGroupButton
+                  groupId={group.id}
+                  groupName={group.name}
+                  groupDescription={group.description}
+                  className="relative"
+                />
                 {isMember && !isCreator && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

@@ -5,16 +5,13 @@ import { createClient } from '@/utils/supabase/server';
 export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
-  console.log('🔍 Resource OG Image Generation - Request received:', request.url);
-
   try {
-    const { searchParams } = new URL(request.url);
+    const url = new URL(request.url);
+    const { searchParams } = url;
+    const origin = url.origin;
     const resourceId = searchParams.get('id');
 
-    console.log('🔍 Resource OG Image - Resource ID:', resourceId);
-
     if (!resourceId) {
-      console.log('⚠️ Resource OG Image - No resource ID provided, returning default image');
       return new ImageResponse(
         (
           <div
@@ -42,7 +39,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch resource data
-    console.log('🔍 Resource OG Image - Fetching resource data from Supabase');
     const supabase = createClient();
 
     // First, get the resource data
@@ -52,38 +48,13 @@ export async function GET(request: NextRequest) {
       .eq('id', resourceId)
       .single();
 
-    // Log the initial resource query result
-    console.log('🔍 Resource OG Image - Initial resource query result:', {
-      resource: resource ? {
-        id: resource.id,
-        title: resource.title,
-        description: resource.description,
-        resource_type: resource.resource_type,
-        has_thumbnail: !!resource.thumbnail_url,
-        created_by: resource.created_by,
-        author_id: resource.author_id
-      } : null,
-      error
-    });
-
-    console.log('🔍 Resource OG Image - Supabase response:', {
-      resource: resource ? {
-        title: resource.title,
-        description: resource.description,
-        resource_type: resource.resource_type,
-        has_thumbnail: !!resource.thumbnail_url,
-        author: resource.author
-      } : null,
-      error
-    });
+    // Process the resource data
 
     if (error) {
-      console.error('❌ Resource OG Image - Supabase error:', error);
       throw error;
     }
 
     if (!resource) {
-      console.log('⚠️ Resource OG Image - No resource found with ID:', resourceId);
       return new ImageResponse(
         (
           <div
@@ -115,8 +86,6 @@ export async function GET(request: NextRequest) {
     let authorName = 'UniShare User';
 
     if (authorId) {
-      console.log('🔍 Resource OG Image - Fetching author info for ID:', authorId);
-
       try {
         const { data: authorData, error: authorError } = await supabase
           .from('user_profiles')
@@ -124,31 +93,18 @@ export async function GET(request: NextRequest) {
           .eq('id', authorId)
           .single();
 
-        console.log('🔍 Resource OG Image - Author query result:', { authorData, authorError });
-
         if (authorData && !authorError) {
           authorName = authorData.full_name || authorData.username || 'UniShare User';
-        } else if (authorError) {
-          console.error('⚠️ Resource OG Image - Error fetching author:', authorError);
         }
       } catch (authorFetchError: any) {
-        console.error('⚠️ Resource OG Image - Exception fetching author:', authorFetchError?.message);
+        // Silently continue with default author name
       }
     }
 
     const title = resource.title;
     const description = resource.description || 'A shared academic resource on UniShare';
-    const thumbnailUrl = resource.thumbnail_url || 'https://unishare.app/default-resource.png';
+    const thumbnailUrl = resource.thumbnail_url || `${origin}/og-assets/default-resource.png`;
     const resourceType = resource.resource_type.charAt(0).toUpperCase() + resource.resource_type.slice(1);
-
-    console.log('🔍 Resource OG Image - Generating image with data:', {
-      title,
-      description: description.substring(0, 50) + (description.length > 50 ? '...' : ''),
-      resourceType,
-      authorName,
-      hasThumbnail: !!resource.thumbnail_url,
-      thumbnailUrl
-    });
 
     return new ImageResponse(
       (
@@ -173,8 +129,9 @@ export async function GET(request: NextRequest) {
               alignItems: 'center',
             }}
           >
+            {/* Use the logo from the og-assets folder that's excluded from middleware */}
             <img
-              src={`${process.env.NEXT_PUBLIC_APP_URL || 'https://unishare.app'}/android-chrome-512x512.png`}
+              src={`${origin}/og-assets/logo.png`}
               width="40"
               height="40"
               alt="UniShare Logo"
@@ -300,15 +257,7 @@ export async function GET(request: NextRequest) {
       },
     );
   } catch (error: any) {
-    console.error('❌ Resource OG Image - Error generating image:', error);
-    console.error('❌ Resource OG Image - Error details:', {
-      message: error?.message || 'Unknown error',
-      stack: error?.stack || 'No stack trace',
-      name: error?.name || 'Unknown error type'
-    });
-
     // Return a fallback image
-    console.log('🔍 Resource OG Image - Returning fallback image');
     return new ImageResponse(
       (
         <div

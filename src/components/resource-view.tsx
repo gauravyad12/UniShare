@@ -122,7 +122,8 @@ export default function ResourceView({
 
   // Function to share resource
   const shareResource = async () => {
-    const shareUrl = `${window.location.origin}/dashboard/resources?view=${resource.id}`;
+    // Use the public-facing URL format for sharing
+    const shareUrl = `${window.location.origin}/resource/${resource.id}`;
 
     if (navigator.share) {
       try {

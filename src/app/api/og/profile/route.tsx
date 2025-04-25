@@ -6,7 +6,9 @@ export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    const url = new URL(request.url);
+    const { searchParams } = url;
+    const origin = url.origin;
     const username = searchParams.get('username');
 
     if (!username) {
@@ -104,8 +106,9 @@ export async function GET(request: NextRequest) {
               alignItems: 'center',
             }}
           >
+            {/* Use the logo from the og-assets folder that's excluded from middleware */}
             <img
-              src={`${process.env.NEXT_PUBLIC_APP_URL || 'https://unishare.app'}/android-chrome-512x512.png`}
+              src={`${origin}/og-assets/logo.png`}
               width="40"
               height="40"
               alt="UniShare Logo"
