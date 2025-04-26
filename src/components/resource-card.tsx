@@ -21,8 +21,9 @@ import {
 } from "lucide-react";
 import ResourcePreview from "./resource-preview";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useToast } from "./ui/use-toast";
+import React, { useEffect, useState } from "react";
+
+import { showDownloadToast } from "@/components/mobile-aware-download-toast";
 import { createClient } from "@/utils/supabase/client";
 
 interface ResourceCardProps {
@@ -70,7 +71,7 @@ export default function ResourceCard({
   onView,
   onDownload,
 }: ResourceCardProps) {
-  const { toast } = useToast();
+  // We're not using toast anymore
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [creatorInfo, setCreatorInfo] = useState<{ username?: string; fullName?: string } | null>(null);
@@ -78,9 +79,9 @@ export default function ResourceCard({
   // Function to copy to clipboard
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied",
-      description: "Link copied to clipboard",
+    showDownloadToast({
+      title: "Link copied to clipboard",
+      status: "success"
     });
   };
 
@@ -215,83 +216,9 @@ export default function ResourceCard({
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
-  // Create and manage download overlay
-  const createDownloadOverlay = (title: string) => {
-    // Remove any existing overlay first
-    const existingOverlay = document.getElementById("global-download-overlay");
-    if (existingOverlay) {
-      document.body.removeChild(existingOverlay);
-    }
+  // We're now using the mobile-aware-download-toast component instead of these functions
 
-    // Create new overlay
-    const overlay = document.createElement("div");
-    overlay.id = "global-download-overlay";
-    overlay.style.position = "fixed";
-    overlay.style.bottom = "20px";
-    overlay.style.right = "20px";
-    overlay.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
-    overlay.style.color = "white";
-    overlay.style.padding = "12px 20px";
-    overlay.style.borderRadius = "8px";
-    overlay.style.zIndex = "9999";
-    overlay.style.display = "flex";
-    overlay.style.alignItems = "center";
-    overlay.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
-    overlay.style.transition = "all 0.3s ease";
-    overlay.innerHTML = `
-      <svg class="animate-spin mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-      <span>Downloading ${title}...</span>
-    `;
-    document.body.appendChild(overlay);
-    return overlay;
-  };
-
-  // Update overlay to success state
-  const updateOverlaySuccess = (overlay: HTMLElement, title: string) => {
-    overlay.style.backgroundColor = "rgba(22, 163, 74, 0.9)";
-    overlay.innerHTML = `
-      <svg class="mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-      </svg>
-      <span>${title} downloaded successfully!</span>
-    `;
-
-    // Remove overlay after 3 seconds
-    setTimeout(() => {
-      if (document.body.contains(overlay)) {
-        overlay.style.opacity = "0";
-        setTimeout(() => {
-          if (document.body.contains(overlay)) {
-            document.body.removeChild(overlay);
-          }
-        }, 300);
-      }
-    }, 3000);
-  };
-
-  // Update overlay to error state
-  const updateOverlayError = (overlay: HTMLElement) => {
-    overlay.style.backgroundColor = "rgba(220, 38, 38, 0.9)";
-    overlay.innerHTML = `
-      <svg class="mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-      </svg>
-      <span>Download failed. Trying alternative method...</span>
-    `;
-  };
-
-  // Clean up any overlays when component unmounts
-  useEffect(() => {
-    return () => {
-      const overlay = document.getElementById("global-download-overlay");
-      if (overlay && document.body.contains(overlay)) {
-        document.body.removeChild(overlay);
-      }
-    };
-  }, []);
+  // No cleanup needed anymore
 
   const handleDownloadClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -316,8 +243,11 @@ export default function ResourceCard({
           // Set downloading state
           setIsDownloading(true);
 
-          // Create download overlay
-          const overlay = createDownloadOverlay(resource.title);
+          // Show downloading toast/overlay
+          showDownloadToast({
+            title: resource.title,
+            status: "downloading"
+          });
 
           // Use the Blob API to download the file directly
           fetch(`/api/resources/${resource.id}/download`, {
@@ -346,18 +276,14 @@ export default function ResourceCard({
                 document.body.removeChild(a);
               }
 
-              // Show success state and toast notification
+              // Show success state
               setDownloadSuccess(true);
               setIsDownloading(false);
 
-              // Update overlay to success state
-              updateOverlaySuccess(overlay, resource.title);
-
-              // Show toast notification
-              toast({
-                title: "Download Complete",
-                description: `${resource.title} has been downloaded successfully.`,
-                duration: 3000,
+              // Show success toast/overlay
+              showDownloadToast({
+                title: resource.title,
+                status: "success"
               });
 
               // Reset success state after 3 seconds
@@ -369,16 +295,11 @@ export default function ResourceCard({
               console.error("Download error:", error);
               setIsDownloading(false);
 
-              // Update overlay to error state
-              updateOverlayError(overlay);
-
-              // Show error toast
-              toast({
-                title: "Download Failed",
-                description:
-                  "There was a problem downloading the file. Trying alternative method...",
-                variant: "destructive",
-                duration: 3000,
+              // Show error toast/overlay
+              showDownloadToast({
+                title: resource.title,
+                status: "error",
+                fallbackMessage: "There was a problem downloading the file. Trying alternative method..."
               });
 
               // Fallback to the API endpoint as a last resort
@@ -395,14 +316,10 @@ export default function ResourceCard({
                     document.body.removeChild(link);
                   }
 
-                  // Update overlay to success state
-                  updateOverlaySuccess(overlay, resource.title);
-
-                  // Show success toast for fallback method
-                  toast({
-                    title: "Download Complete",
-                    description: `${resource.title} has been downloaded using alternative method.`,
-                    duration: 3000,
+                  // Show success toast/overlay for fallback method
+                  showDownloadToast({
+                    title: resource.title,
+                    status: "success"
                   });
                 }, 1000);
               } catch (fallbackError) {
@@ -416,7 +333,7 @@ export default function ResourceCard({
   };
 
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow">
+    <Card className="overflow-hidden hover:shadow-md transition-shadow flex flex-col">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
@@ -460,7 +377,7 @@ export default function ResourceCard({
           </CardDescription>
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-grow">
         {/* Resource Preview */}
         <div className="mb-3 cursor-pointer" onClick={handleViewClick}>
           <ResourcePreview
@@ -473,17 +390,19 @@ export default function ResourceCard({
           />
         </div>
 
-        <p className="text-white/60 font-medium line-clamp-2 mt-3">{resource.description}</p>
+        <div className="flex flex-col h-full">
+          <p className="text-white/60 font-medium line-clamp-2 mt-3">{resource.description}</p>
 
-        <div className="flex flex-wrap gap-1 mt-3">
-          {resource.tags?.map((tag, index) => (
-            <Badge key={index} variant="secondary" className="text-xs">
-              {tag.tag_name}
-            </Badge>
-          ))}
+          <div className="flex flex-wrap gap-1 mt-3">
+            {resource.tags?.map((tag, index) => (
+              <Badge key={index} variant="secondary" className="text-xs">
+                {tag.tag_name}
+              </Badge>
+            ))}
+          </div>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between pt-2 border-t px-2 md:px-6">
+      <CardFooter className="flex justify-between pt-2 border-t px-2 md:px-6 mt-auto h-[60px]">
         <div className="flex items-center text-sm text-gray-500">
           {/* Only show download count for non-link resources */}
           {resource.resource_type !== "link" && (
@@ -513,15 +432,16 @@ export default function ResourceCard({
               shareResource();
             }}
           >
-            <Share2 className="h-4 w-4 md:mr-2" />
-            <span className="hidden md:inline">Share</span>
+            <Share2 className="h-4 w-4 max-lg:mr-0 lg:mr-2" />
+            <span className="hidden lg:inline">Share</span>
           </Button>
           <Button variant="outline" size="sm" onClick={handleViewClick}>
             <span className="flex items-center justify-center w-full">
-              <Eye className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">View</span>
+              <Eye className="h-4 w-4 max-lg:mr-0 lg:mr-2" />
+              <span className="hidden lg:inline">View</span>
             </span>
           </Button>
+          {/* Show download button on all devices */}
           <Button
             size="sm"
             onClick={(e) => {
@@ -533,26 +453,26 @@ export default function ResourceCard({
           >
               {isDownloading ? (
                 <span className="flex items-center justify-center w-full">
-                  <Download className="animate-bounce h-4 w-4 md:mr-2" />
-                  <span className="hidden md:inline">Downloading...</span>
+                  <Download className="animate-bounce h-4 w-4 max-lg:mr-0 lg:mr-2" />
+                  <span className="hidden lg:inline">Downloading...</span>
                 </span>
               ) : downloadSuccess ? (
                 <span className="flex items-center justify-center w-full">
-                  <CheckCircle className="text-green-500 h-4 w-4 md:mr-2" />
-                  <span className="hidden md:inline">Downloaded</span>
+                  <CheckCircle className="text-green-500 h-4 w-4 max-lg:mr-0 lg:mr-2" />
+                  <span className="hidden lg:inline">Downloaded</span>
                 </span>
               ) : resource.resource_type === "link" ? (
                 <span className="flex items-center justify-center w-full">
-                  <ExternalLink className="h-4 w-4 md:mr-2" />
-                  <span className="hidden md:inline">View Link</span>
+                  <ExternalLink className="h-4 w-4 max-lg:mr-0 lg:mr-2" />
+                  <span className="hidden lg:inline">View Link</span>
                 </span>
               ) : (
                 <span className="flex items-center justify-center w-full">
-                  <Download className="h-4 w-4 md:mr-2" />
-                  <span className="hidden md:inline">Download</span>
+                  <Download className="h-4 w-4 max-lg:mr-0 lg:mr-2" />
+                  <span className="hidden lg:inline">Download</span>
                 </span>
               )}
-            </Button>
+          </Button>
         </div>
       </CardFooter>
     </Card>

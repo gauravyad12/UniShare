@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy, Check } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast, toast } from "@/lib/mobile-aware-toast";
 import { cn } from "@/lib/utils";
 
 interface CopyButtonProps {

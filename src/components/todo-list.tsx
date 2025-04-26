@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast, toast } from "@/lib/mobile-aware-toast";
 import TodoItem from "@/components/todo-item";
 import TodoForm from "@/components/todo-form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -33,11 +33,11 @@ export default function TodoList() {
     try {
       setLoading(true);
       const response = await fetch("/api/todos");
-      
+
       if (!response.ok) {
         throw new Error("Failed to fetch todos");
       }
-      
+
       const data = await response.json();
       setTodos(data.todos || []);
     } catch (error) {
@@ -72,7 +72,7 @@ export default function TodoList() {
 
       const data = await response.json();
       setTodos([data.todo, ...todos]);
-      
+
       toast({
         title: "Success",
         description: "Task added to your to-do list",
@@ -139,7 +139,7 @@ export default function TodoList() {
           todo.id === id ? { ...todo, content } : todo
         )
       );
-      
+
       toast({
         title: "Success",
         description: "Task updated",
@@ -165,7 +165,7 @@ export default function TodoList() {
       }
 
       setTodos(todos.filter((todo) => todo.id !== id));
-      
+
       toast({
         title: "Success",
         description: "Task deleted",
@@ -182,7 +182,7 @@ export default function TodoList() {
 
   const clearCompletedTodos = async () => {
     const completedTodos = todos.filter((todo) => todo.is_completed);
-    
+
     if (completedTodos.length === 0) {
       toast({
         title: "Info",
@@ -190,7 +190,7 @@ export default function TodoList() {
       });
       return;
     }
-    
+
     try {
       // Delete each completed todo
       await Promise.all(
@@ -200,9 +200,9 @@ export default function TodoList() {
           })
         )
       );
-      
+
       setTodos(todos.filter((todo) => !todo.is_completed));
-      
+
       toast({
         title: "Success",
         description: `Cleared ${completedTodos.length} completed tasks`,
@@ -230,9 +230,9 @@ export default function TodoList() {
   return (
     <div className="space-y-4">
       <TodoForm onAddTodo={addTodo} />
-      
-      <Tabs 
-        defaultValue="all" 
+
+      <Tabs
+        defaultValue="all"
         value={activeTab}
         onValueChange={setActiveTab}
         className="w-full"
@@ -248,7 +248,7 @@ export default function TodoList() {
             Completed ({completedTodosCount})
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="all" className="mt-4">
           {loading ? (
             <div className="flex justify-center py-8">
@@ -272,7 +272,7 @@ export default function TodoList() {
             </div>
           )}
         </TabsContent>
-        
+
         <TabsContent value="active" className="mt-4">
           {loading ? (
             <div className="flex justify-center py-8">
@@ -296,7 +296,7 @@ export default function TodoList() {
             </div>
           )}
         </TabsContent>
-        
+
         <TabsContent value="completed" className="mt-4">
           {loading ? (
             <div className="flex justify-center py-8">

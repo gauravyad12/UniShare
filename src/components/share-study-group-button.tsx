@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Share2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast, toast } from "@/lib/mobile-aware-toast";
 
 interface ShareStudyGroupButtonProps {
   groupId: string;

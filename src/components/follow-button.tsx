@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { UserPlus, UserCheck, Loader2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast, toast } from "@/lib/mobile-aware-toast";
 
 interface FollowButtonProps {
   userId: string;

@@ -466,7 +466,7 @@ export default function SimpleStudyGroupView({
       <CardHeader className="pb-2">
         <div className="mb-2"> {/* Removed flex and right padding */}
           <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold">{group.name}</h1>
+            <h1 className="text-2xl font-bold truncate pr-16 max-w-full">{group.name}</h1>
             <div className="flex flex-wrap gap-2">
               <Badge variant={group.is_private ? "secondary" : "outline"}>
                 {group.is_private ? (

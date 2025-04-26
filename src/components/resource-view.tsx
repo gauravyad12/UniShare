@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useToast } from "./ui/use-toast";
+import React, { useState, useEffect, useRef } from "react";
+import { showDownloadToast } from "@/components/mobile-aware-download-toast";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import {
@@ -45,6 +45,7 @@ interface Resource {
   created_at: string;
   view_count: number;
   download_count: number;
+  downloads?: number; // Added for backward compatibility
   likes?: number;
   comment_count?: number;
   created_by?: string;
@@ -88,7 +89,7 @@ export default function ResourceView({
   isOwner?: boolean;
   currentUserId?: string;
 }) {
-  const { toast } = useToast();
+  // We're not using toast anymore
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,12 +112,16 @@ export default function ResourceView({
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [creatorInfo, setCreatorInfo] = useState<{ id?: string; username?: string; fullName?: string } | null>(null);
 
+
+
   // Function to copy to clipboard
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied",
-      description: "Link copied to clipboard",
+
+    // Use our mobile-aware toast system
+    showDownloadToast({
+      title: "Link copied to clipboard",
+      status: "success"
     });
   };
 
@@ -132,7 +137,7 @@ export default function ResourceView({
           text: resource.description,
           url: shareUrl,
         });
-      } catch (error) {
+      } catch (error: any) {
         // Handle AbortError (user cancelled) and NotAllowedError (permission denied)
         if (error.name !== "AbortError") {
           console.error("Error sharing:", error);
@@ -168,7 +173,6 @@ export default function ResourceView({
           setComments(data.comments);
           // Always use the server's count
           setCommentCount(data.count);
-          console.log("Updated comment count:", data.count);
         } else {
           console.error("No comments in response:", data);
           setComments([]);
@@ -209,7 +213,6 @@ export default function ResourceView({
 
         // Update comment count from server response
         setCommentCount(data.count);
-        console.log("New comment count after adding:", data.count);
 
         // Scroll to the comments section after adding a new comment
         setTimeout(() => {
@@ -246,7 +249,6 @@ export default function ResourceView({
 
         // Update comment count from server response
         setCommentCount(data.count);
-        console.log("New comment count after deleting:", data.count);
       } else {
         const data = await response.json();
         console.error("Error deleting comment:", data.error);
@@ -268,73 +270,7 @@ export default function ResourceView({
     });
   };
 
-  // Create and manage download overlay
-  const createDownloadOverlay = (title: string) => {
-    // Remove any existing overlay first
-    const existingOverlay = document.getElementById("global-download-overlay");
-    if (existingOverlay) {
-      document.body.removeChild(existingOverlay);
-    }
-
-    // Create new overlay
-    const overlay = document.createElement("div");
-    overlay.id = "global-download-overlay";
-    overlay.style.position = "fixed";
-    overlay.style.bottom = "20px";
-    overlay.style.right = "20px";
-    overlay.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
-    overlay.style.color = "white";
-    overlay.style.padding = "12px 20px";
-    overlay.style.borderRadius = "8px";
-    overlay.style.zIndex = "9999";
-    overlay.style.display = "flex";
-    overlay.style.alignItems = "center";
-    overlay.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
-    overlay.style.transition = "all 0.3s ease";
-    overlay.innerHTML = `
-      <svg class="animate-spin mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-      <span>Downloading ${title}...</span>
-    `;
-    document.body.appendChild(overlay);
-    return overlay;
-  };
-
-  // Update overlay to success state
-  const updateOverlaySuccess = (overlay: HTMLElement, title: string) => {
-    overlay.style.backgroundColor = "rgba(22, 163, 74, 0.9)";
-    overlay.innerHTML = `
-      <svg class="mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-      </svg>
-      <span>${title} downloaded successfully!</span>
-    `;
-
-    // Remove overlay after 3 seconds
-    setTimeout(() => {
-      if (document.body.contains(overlay)) {
-        overlay.style.opacity = "0";
-        setTimeout(() => {
-          if (document.body.contains(overlay)) {
-            document.body.removeChild(overlay);
-          }
-        }, 300);
-      }
-    }, 3000);
-  };
-
-  // Update overlay to error state
-  const updateOverlayError = (overlay: HTMLElement) => {
-    overlay.style.backgroundColor = "rgba(220, 38, 38, 0.9)";
-    overlay.innerHTML = `
-      <svg class="mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-      </svg>
-      <span>Download failed. Trying alternative method...</span>
-    `;
-  };
+  // We're now using the mobile-aware-download-toast component instead of these functions
 
   // Fetch creator info if not already provided
   useEffect(() => {
@@ -484,15 +420,15 @@ export default function ResourceView({
       }
     };
 
-    const unsubscribe = setupRealtimeSubscription();
+    // Store the cleanup function
+    let cleanupFunction: (() => void) | null = null;
+
+    // Set up the subscription and store the cleanup function
+    setupRealtimeSubscription().then(cleanup => {
+      cleanupFunction = cleanup;
+    });
 
     return () => {
-      // Clean up any download overlay
-      const overlay = document.getElementById("global-download-overlay");
-      if (overlay && document.body.contains(overlay)) {
-        document.body.removeChild(overlay);
-      }
-
       // Restore the original body styles when component unmounts
       document.body.style.cssText = originalBodyStyle;
       document.body.className = originalBodyClassName;
@@ -519,11 +455,10 @@ export default function ResourceView({
         "resource-edit-complete",
         handleEditComplete,
       );
+
       // Clean up the subscription when component unmounts
-      if (typeof unsubscribe === "function") {
-        unsubscribe();
-      } else if (unsubscribe instanceof Promise) {
-        unsubscribe.then((fn) => typeof fn === "function" && fn());
+      if (cleanupFunction) {
+        cleanupFunction();
       }
     };
   }, [resource.id]);
@@ -565,16 +500,12 @@ export default function ResourceView({
               table: "resources",
               filter: `id=eq.${resource.id}`,
             },
-            (payload) => {
+            (payload: any) => {
               // When the resource is updated, check if comment_count changed
               if (
                 payload.new &&
                 typeof payload.new.comment_count === "number"
               ) {
-                console.log(
-                  "Resource updated with new comment count:",
-                  payload.new.comment_count,
-                );
                 setCommentCount(payload.new.comment_count);
               }
             },
@@ -591,13 +522,18 @@ export default function ResourceView({
       }
     };
 
-    const unsubscribe = setupCommentsSubscription();
+    // Store the cleanup function
+    let commentsCleanupFunction: (() => void) | null = null;
+
+    // Set up the subscription and store the cleanup function
+    setupCommentsSubscription().then(cleanup => {
+      commentsCleanupFunction = cleanup;
+    });
 
     return () => {
-      if (typeof unsubscribe === "function") {
-        unsubscribe();
-      } else if (unsubscribe instanceof Promise) {
-        unsubscribe.then((fn) => typeof fn === "function" && fn());
+      // Clean up the subscription when component unmounts
+      if (commentsCleanupFunction) {
+        commentsCleanupFunction();
       }
     };
   }, [resource.id]);
@@ -606,16 +542,17 @@ export default function ResourceView({
   // No automatic scrolling on page load or when comments are fetched
 
   const handleDownload = async () => {
+
     // Determine if we're handling an external link or a file
     const isExternalLink = !!resource.external_link;
     const isFileResource = !!resource.file_url;
 
     if (!isExternalLink && !isFileResource) {
-      toast({
-        title: "Download Failed",
-        description: "No downloadable content available",
-        variant: "destructive",
-        duration: 3000,
+      // Show error message for non-downloadable content
+      showDownloadToast({
+        title: resource.title,
+        status: "error",
+        fallbackMessage: "No downloadable content available"
       });
       return;
     }
@@ -637,12 +574,12 @@ export default function ResourceView({
         return;
       } catch (linkError) {
         console.error("Error opening external link:", linkError);
-        toast({
-          title: "Link Error",
-          description:
-            "Failed to open external link. It may be blocked by your browser.",
-          variant: "destructive",
-          duration: 3000,
+
+        // Show error message for link opening failure
+        showDownloadToast({
+          title: resource.title,
+          status: "error",
+          fallbackMessage: "Failed to open external link. It may be blocked by your browser."
         });
         return;
       }
@@ -654,8 +591,11 @@ export default function ResourceView({
       setIsDownloading(true);
       setError(null);
 
-      // Create download overlay
-      const overlay = createDownloadOverlay(resource.title);
+      // Show downloading toast/overlay
+      showDownloadToast({
+        title: resource.title,
+        status: "downloading"
+      });
 
       // Use the Blob API to download the file directly
       fetch(`/api/resources/${resource.id}/download`, {
@@ -684,18 +624,14 @@ export default function ResourceView({
             document.body.removeChild(a);
           }
 
-          // Show success state and toast notification
+          // Show success state
           setDownloadSuccess(true);
           setIsDownloading(false);
 
-          // Update overlay to success state
-          updateOverlaySuccess(overlay, resource.title);
-
-          // Show toast notification
-          toast({
-            title: "Download Complete",
-            description: `${resource.title} has been downloaded successfully.`,
-            duration: 3000,
+          // Show success toast/overlay
+          showDownloadToast({
+            title: resource.title,
+            status: "success"
           });
 
           // Reset success state after 3 seconds
@@ -707,16 +643,11 @@ export default function ResourceView({
           console.error("Download error:", error);
           setIsDownloading(false);
 
-          // Update overlay to error state
-          updateOverlayError(overlay);
-
-          // Show error toast
-          toast({
-            title: "Download Failed",
-            description:
-              "There was a problem downloading the file. Trying alternative method...",
-            variant: "destructive",
-            duration: 3000,
+          // Show error toast/overlay
+          showDownloadToast({
+            title: resource.title,
+            status: "error",
+            fallbackMessage: "There was a problem downloading the file. Trying alternative method..."
           });
 
           // Fallback to the API endpoint as a last resort
@@ -733,14 +664,10 @@ export default function ResourceView({
                 document.body.removeChild(link);
               }
 
-              // Update overlay to success state
-              updateOverlaySuccess(overlay, resource.title);
-
-              // Show success toast for fallback method
-              toast({
-                title: "Download Complete",
-                description: `${resource.title} has been downloaded using alternative method.`,
-                duration: 3000,
+              // Show success toast/overlay for fallback method
+              showDownloadToast({
+                title: resource.title,
+                status: "success"
               });
             }, 1000);
           } catch (fallbackError) {
@@ -910,7 +837,7 @@ export default function ResourceView({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <p className="text-gray-600">{resource.description}</p>
+            <p className="text-white/60 font-medium">{resource.description}</p>
 
             {resource.professor && (
               <div>
@@ -1018,11 +945,11 @@ export default function ResourceView({
             <Button
               variant="outline"
               size="sm"
-              className="flex-shrink-0"
+              className="flex-shrink-0 flex-1 sm:flex-auto"
               onClick={shareResource}
             >
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
+              <Share2 className="h-4 w-4 sm:mr-2" />
+              <span className="hidden xs:inline ml-1 sm:ml-0">Share</span>
             </Button>
             <Button
               variant={hasLiked ? "default" : "outline"}
@@ -1031,20 +958,20 @@ export default function ResourceView({
               className={`
                 ${hasLiked ? "bg-primary hover:bg-primary/90" : ""}
                 ${isLikeAnimating ? "like-button-animation" : ""}
-                flex-shrink-0 relative overflow-hidden
+                flex-shrink-0 flex-1 sm:flex-auto relative overflow-hidden
                 transition-all duration-200
               `}
               size="sm"
             >
               <ThumbsUp
                 className={`
-                  h-4 w-4 mr-1
+                  h-4 w-4 sm:mr-1
                   ${hasLiked ? "fill-white" : ""}
                   ${isLikeAnimating ? "like-icon-animation" : ""}
                   transition-transform duration-200
                 `}
               />
-              {hasLiked ? "Liked" : "Like"}
+              <span className="hidden xs:inline ml-1 sm:ml-0">{hasLiked ? "Liked" : "Like"}</span>
               {isLikeAnimating && (
                 <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <span className="absolute w-8 h-8 bg-primary/20 animate-ping rounded-full"></span>
@@ -1057,37 +984,37 @@ export default function ResourceView({
                   variant="outline"
                   onClick={handleViewPdf}
                   size="sm"
-                  className="flex-shrink-0"
+                  className="flex-shrink-0 flex-1 sm:flex-auto"
                 >
-                  <Eye className="h-4 w-4 mr-1" />
-                  {showPdfViewer ? "Hide PDF" : "View PDF"}
+                  <Eye className="h-4 w-4 sm:mr-1" />
+                  <span className="hidden xs:inline ml-1 sm:ml-0">{showPdfViewer ? "Hide" : "View PDF"}</span>
                 </Button>
               )}
             <Button
               onClick={handleDownload}
               disabled={isDownloading}
               size="sm"
-              className="flex-shrink-0"
+              className="flex-shrink-0 flex-1 sm:flex-auto"
             >
               {isDownloading ? (
                 <span className="flex items-center justify-center w-full">
-                  <Download className="animate-bounce h-4 w-4 mr-2" />
-                  Downloading...
+                  <Download className="animate-bounce h-4 w-4 sm:mr-2" />
+                  <span className="hidden xs:inline ml-1 sm:ml-0">Downloading...</span>
                 </span>
               ) : downloadSuccess ? (
                 <span className="flex items-center justify-center w-full">
-                  <CheckCircle className="text-green-500 h-4 w-4 mr-2" />
-                  Downloaded
+                  <CheckCircle className="text-green-500 h-4 w-4 sm:mr-2" />
+                  <span className="hidden xs:inline ml-1 sm:ml-0">Downloaded</span>
                 </span>
               ) : resource.external_link ? (
                 <span className="flex items-center justify-center w-full">
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Visit Link
+                  <ExternalLink className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden xs:inline ml-1 sm:ml-0">Visit Link</span>
                 </span>
               ) : (
                 <span className="flex items-center justify-center w-full">
-                  <Download className="h-4 w-4 mr-2" />
-                  Download
+                  <Download className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden xs:inline ml-1 sm:ml-0">Download</span>
                 </span>
               )}
             </Button>

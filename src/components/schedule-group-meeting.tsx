@@ -311,60 +311,57 @@ export default function ScheduleGroupMeeting({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Mobile-friendly date/time selector */}
+          <div className="space-y-4">
             <div className="grid gap-2">
-              <Label htmlFor="start-date">Start Date</Label>
-              <div className="relative">
-                <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="start-date"
-                  type="date"
-                  className="pl-8"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
+              <Label htmlFor="start-datetime">Start Date & Time</Label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="relative flex-1">
+                  <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="start-date"
+                    type="date"
+                    className="pl-8 w-full"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </div>
+                <div className="relative flex-1">
+                  <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="start-time"
+                    type="time"
+                    className="pl-8 w-full"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="start-time">Start Time</Label>
-              <div className="relative">
-                <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="start-time"
-                  type="time"
-                  className="pl-8"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="end-date">End Date</Label>
-              <div className="relative">
-                <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="end-date"
-                  type="date"
-                  className="pl-8"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="end-time">End Time</Label>
-              <div className="relative">
-                <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="end-time"
-                  type="time"
-                  className="pl-8"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                />
+              <Label htmlFor="end-datetime">End Date & Time</Label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="relative flex-1">
+                  <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="end-date"
+                    type="date"
+                    className="pl-8 w-full"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </div>
+                <div className="relative flex-1">
+                  <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="end-time"
+                    type="time"
+                    className="pl-8 w-full"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           </div>

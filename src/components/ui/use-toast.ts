@@ -138,6 +138,29 @@ function dispatch(action: Action) {
 type Toast = Omit<ToasterToast, "id">;
 
 function toast({ ...props }: Toast) {
+  // Check if we're on mobile
+  const isMobileDevice = (): boolean => {
+    if (typeof window === 'undefined') return false;
+
+    const width = window.innerWidth;
+    const hasTouchCapability = 'ontouchstart' in window ||
+                              navigator.maxTouchPoints > 0 ||
+                              (navigator as any).msMaxTouchPoints > 0;
+
+    // Consider mobile if width is small OR device has touch capability
+    return width < 920 || hasTouchCapability;
+  };
+
+  // If on mobile, don't create a toast
+  if (typeof window !== 'undefined' && isMobileDevice()) {
+    return {
+      id: "suppressed-toast",
+      dismiss: () => {},
+      update: () => {},
+    };
+  }
+
+  // Original toast functionality for non-mobile devices
   const id = genId();
 
   const update = (props: ToasterToast) =>

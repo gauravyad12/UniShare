@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast, toast } from "@/lib/mobile-aware-toast";
 import { CheckSquare, Plus, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,11 +33,11 @@ export default function MobileTodoSection() {
     try {
       setLoading(true);
       const response = await fetch("/api/todos");
-      
+
       if (!response.ok) {
         throw new Error("Failed to fetch todos");
       }
-      
+
       const data = await response.json();
       setTodos(data.todos || []);
     } catch (error) {
@@ -54,9 +54,9 @@ export default function MobileTodoSection() {
 
   const addTodo = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newTodoContent.trim()) return;
-    
+
     try {
       const response = await fetch("/api/todos", {
         method: "POST",
@@ -120,7 +120,7 @@ export default function MobileTodoSection() {
   const activeTodos = todos
     .filter(todo => !todo.is_completed)
     .slice(0, 3);
-  
+
   const totalActiveTodos = todos.filter(todo => !todo.is_completed).length;
   const hasMoreTodos = totalActiveTodos > 3;
 
@@ -170,7 +170,7 @@ export default function MobileTodoSection() {
                 </div>
               </div>
             ))}
-            
+
             {hasMoreTodos && (
               <div className="text-center pt-2">
                 <Button variant="ghost" size="sm" asChild>

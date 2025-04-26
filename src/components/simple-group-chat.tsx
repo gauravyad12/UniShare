@@ -777,8 +777,8 @@ export default function SimpleGroupChat({
           <Button variant="ghost" size="sm" className="rounded-full mr-2 p-0 h-8 w-8 hidden md:flex" onClick={handleClose}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold">{group.name}</h1>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold truncate pr-4 max-w-full">{group.name}</h1>
             <div className="flex items-center gap-1">
               <Badge variant="outline" className="mt-1">
                 <MessageSquare className="h-3 w-3 mr-1" />

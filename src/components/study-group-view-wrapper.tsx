@@ -197,24 +197,26 @@ export default function StudyGroupViewWrapper({
 
       <CardHeader>
         <div className="flex justify-between items-start">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold">{group.name}</h1>
-            <Badge variant={group.is_private ? "secondary" : "outline"}>
-              {group.is_private ? (
-                <>
-                  <Lock className="h-3 w-3 mr-1" />
-                  Private
-                </>
-              ) : (
-                <>
-                  <Unlock className="h-3 w-3 mr-1" />
-                  Open
-                </>
+          <div className="flex flex-col gap-2">
+            <h1 className="text-2xl font-bold truncate pr-16 max-w-full">{group.name}</h1>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant={group.is_private ? "secondary" : "outline"}>
+                {group.is_private ? (
+                  <>
+                    <Lock className="h-3 w-3 mr-1" />
+                    Private
+                  </>
+                ) : (
+                  <>
+                    <Unlock className="h-3 w-3 mr-1" />
+                    Open
+                  </>
+                )}
+              </Badge>
+              {group.course_code && (
+                <Badge variant="outline">{group.course_code}</Badge>
               )}
-            </Badge>
-            {group.course_code && (
-              <Badge variant="outline">{group.course_code}</Badge>
-            )}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {isMember ? (

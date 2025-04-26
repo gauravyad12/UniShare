@@ -8,6 +8,7 @@ import { ThemeSync } from "@/components/theme-sync";
 import { NavigationEvents } from "@/components/navigation-events";
 import GlobalLoadingSpinner from "@/components/global-loading-spinner";
 import { GlobalStylesProvider } from "@/components/global-styles-provider";
+import { MobileAwareToaster } from "@/components/mobile-aware-toaster";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 // Force dynamic rendering for all pages
@@ -108,6 +109,7 @@ export default function RootLayout({
           <GlobalLoadingSpinner />
           {children}
           <NavigationEvents />
+          <MobileAwareToaster />
 
           <SpeedInsights />
           <Analytics />
