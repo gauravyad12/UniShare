@@ -366,7 +366,7 @@ export default function InvitePage() {
         <CardContent>
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium">
+              <span className="text-sm font-medium hidden md:inline">
                 Progress to Verification
               </span>
               <span className="text-sm font-medium">

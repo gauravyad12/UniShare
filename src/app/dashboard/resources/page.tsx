@@ -150,7 +150,7 @@ export default async function ResourcesPage({
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
+    <div className="container mx-auto px-4 py-8 pb-15 md:pb-8 flex flex-col gap-8">
       <header className="flex flex-col gap-4">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Resources</h1>
@@ -204,7 +204,7 @@ export default async function ResourcesPage({
           />
 
           {/* Pagination */}
-          <div className="mt-8">
+          <div className="mt-4 md:mt-8">
             <PaginationControlWrapper
               totalItems={totalCount || 0}
               pageSize={pageSize}

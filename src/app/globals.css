@@ -430,6 +430,7 @@
   /* Safe area for bottom navigation */
   .safe-area-bottom {
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+    transition: transform 0.3s ease;
   }
 
   /* Dashboard specific mobile styles */
@@ -437,6 +438,11 @@
     margin-bottom: 1.5rem;
     border-radius: 1rem;
     overflow: hidden;
+  }
+
+  /* Resource cards in mobile view */
+  .grid-cols-1 > .card {
+    margin-bottom: 0.5rem;
   }
 
   /* Animated dots */

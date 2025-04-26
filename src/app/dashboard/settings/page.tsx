@@ -430,7 +430,8 @@ export default function SettingsPage() {
     try {
       const supabase = createClient();
       await supabase.auth.signOut();
-      router.push("/");
+      // Redirect to the app entry page
+      router.push("/app-entry");
     } catch (error) {
       console.error("Error logging out:", error);
       toast({
@@ -658,7 +659,7 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-4">
                     <div
                       key="default"
-                      className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer overflow-hidden border border-gray-300 ${settings.color_scheme === "default" ? "ring-2 ring-primary ring-offset-2" : ""}`}
+                      className={`w-10 aspect-square rounded-full flex items-center justify-center cursor-pointer overflow-hidden border border-gray-300 ${settings.color_scheme === "default" ? "ring-2 ring-primary ring-offset-2" : ""}`}
                       onClick={() => handleColorChange("default")}
                     >
                       <div className="flex h-full w-full">
@@ -679,7 +680,7 @@ export default function SettingsPage() {
                     ].map((colorOption) => (
                       <div
                         key={colorOption.name}
-                        className={`w-10 h-10 ${colorOption.color} rounded-full flex items-center justify-center cursor-pointer ${settings.color_scheme === colorOption.name ? "ring-2 ring-primary ring-offset-2" : ""}`}
+                        className={`w-10 aspect-square ${colorOption.color} rounded-full flex items-center justify-center cursor-pointer ${settings.color_scheme === colorOption.name ? "ring-2 ring-primary ring-offset-2" : ""}`}
                         onClick={() => handleColorChange(colorOption.name)}
                       >
                         {settings.color_scheme === colorOption.name && (
@@ -798,19 +799,13 @@ export default function SettingsPage() {
               Sign out of your account
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Log out of your account on this device
-              </p>
-            </div>
-          </CardContent>
+          {/* CardContent removed to decrease space */}
           <CardFooter>
             <Button
               variant="outline"
               onClick={handleLogout}
               disabled={loggingOut}
-              className="w-full"
+              className="w-full text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30"
             >
               {loggingOut ? (
                 <>
@@ -829,7 +824,7 @@ export default function SettingsPage() {
 
         <Card className="border-destructive/50">
           <CardHeader>
-            <CardTitle className="text-destructive flex items-center gap-2">
+            <CardTitle className="text-red-500 flex items-center gap-2">
               <Trash2 className="h-5 w-5" />
               Danger Zone
             </CardTitle>

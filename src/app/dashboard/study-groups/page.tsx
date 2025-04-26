@@ -173,7 +173,7 @@ export default async function StudyGroupsPage({
   const totalCount = activeTab === "my-groups" ? totalMyGroupsCount : totalPublicCount;
 
   return (
-    <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
+    <div className="container mx-auto px-4 py-8 pb-15 md:pb-8 flex flex-col gap-8">
       <header className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-2">
           <h1 className="text-3xl font-bold">Study Groups</h1>
@@ -205,7 +205,7 @@ export default async function StudyGroupsPage({
       />
 
       {/* Pagination */}
-      <div className="mt-6">
+      <div className="mt-4 md:mt-6">
         <PaginationControlWrapper
           totalItems={totalCount || 0}
           pageSize={pageSize}

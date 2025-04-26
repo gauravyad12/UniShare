@@ -54,7 +54,7 @@ export default async function DashboardLayout({
         style={styleAttr}
       >
         <DashboardNavbar />
-        <main className="flex-1 w-full pb-32 md:pb-0">{children}</main>
+        <main className="flex-1 w-full pb-20 md:pb-0">{children}</main>
         <BottomNavbar />
       </div>
     </DashboardClientWrapper>

@@ -95,7 +95,7 @@ export default function PaginationControl({
       pages.push("rightDots");
     }
 
-    // Add last page if not already included
+    // Add last page if not already included and if it's different from the first page
     if (totalPages > 1) {
       pages.push(totalPages);
     }
@@ -103,16 +103,12 @@ export default function PaginationControl({
     return pages;
   }, [currentPage, siblingCount, totalPages]);
 
-  // If there's only one page, don't show pagination
-  if (totalPages <= 1) {
-    return null;
-  }
-
+  // Always show pagination, even if there's only one page
   const pages = generatePagination();
 
   return (
     <Pagination className={className}>
-      <PaginationContent>
+      <PaginationContent className={totalPages <= 1 ? "opacity-70" : ""}>
         <PaginationItem>
           <PaginationPrevious
             href="#"

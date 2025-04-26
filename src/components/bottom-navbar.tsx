@@ -26,6 +26,14 @@ export default function BottomNavbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Function to scroll to top of page
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
   // Define navigation items with their paths, icons, and labels
   const navItems = [
     {
@@ -117,26 +125,42 @@ export default function BottomNavbar() {
               // Special case for settings path
               (item.label === "Settings" && pathname.startsWith("/dashboard/settings"));
 
-            return (
+            // Use a button for active items and Link for inactive items
+            return isActive ? (
+              <button
+                key={item.path}
+                onClick={scrollToTop}
+                className="relative flex flex-col items-center justify-center w-full h-full transition-all duration-200 text-primary bg-transparent border-0 cursor-pointer"
+                aria-current="page"
+              >
+                <span
+                  className={`absolute top-0 h-1 w-10 rounded-full ${getActiveIndicatorStyle()}`}
+                  aria-hidden="true"
+                />
+                <item.icon
+                  size={22}
+                  className="transition-all duration-200 mb-0.5"
+                  strokeWidth={2.5}
+                />
+                <span
+                  className="text-xs font-medium transition-all duration-200 scale-105"
+                >
+                  {item.label}
+                </span>
+              </button>
+            ) : (
               <Link
                 key={item.path}
                 href={item.path}
-                className={`relative flex flex-col items-center justify-center w-full h-full transition-all duration-200 ${isActive ? "text-primary" : "text-muted-foreground hover:text-foreground active:text-primary/70"}`}
-                aria-current={isActive ? "page" : undefined}
+                className="relative flex flex-col items-center justify-center w-full h-full transition-all duration-200 text-muted-foreground hover:text-foreground active:text-primary/70"
               >
-                {isActive && (
-                  <span
-                    className={`absolute top-0 h-1 w-10 rounded-full ${getActiveIndicatorStyle()}`}
-                    aria-hidden="true"
-                  />
-                )}
                 <item.icon
-                  size={isActive ? 22 : 20}
-                  className={`transition-all duration-200 ${isActive ? "mb-0.5" : "mb-1 opacity-80"}`}
-                  strokeWidth={isActive ? 2.5 : 2}
+                  size={20}
+                  className="transition-all duration-200 mb-1 opacity-80"
+                  strokeWidth={2}
                 />
                 <span
-                  className={`text-xs font-medium transition-all duration-200 ${isActive ? "scale-105" : ""}`}
+                  className="text-xs font-medium transition-all duration-200"
                 >
                   {item.label}
                 </span>
