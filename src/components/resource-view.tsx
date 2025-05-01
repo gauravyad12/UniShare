@@ -1131,7 +1131,10 @@ export default function ResourceView({
 
       {/* Edit Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent
+          className="sm:max-w-[600px]"
+          onOpenAutoFocus={(e) => e.preventDefault()} // Prevent auto-focus on open
+        >
           <DialogHeader>
             <DialogTitle>Edit Resource</DialogTitle>
           </DialogHeader>

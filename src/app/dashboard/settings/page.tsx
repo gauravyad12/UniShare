@@ -266,8 +266,8 @@ export default function SettingsPage() {
     // Broadcast theme change to other tabs/windows
     broadcastThemeChange(newTheme);
 
-    // Save to database immediately to prevent losing changes on refresh
-    handleSaveSettings('appearance');
+    // Don't save to database automatically - user must click Save Changes
+    // handleSaveSettings('appearance');
   };
 
   const handleColorChange = (color: string) => {
@@ -277,10 +277,10 @@ export default function SettingsPage() {
       color_scheme: color,
     });
 
-    // Update theme context
+    // Update theme context - this will apply the changes immediately
     setAccentColor(color);
 
-    // Directly apply color for immediate effect
+    // Additional direct DOM manipulation for immediate effect
     const dashboardContainer = document.querySelector(".dashboard-styles");
     if (dashboardContainer) {
       if (color === "default") {
@@ -290,7 +290,12 @@ export default function SettingsPage() {
       }
     }
 
-    // No longer auto-saving settings
+    // Save to localStorage for persistence across page refreshes
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem("accent-color", color);
+    }
+
+    // Don't save to database automatically - user must click Save Changes
   };
 
   const handleFontSizeChange = (size: number) => {
@@ -300,12 +305,27 @@ export default function SettingsPage() {
       font_size: size,
     });
 
-    // Update theme context
+    // Update theme context - this will apply the changes immediately
     setFontSize(size);
 
-    // Directly apply font size to document for immediate effect
+    // Additional direct DOM manipulation for immediate effect
     const rootSize = 16 + (size - 2) * 1; // Base size is 16px, each step changes by 1px
-    document.documentElement.style.fontSize = `${rootSize}px`;
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.fontSize = `${rootSize}px`;
+
+      // Also apply to dashboard container if it exists
+      const dashboardContainer = document.querySelector(".dashboard-styles");
+      if (dashboardContainer) {
+        dashboardContainer.style.fontSize = `${rootSize}px`;
+      }
+    }
+
+    // Save to localStorage for persistence across page refreshes
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem("font-size", size.toString());
+    }
+
+    // Don't save to database automatically - user must click Save Changes
   };
 
   const handleSaveSettings = async (cardType: 'notifications' | 'appearance' | 'privacy') => {
@@ -327,11 +347,46 @@ export default function SettingsPage() {
       setAccentColor(settings.color_scheme);
       setFontSize(settings.font_size);
 
+      // Get the current settings from the database to ensure we have all values
+      const supabase = createClient();
+      const { data: currentSettings } = await supabase
+        .from("user_settings")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      // Prepare the settings to update based on the card type
+      let settingsToUpdate = { ...settings };
+
+      // If we have current settings from the database, use them as a base
+      if (currentSettings) {
+        // Start with current settings from database
+        settingsToUpdate = {
+          email_notifications: currentSettings.email_notifications,
+          study_group_notifications: currentSettings.study_group_notifications,
+          resource_notifications: currentSettings.resource_notifications,
+          profile_visibility: currentSettings.profile_visibility,
+          theme_preference: currentSettings.theme_preference,
+          color_scheme: currentSettings.color_scheme,
+          font_size: currentSettings.font_size,
+        };
+
+        // Update only the relevant settings based on card type
+        if (cardType === 'notifications') {
+          settingsToUpdate.email_notifications = settings.email_notifications;
+          settingsToUpdate.study_group_notifications = settings.study_group_notifications;
+          settingsToUpdate.resource_notifications = settings.resource_notifications;
+        } else if (cardType === 'appearance') {
+          settingsToUpdate.theme_preference = settings.theme_preference;
+          settingsToUpdate.color_scheme = settings.color_scheme;
+          settingsToUpdate.font_size = settings.font_size;
+        } else if (cardType === 'privacy') {
+          settingsToUpdate.profile_visibility = settings.profile_visibility;
+        }
+      }
+
       // Log the settings being saved
-      console.log(`Saving ${cardType} settings to database:`, {
-        ...settings,
-        profile_visibility: settings.profile_visibility // Explicitly log profile visibility
-      });
+      console.log(`Saving ${cardType} settings to database:`, settingsToUpdate);
 
       // If saving notifications settings, handle Resend audience update
       if (cardType === 'notifications' && user?.email) {
@@ -339,7 +394,6 @@ export default function SettingsPage() {
           console.log('Updating Resend audience subscription status based on email_notifications setting');
 
           // Get user profile for full name
-          const supabase = createClient();
           const { data: profileData } = await supabase
             .from('user_profiles')
             .select('full_name')
@@ -375,7 +429,7 @@ export default function SettingsPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(settingsToUpdate),
       });
 
       const data = await response.json();
@@ -511,9 +565,9 @@ export default function SettingsPage() {
           <CardContent className="space-y-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div>
+                <div className="pr-4">
                   <h4 className="font-medium">Email Notifications</h4>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground mt-1">
                     Receive email notifications about activity
                   </p>
                 </div>
@@ -527,9 +581,9 @@ export default function SettingsPage() {
               </div>
 
               <div className="flex items-center justify-between">
-                <div>
+                <div className="pr-4">
                   <h4 className="font-medium">Study Group Updates</h4>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground mt-1">
                     Get notified about new messages and meetings
                   </p>
                 </div>
@@ -543,9 +597,9 @@ export default function SettingsPage() {
               </div>
 
               <div className="flex items-center justify-between">
-                <div>
+                <div className="pr-4">
                   <h4 className="font-medium">Resource Notifications</h4>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground mt-1">
                     Get notified about new resources in your courses
                   </p>
                 </div>
@@ -732,9 +786,9 @@ export default function SettingsPage() {
           <CardContent className="space-y-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div>
+                <div className="pr-4">
                   <h4 className="font-medium">Profile Visibility</h4>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground mt-1">
                     Control who can see your profile information
                   </p>
                 </div>

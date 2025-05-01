@@ -79,18 +79,23 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Record exists, update it
+      // Create an update object with only defined values
+      const updateObj: any = {
+        updated_at: new Date().toISOString(),
+      };
+
+      // Only include fields that are defined
+      if (email_notifications !== undefined) updateObj.email_notifications = email_notifications;
+      if (study_group_notifications !== undefined) updateObj.study_group_notifications = study_group_notifications;
+      if (resource_notifications !== undefined) updateObj.resource_notifications = resource_notifications;
+      if (profile_visibility !== undefined) updateObj.profile_visibility = profile_visibility;
+      if (theme_preference !== undefined) updateObj.theme_preference = theme_preference;
+      if (color_scheme !== undefined) updateObj.color_scheme = color_scheme;
+      if (font_size !== undefined) updateObj.font_size = font_size;
+
       updateMethod = supabase
         .from("user_settings")
-        .update({
-          email_notifications,
-          study_group_notifications,
-          resource_notifications,
-          profile_visibility,
-          theme_preference,
-          color_scheme,
-          font_size,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateObj)
         .eq("user_id", user.id);
     }
 

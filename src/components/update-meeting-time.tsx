@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import {
   Dialog,
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar, Clock, Loader2 } from "lucide-react";
 import { useToast } from "./ui/use-toast";
+import MobileDateTimePicker from "./mobile-date-time-picker";
 
 interface UpdateMeetingTimeProps {
   meetingId: string;
@@ -39,6 +40,36 @@ export default function UpdateMeetingTime({
   const [endDate, setEndDate] = useState(format(new Date(currentEndTime), "yyyy-MM-dd"));
   const [endTime, setEndTime] = useState(format(new Date(currentEndTime), "HH:mm"));
   const [updating, setUpdating] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // For mobile date time picker
+  const [startDateTime, setStartDateTime] = useState(new Date(currentStartTime));
+  const [endDateTime, setEndDateTime] = useState(new Date(currentEndTime));
+
+  // Detect mobile devices
+  useEffect(() => {
+    const checkMobile = () => {
+      const width = window.innerWidth;
+      const hasTouchCapability = 'ontouchstart' in window ||
+                                navigator.maxTouchPoints > 0 ||
+                                (navigator as any).msMaxTouchPoints > 0;
+
+      // Consider mobile if width is small OR device has touch capability
+      const mobileDevice = width < 768 || hasTouchCapability;
+      setIsMobile(mobileDevice);
+    };
+
+    // Initial check
+    checkMobile();
+
+    // Add event listener for window resize
+    window.addEventListener("resize", checkMobile);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+    };
+  }, []);
 
   const handleUpdateTime = async () => {
     // Validate inputs
@@ -60,12 +91,22 @@ export default function UpdateMeetingTime({
       return;
     }
 
-    // Convert dates and times to ISO strings
-    const startDateTime = new Date(`${startDate}T${startTime}`);
-    const endDateTime = new Date(`${endDate}T${endTime}`);
+    // Get date/time values based on device type
+    let startDateTimeValue: Date;
+    let endDateTimeValue: Date;
+
+    if (isMobile) {
+      // Use the date objects directly from the mobile picker
+      startDateTimeValue = startDateTime;
+      endDateTimeValue = endDateTime;
+    } else {
+      // Convert dates and times to ISO strings for desktop inputs
+      startDateTimeValue = new Date(`${startDate}T${startTime}`);
+      endDateTimeValue = new Date(`${endDate}T${endTime}`);
+    }
 
     // Validate dates
-    if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+    if (isNaN(startDateTimeValue.getTime()) || isNaN(endDateTimeValue.getTime())) {
       toast({
         title: "Invalid date/time",
         description: "Please enter valid dates and times",
@@ -74,7 +115,7 @@ export default function UpdateMeetingTime({
       return;
     }
 
-    if (startDateTime >= endDateTime) {
+    if (startDateTimeValue >= endDateTimeValue) {
       toast({
         title: "Invalid time range",
         description: "End time must be after start time",
@@ -94,8 +135,8 @@ export default function UpdateMeetingTime({
         },
         body: JSON.stringify({
           meetingId,
-          startTime: startDateTime.toISOString(),
-          endTime: endDateTime.toISOString(),
+          startTime: startDateTimeValue.toISOString(),
+          endTime: endDateTimeValue.toISOString(),
         })
       });
 
@@ -137,59 +178,81 @@ export default function UpdateMeetingTime({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
-          {/* Mobile-friendly date/time selector */}
+          {/* Date/time selector - different for mobile and desktop */}
           <div className="space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="start-datetime">Start Date & Time</Label>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <div className="relative flex-1">
-                  <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="start-date"
-                    type="date"
-                    className="pl-8 w-full"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                </div>
-                <div className="relative flex-1">
-                  <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="start-time"
-                    type="time"
-                    className="pl-8 w-full"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
+            {isMobile ? (
+              // Mobile custom date/time picker
+              <>
+                <MobileDateTimePicker
+                  label="Start Date & Time"
+                  value={startDateTime}
+                  onChange={(date) => setStartDateTime(date)}
+                  icon="calendar"
+                />
 
-            <div className="grid gap-2">
-              <Label htmlFor="end-datetime">End Date & Time</Label>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <div className="relative flex-1">
-                  <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="end-date"
-                    type="date"
-                    className="pl-8 w-full"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
+                <MobileDateTimePicker
+                  label="End Date & Time"
+                  value={endDateTime}
+                  onChange={(date) => setEndDateTime(date)}
+                  icon="clock"
+                />
+              </>
+            ) : (
+              // Desktop standard date/time inputs
+              <>
+                <div className="grid gap-2">
+                  <Label htmlFor="start-datetime">Start Date & Time</Label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-1">
+                      <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="start-date"
+                        type="date"
+                        className="pl-8 w-full"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="relative flex-1">
+                      <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="start-time"
+                        type="time"
+                        className="pl-8 w-full"
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="relative flex-1">
-                  <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="end-time"
-                    type="time"
-                    className="pl-8 w-full"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                  />
+
+                <div className="grid gap-2">
+                  <Label htmlFor="end-datetime">End Date & Time</Label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-1">
+                      <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="end-date"
+                        type="date"
+                        className="pl-8 w-full"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="relative flex-1">
+                      <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="end-time"
+                        type="time"
+                        className="pl-8 w-full"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
           </div>
         </div>
         <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">

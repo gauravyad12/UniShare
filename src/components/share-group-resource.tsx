@@ -24,22 +24,18 @@ export default function ShareGroupResource({
   onResourceSelected,
 }: ShareGroupResourceProps) {
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [resources, setResources] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedResource, setSelectedResource] = useState<string | null>(null);
 
-  // Fetch group resources when the popover opens
+  // Fetch group resources initially
   useEffect(() => {
-    if (open) {
-      fetchGroupResources();
-    }
-  }, [open, groupId]);
+    fetchGroupResources();
+  }, [groupId]);
 
   // Search for resources when the search term changes
   useEffect(() => {
-    if (!open) return;
 
     const searchResources = async () => {
       if (!searchTerm || searchTerm.length < 2) {
@@ -91,7 +87,7 @@ export default function ShareGroupResource({
     }, 300);
 
     return () => clearTimeout(debounce);
-  }, [searchTerm, groupId, open]);
+  }, [searchTerm, groupId]);
 
   const fetchGroupResources = async () => {
     setLoading(true);
@@ -129,14 +125,13 @@ export default function ShareGroupResource({
   const handleResourceSelect = (resourceId: string, resourceTitle: string) => {
     if (onResourceSelected) {
       onResourceSelected(resourceId, resourceTitle);
-      setOpen(false);
       setSelectedResource(null);
       setSearchTerm("");
     }
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
@@ -159,6 +154,8 @@ export default function ShareGroupResource({
               className="pl-8"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              autoFocus={false}
+              tabIndex={-1} // Prevent auto-focus
             />
           </div>
         </div>

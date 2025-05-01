@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import MinimalGroupChatSidebar from "./minimal-group-chat-sidebar";
+import ResourceThumbnail from "./resource-thumbnail";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,9 +18,7 @@ import {
   MessageSquare,
   ArrowLeft,
   X,
-  Send,
   Loader2,
-  FileText,
   ChevronDown,
   Menu,
   ArrowUp
@@ -142,7 +140,7 @@ export default function SimpleGroupChat({
     // Use different thresholds for desktop and mobile
     // Desktop needs a larger threshold because of different scroll behavior
     const isMobile = window.innerWidth < 768; // md breakpoint in Tailwind
-    const threshold = isMobile ? 10 : 50; // 50px threshold for desktop, 10px for mobile
+    const threshold = isMobile ? 150 : 250; // 100px threshold for desktop, 50px for mobile
 
     const scrolledFromBottom = scrollHeight - scrollTop - clientHeight;
     const isAtBottomNow = scrolledFromBottom < threshold;
@@ -153,7 +151,7 @@ export default function SimpleGroupChat({
 
       // Show button with animation when scrolling up
       if (!isAtBottomNow) {
-        setIsButtonVisible(true);
+          setIsButtonVisible(true);
       } else {
         // Explicitly hide button when at bottom
         setIsButtonVisible(false);
@@ -701,7 +699,7 @@ export default function SimpleGroupChat({
 
   return (
     <div className="fixed z-20 flex top-0 md:top-[69px] left-0 right-0 bottom-0 border-t border-border md:border-t">
-      <div className="container mx-auto flex px-0 sm:px-0 md:px-4">
+      <div className="w-full mx-auto flex px-0 md:container md:px-4">
         {/* Desktop sidebar - always visible */}
         <div className="hidden md:block w-80 h-[calc(100vh-69px)]">
           <MinimalGroupChatSidebar
@@ -754,7 +752,7 @@ export default function SimpleGroupChat({
             </>
           )}
         </AnimatePresence>
-        <Card className="relative flex-1 border-none shadow-none px-0 sm:px-0 md:px-0 overflow-hidden flex flex-col pb-16 md:pb-4 h-screen md:h-[calc(100vh-69px)]">
+        <Card className="relative flex-1 border-none shadow-none px-0 sm:px-0 md:px-0 overflow-hidden flex flex-col pb-20 md:pb-4 h-screen md:h-[calc(100vh-69px)]">
       <Button
         variant="ghost"
         size="icon"
@@ -764,7 +762,7 @@ export default function SimpleGroupChat({
         <X className="h-4 w-4" />
       </Button>
 
-      <CardHeader className="pb-2 bg-background border-b flex items-center px-3 sm:px-4 md:px-6">
+      <CardHeader className="pb-2 bg-background border-b flex items-center px-0.5 sm:px-2 md:px-4">
         <div className="flex items-center gap-2 mb-2 pr-8 w-full"> {/* Added right padding for X button */}
           <Button
             variant="ghost"
@@ -796,7 +794,7 @@ export default function SimpleGroupChat({
         <div
           ref={messagesContainerRef}
           onScroll={() => checkIfScrolledToBottom()}
-          className="flex-1 overflow-y-auto scrollbar-hide border-none rounded-none p-1 sm:p-2 md:p-4 bg-background relative"
+          className="flex-1 overflow-y-auto scrollbar-hide border-none rounded-none px-0.5 sm:px-2 md:px-4 py-2 bg-background relative"
         >
           {/* Removed scroll button from here - moved to bottom of chat */}
 
@@ -853,31 +851,16 @@ export default function SimpleGroupChat({
                           if (parts.length >= 3) {
                             const title = parts[1].trim();
                             const link = parts[2];
+                            const resourceId = link.split('view=')[1];
+
+                            // Use ResourceThumbnail component to display the resource
                             return (
-                              <div className="mt-4 mb-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
-                                {/* Separate resource card outside the message bubble */}
-                                <div className="rounded-lg overflow-hidden border-2 border-solid border-secondary">
-                                  <div className="bg-primary/10 px-3 py-1.5 text-xs font-medium border-b border-solid border-primary text-foreground flex items-center">
-                                    <div className="bg-card px-1.5 py-0.5 rounded border border-solid border-primary mr-1.5">
-                                      Shared Resource
-                                    </div>
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    className="w-full justify-start h-auto py-3 px-4 text-left bg-card text-card-foreground hover:bg-muted rounded-none"
-                                    asChild
-                                  >
-                                    <Link href={link}>
-                                      <div className="bg-primary/10 p-2 rounded-md mr-3 flex-shrink-0">
-                                        <FileText className="h-5 w-5 text-primary" />
-                                      </div>
-                                      <div className="truncate">
-                                        <span className="font-medium text-base text-foreground">{title}</span>
-                                        <div className="text-xs text-muted-foreground mt-1">Click to view shared resource</div>
-                                      </div>
-                                    </Link>
-                                  </Button>
-                                </div>
+                              <div className="mt-4 mb-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 max-w-[280px] sm:max-w-[320px]">
+                                <ResourceThumbnail
+                                  resourceId={resourceId}
+                                  title={title}
+                                  link={link}
+                                />
                               </div>
                             );
                           }
@@ -950,11 +933,11 @@ export default function SimpleGroupChat({
           )}
         </AnimatePresence>
 
-        <div className="sticky bottom-0 bg-background p-2 sm:p-3 md:p-4">
+        <div className="sticky bottom-0 bg-background px-0.5 sm:px-2 md:px-4 py-2 w-full">
 
           {/* Typing indicator */}
           {Object.keys(typingUsers).length > 0 && (
-            <div className="flex items-center mb-2 text-sm text-muted-foreground mx-auto max-w-3xl">
+            <div className="flex items-center mb-2 text-sm text-muted-foreground w-full md:max-w-3xl">
               <span>
                 {Object.keys(typingUsers).length === 1
                   ? `${Object.values(typingUsers)[0].full_name || Object.values(typingUsers)[0].username || 'Someone'} is typing`
@@ -967,7 +950,7 @@ export default function SimpleGroupChat({
               </span>
             </div>
           )}
-          <div className="flex gap-2 items-center mx-auto max-w-3xl">
+          <div className="flex gap-2 items-center w-full md:mx-auto md:max-w-3xl">
             <ShareGroupResource
               groupId={group.id}
               onResourceSelected={(resourceId, resourceTitle) => {
@@ -980,7 +963,7 @@ export default function SimpleGroupChat({
               <Input
                 placeholder="Type your message..."
                 value={newMessage}
-                className="rounded-full bg-muted/50 focus-visible:ring-primary/50 pr-10"
+                className="rounded-full bg-muted/50 focus-visible:ring-primary/50 pr-10 w-full"
                 onChange={(e) => {
                   setNewMessage(e.target.value);
                   // Only update typing status if we're not in a cooldown period

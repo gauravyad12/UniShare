@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "./ui/button";
 import Link from "next/link";
 import { useThemeContext } from "./theme-context";
+import { useTheme } from "next-themes";
+import { applyThemeToDocument } from "@/lib/theme-utils";
 
 interface DashboardClientWrapperProps {
   children: ReactNode;
@@ -23,25 +25,70 @@ export function DashboardClientWrapper({
   const [isLoading, setIsLoading] = useState(!initialAuthState);
   const [isAuthenticated, setIsAuthenticated] = useState(initialAuthState);
   const router = useRouter();
-  const { setFontSize, setAccentColor } = useThemeContext();
+
+  // Safely access theme context with fallback
+  let themeContext;
+  try {
+    themeContext = useThemeContext();
+  } catch (error) {
+    // If theme context is not available, create a fallback
+    themeContext = {
+      setFontSize: () => {},
+      setAccentColor: () => {},
+    };
+  }
+
+  // Destructure with fallbacks
+  const { setFontSize = () => {}, setAccentColor = () => {} } = themeContext || {};
+
+  // Fallback to next-themes for basic theme functionality
+  const { theme, setTheme } = useTheme();
 
   // Initialize theme settings from server props
   useEffect(() => {
-    if (initialFontSize) {
-      setFontSize(initialFontSize);
-      // Apply font size directly to document for immediate effect
-      const rootSize = 16 + (initialFontSize - 2) * 1;
-      document.documentElement.style.fontSize = `${rootSize}px`;
-      // Also apply to any dashboard container that might exist
-      const dashboardContainer = document.querySelector(".dashboard-styles");
-      if (dashboardContainer) {
-        dashboardContainer.style.fontSize = `${rootSize}px`;
+    try {
+      if (initialFontSize) {
+        // Try to use context if available
+        if (typeof setFontSize === 'function') {
+          setFontSize(initialFontSize);
+        }
+
+        // Apply font size directly to document for immediate effect
+        const rootSize = 16 + (initialFontSize - 2) * 1;
+        if (typeof document !== 'undefined') {
+          document.documentElement.style.fontSize = `${rootSize}px`;
+          // Also apply to any dashboard container that might exist
+          const dashboardContainer = document.querySelector(".dashboard-styles");
+          if (dashboardContainer) {
+            dashboardContainer.style.fontSize = `${rootSize}px`;
+          }
+        }
       }
+
+      if (initialAccentColor) {
+        // Try to use context if available
+        if (typeof setAccentColor === 'function') {
+          setAccentColor(initialAccentColor);
+        }
+
+        // Apply accent color directly if needed
+        if (typeof document !== 'undefined') {
+          try {
+            // Apply theme directly using the utility function
+            applyThemeToDocument(
+              theme || 'system',
+              initialAccentColor,
+              initialFontSize
+            );
+          } catch (error) {
+            console.error("Error applying theme:", error);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error initializing theme settings:", error);
     }
-    if (initialAccentColor) {
-      setAccentColor(initialAccentColor);
-    }
-  }, [initialFontSize, initialAccentColor, setFontSize, setAccentColor]);
+  }, [initialFontSize, initialAccentColor, setFontSize, setAccentColor, theme]);
 
   useEffect(() => {
     if (initialAuthState) {

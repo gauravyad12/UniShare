@@ -87,10 +87,8 @@ export function ThemeContextProvider({
     setNextTheme(newTheme);
     saveThemeToStorage(newTheme);
 
-    // Apply theme to document
-    if (!isPublic) {
-      applyThemeToDocument(newTheme, accentColor, fontSize);
-    }
+    // Always apply theme to document for immediate effect, regardless of route
+    applyThemeToDocument(newTheme, accentColor, fontSize);
   };
 
   // Check if user is authenticated
@@ -287,23 +285,19 @@ export function ThemeContextProvider({
   const setAccentColor = (color: string) => {
     setAccentColorState(color);
 
-    // Only apply accent color on dashboard pages
-    if (!isPublic && isAuthenticated) {
-      applyThemeToDocument(userTheme || nextTheme || "system", color, fontSize);
-    }
+    // Always apply accent color for immediate effect, regardless of route
+    applyThemeToDocument(userTheme || nextTheme || "system", color, fontSize);
   };
 
   const setFontSize = (size: number) => {
     setFontSizeState(size);
 
-    // Only apply font size on dashboard pages
-    if (!isPublic && isAuthenticated) {
-      applyThemeToDocument(
-        userTheme || nextTheme || "system",
-        accentColor,
-        size,
-      );
-    }
+    // Always apply font size for immediate effect, regardless of route
+    applyThemeToDocument(
+      userTheme || nextTheme || "system",
+      accentColor,
+      size,
+    );
   };
 
   const saveSettings = async () => {
@@ -331,15 +325,15 @@ export function ThemeContextProvider({
     }
   };
 
-  // Save settings when they change, but only when authenticated and on dashboard pages
-  useEffect(() => {
-    if (!isLoading && !isPublic && isAuthenticated) {
-      const saveTimeout = setTimeout(() => {
-        saveSettings();
-      }, 500);
-      return () => clearTimeout(saveTimeout);
-    }
-  }, [userTheme, accentColor, fontSize, isLoading, isPublic, isAuthenticated]);
+  // Disabled automatic saving - settings will only be saved when explicitly called
+  // useEffect(() => {
+  //   if (!isLoading && !isPublic && isAuthenticated) {
+  //     const saveTimeout = setTimeout(() => {
+  //       saveSettings();
+  //     }, 500);
+  //     return () => clearTimeout(saveTimeout);
+  //   }
+  // }, [userTheme, accentColor, fontSize, isLoading, isPublic, isAuthenticated]);
 
   // Listen for theme changes from other tabs/windows
   useEffect(() => {
@@ -348,20 +342,45 @@ export function ThemeContextProvider({
         setUserTheme(e.newValue);
         setNextTheme(e.newValue);
 
-        if (!isPublic && isAuthenticated) {
-          applyThemeToDocument(e.newValue, accentColor, fontSize);
+        // Always apply theme changes immediately
+        applyThemeToDocument(e.newValue, accentColor, fontSize);
+      } else if (e.key === "accent-color" && e.newValue) {
+        setAccentColorState(e.newValue);
+
+        // Apply accent color immediately
+        applyThemeToDocument(userTheme || nextTheme || "system", e.newValue, fontSize);
+      } else if (e.key === "font-size" && e.newValue) {
+        const size = parseInt(e.newValue, 10);
+        if (!isNaN(size)) {
+          setFontSizeState(size);
+
+          // Apply font size immediately
+          applyThemeToDocument(userTheme || nextTheme || "system", accentColor, size);
         }
       }
     };
 
     window.addEventListener("storage", handleStorageChange);
 
-    // Only check localStorage for public routes - for dashboard routes we want to use the database value
-    if (isPublic) {
+    // Check localStorage for stored values on all routes
+    if (typeof localStorage !== 'undefined') {
       const storedTheme = localStorage.getItem("theme");
       if (storedTheme && storedTheme !== nextTheme) {
         setUserTheme(storedTheme);
         setNextTheme(storedTheme);
+      }
+
+      const storedAccentColor = localStorage.getItem("accent-color");
+      if (storedAccentColor) {
+        setAccentColorState(storedAccentColor);
+      }
+
+      const storedFontSize = localStorage.getItem("font-size");
+      if (storedFontSize) {
+        const size = parseInt(storedFontSize, 10);
+        if (!isNaN(size)) {
+          setFontSizeState(size);
+        }
       }
     }
 
@@ -373,6 +392,7 @@ export function ThemeContextProvider({
     isAuthenticated,
     setNextTheme,
     nextTheme,
+    userTheme,
   ]);
 
   return (

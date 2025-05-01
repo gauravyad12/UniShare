@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ThemeSync } from "@/components/theme-sync";
+import { ThemeContextProvider } from "@/components/theme-context";
 
 import { NavigationEvents } from "@/components/navigation-events";
 import GlobalLoadingSpinner from "@/components/global-loading-spinner";
@@ -105,16 +105,17 @@ export default function RootLayout({
         className={`${inter.className} min-h-screen flex flex-col bg-background`}
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <ThemeSync />
-          <GlobalStylesProvider />
-          <GlobalLoadingSpinner />
-          <KeyboardAwareLayout />
-          {children}
-          <NavigationEvents />
-          <MobileAwareToaster />
+          <ThemeContextProvider>
+            <GlobalStylesProvider />
+            <GlobalLoadingSpinner />
+            <KeyboardAwareLayout />
+            {children}
+            <NavigationEvents />
+            <MobileAwareToaster />
 
-          <SpeedInsights />
-          <Analytics />
+            <SpeedInsights />
+            <Analytics />
+          </ThemeContextProvider>
         </ThemeProvider>
       </body>
     </html>
