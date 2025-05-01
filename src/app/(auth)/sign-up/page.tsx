@@ -5,13 +5,13 @@ import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/password-input";
 import Link from "next/link";
 import { signUpAction } from "@/app/actions";
-import Navbar from "@/components/navbar";
-import { GraduationCap } from "lucide-react";
+import MobileAwareNavbar from "@/components/mobile-aware-navbar";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import SignUpForm from "@/components/sign-up-form";
 import { Metadata } from "next";
+import GradientWaveBackground from "@/components/gradient-wave-background";
 
 export const dynamic = "force-dynamic";
 
@@ -84,9 +84,13 @@ export default async function SignUpPage({
 
   return (
     <>
-      <Navbar />
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-8">
-        <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-sm">
+      <MobileAwareNavbar />
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-8 relative overflow-hidden">
+        <GradientWaveBackground />
+
+        <div className="w-full max-w-md rounded-2xl border-0 bg-card/95 backdrop-blur-sm p-7 shadow-lg relative z-10 overflow-hidden">
+          {/* Subtle gradient overlay for card */}
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-70 pointer-events-none"></div>
           <SignUpForm message={message} />
         </div>
       </div>

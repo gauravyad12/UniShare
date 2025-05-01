@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/password-input";
 import Link from "next/link";
-import { GraduationCap, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
+import AnimatedLogo from "@/components/animated-logo";
 import { useRouter } from "next/navigation";
 
 interface SignUpFormProps {
@@ -405,10 +406,10 @@ export default function SignUpForm({ message }: SignUpFormProps) {
   };
 
   return (
-    <form className="flex flex-col space-y-6" onSubmit={handleSubmit}>
-      <div className="space-y-2 text-center">
-        <GraduationCap className="h-12 w-12 text-primary mx-auto mb-2" />
-        <h1 className="text-3xl font-semibold tracking-tight">Join UniShare</h1>
+    <form className="flex flex-col space-y-7 relative" onSubmit={handleSubmit}>
+      <div className="space-y-3 text-center">
+        <AnimatedLogo />
+        <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80">Join UniShare</h1>
         <p className="text-sm text-muted-foreground">
           Already have an account?{" "}
           <Link
@@ -432,39 +433,45 @@ export default function SignUpForm({ message }: SignUpFormProps) {
         </div>
       )}
 
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="full_name" className="text-sm font-medium">
+      <div className="space-y-5">
+        <div className="space-y-2.5">
+          <Label htmlFor="full_name" className="text-sm font-medium flex items-center gap-1.5">
             Full Name
           </Label>
-          <Input
-            id="full_name"
-            name="full_name"
-            type="text"
-            placeholder="John Doe"
-            required
-            className="w-full"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            minLength={2}
-          />
+          <div className="relative group">
+            <Input
+              id="full_name"
+              name="full_name"
+              type="text"
+              placeholder="John Doe"
+              required
+              className="w-full h-11 pl-4 pr-4 rounded-xl border-muted bg-background/50 transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/50 group-hover:border-primary/30"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              minLength={2}
+            />
+            <div className="absolute inset-0 rounded-xl bg-primary/5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
+          </div>
           {fullNameError && (
             <p className="text-xs text-red-500">{fullNameError}</p>
           )}
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium">
+        <div className="space-y-2.5">
+          <Label htmlFor="email" className="text-sm font-medium flex items-center gap-1.5">
             University Email
           </Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            placeholder="you@university.edu"
-            required
-            className="w-full"
-          />
+          <div className="relative group">
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="you@university.edu"
+              required
+              className="w-full h-11 pl-4 pr-4 rounded-xl border-muted bg-background/50 transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/50 group-hover:border-primary/30"
+            />
+            <div className="absolute inset-0 rounded-xl bg-primary/5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
+          </div>
           {emailError ? (
             <p className="text-xs text-red-500">{emailError}</p>
           ) : (
@@ -476,22 +483,23 @@ export default function SignUpForm({ message }: SignUpFormProps) {
           )}
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="username" className="text-sm font-medium">
+        <div className="space-y-2.5">
+          <Label htmlFor="username" className="text-sm font-medium flex items-center gap-1.5">
             Username
           </Label>
-          <div className="relative">
+          <div className="relative group">
             <Input
               id="username"
               name="username"
               type="text"
               placeholder="Choose a username"
               required
-              className="w-full pr-10"
+              className="w-full h-11 pl-4 pr-10 rounded-xl border-muted bg-background/50 transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/50 group-hover:border-primary/30"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               minLength={3}
             />
+            <div className="absolute inset-0 rounded-xl bg-primary/5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
             {usernameStatus === "checking" && (
               <div className="absolute inset-y-0 right-3 flex items-center">
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -519,21 +527,24 @@ export default function SignUpForm({ message }: SignUpFormProps) {
           )}
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="password" className="text-sm font-medium">
+        <div className="space-y-2.5">
+          <Label htmlFor="password" className="text-sm font-medium flex items-center gap-1.5">
             Password
           </Label>
-          <PasswordInput
-            id="password"
-            name="password"
-            placeholder="Your password"
-            minLength={8}
-            maxLength={50}
-            required
-            className="w-full"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <div className="relative group">
+            <PasswordInput
+              id="password"
+              name="password"
+              placeholder="Your password"
+              minLength={8}
+              maxLength={50}
+              required
+              className="w-full h-11 pl-4 pr-10 rounded-xl border-muted bg-background/50 transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/50 group-hover:border-primary/30"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <div className="absolute inset-0 rounded-xl bg-primary/5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
+          </div>
           {passwordError ? (
             <p className="text-xs text-red-500">{passwordError}</p>
           ) : (
@@ -544,21 +555,24 @@ export default function SignUpForm({ message }: SignUpFormProps) {
           )}
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="confirm_password" className="text-sm font-medium">
+        <div className="space-y-2.5">
+          <Label htmlFor="confirm_password" className="text-sm font-medium flex items-center gap-1.5">
             Confirm Password
           </Label>
-          <PasswordInput
-            id="confirm_password"
-            name="confirm_password"
-            placeholder="Confirm your password"
-            minLength={8}
-            maxLength={50}
-            required
-            className="w-full"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-          />
+          <div className="relative group">
+            <PasswordInput
+              id="confirm_password"
+              name="confirm_password"
+              placeholder="Confirm your password"
+              minLength={8}
+              maxLength={50}
+              required
+              className="w-full h-11 pl-4 pr-10 rounded-xl border-muted bg-background/50 transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/50 group-hover:border-primary/30"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+            <div className="absolute inset-0 rounded-xl bg-primary/5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
+          </div>
           {validatePasswordMatch() && (
             <p className="text-xs text-red-500">{validatePasswordMatch()}</p>
           )}
@@ -577,7 +591,7 @@ export default function SignUpForm({ message }: SignUpFormProps) {
 
       <Button
         type="submit"
-        className="w-full bg-primary hover:bg-primary/90"
+        className="w-full h-12 bg-primary hover:bg-primary/90 rounded-xl font-medium transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] mt-3 shadow-md hover:shadow-lg"
         disabled={!isFormValid || isSubmitting}
       >
         {isSubmitting ? (
