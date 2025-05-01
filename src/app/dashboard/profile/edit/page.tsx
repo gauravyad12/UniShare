@@ -48,7 +48,14 @@ export default function EditProfilePage() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  // Track loading and success states separately
+  const [savingStates, setSavingStates] = useState({
+    profile: false
+  });
+  const [successStates, setSuccessStates] = useState({
+    profile: false
+  });
+
   const [formData, setFormData] = useState({
     full_name: "",
     username: "",
@@ -78,8 +85,6 @@ export default function EditProfilePage() {
     bio: 0,
     major: 0
   });
-
-  const [saveSuccess, setSaveSuccess] = useState(false);
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
@@ -358,8 +363,18 @@ export default function EditProfilePage() {
   };
 
   const handleSaveChanges = async () => {
-    setSaving(true);
-    setSaveSuccess(false);
+    // Set the profile card to loading state
+    setSavingStates(prev => ({
+      ...prev,
+      profile: true
+    }));
+
+    // Reset success state
+    setSuccessStates(prev => ({
+      ...prev,
+      profile: false
+    }));
+
     let hasErrors = false;
     const errors: { [key: string]: string } = {};
 
@@ -425,7 +440,10 @@ export default function EditProfilePage() {
 
     if (hasErrors) {
       setFormErrors(errors);
-      setSaving(false);
+      setSavingStates(prev => ({
+        ...prev,
+        profile: false
+      }));
       return;
     }
 
@@ -452,11 +470,11 @@ export default function EditProfilePage() {
       const data = await response.json();
 
       if (data.success) {
-        setSaveSuccess(true);
-        toast({
-          title: "Profile updated",
-          description: "Your profile has been successfully updated.",
-        });
+        // Set success state for the profile card
+        setSuccessStates(prev => ({
+          ...prev,
+          profile: true
+        }));
 
         // Update local profile state
         setProfile({
@@ -469,23 +487,23 @@ export default function EditProfilePage() {
         });
 
         // Clear success message after 3 seconds
-        setTimeout(() => setSaveSuccess(false), 3000);
+        setTimeout(() => {
+          setSuccessStates(prev => ({
+            ...prev,
+            profile: false
+          }));
+        }, 3000);
       } else {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to update profile",
-          variant: "destructive",
-        });
+        console.error("Error updating profile:", data.error || "Failed to update profile");
       }
     } catch (error) {
       console.error("Error saving profile:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
     } finally {
-      setSaving(false);
+      // Reset loading state for the profile card
+      setSavingStates(prev => ({
+        ...prev,
+        profile: false
+      }));
     }
   };
 
@@ -494,7 +512,10 @@ export default function EditProfilePage() {
     if (!file) return;
 
     try {
-      setSaving(true);
+      setSavingStates(prev => ({
+        ...prev,
+        profile: true
+      }));
 
       // Use fetch to upload the image via a FormData object
       const formData = new FormData();
@@ -516,22 +537,13 @@ export default function EditProfilePage() {
         ...profile,
         avatar_url: data.avatarUrl,
       });
-
-      toast({
-        title: "Profile picture updated",
-        description: "Your profile picture has been successfully updated.",
-      });
     } catch (error: unknown) {
       console.error("Error uploading image:", error);
-      toast({
-        title: "Error",
-        description:
-          "Failed to upload profile picture: " +
-          (error instanceof Error ? error.message : String(error)),
-        variant: "destructive",
-      });
     } finally {
-      setSaving(false);
+      setSavingStates(prev => ({
+        ...prev,
+        profile: false
+      }));
     }
   };
 
@@ -838,21 +850,25 @@ export default function EditProfilePage() {
                   Please fix the errors above before saving.
                 </div>
               )}
-              {saveSuccess && (
+              {successStates.profile && (
                 <div className="flex items-center text-green-500">
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  <span>Profile saved successfully</span>
+                  <span className="hidden md:inline">Profile saved successfully</span>
+                  <span className="md:hidden">Success</span>
                 </div>
               )}
               <div className="ml-auto">
-                <Button onClick={handleSaveChanges} disabled={saving}>
-                  {saving ? (
+                <Button onClick={handleSaveChanges} disabled={savingStates.profile}>
+                  {savingStates.profile ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
+                      <span className="md:inline">Saving...</span>
                     </>
                   ) : (
-                    "Save Changes"
+                    <>
+                      <span className="hidden md:inline">Save Changes</span>
+                      <span className="md:hidden">Save</span>
+                    </>
                   )}
                 </Button>
               </div>

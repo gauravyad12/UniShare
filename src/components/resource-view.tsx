@@ -26,6 +26,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import ResourceEditForm from "./resource-edit-form";
 import { Textarea } from "./ui/textarea";
@@ -821,16 +822,12 @@ export default function ResourceView({
               <div className="flex items-center">
                 <span className="hidden sm:inline">•</span>
                 <UserCircle className="h-3 w-3 mx-1" />
-                <span
+                <Link
+                  href={creatorInfo.username ? `/u/${creatorInfo.username}` : '#'}
                   className="hover:underline cursor-pointer"
-                  onClick={() => {
-                    if (creatorInfo.username) {
-                      window.open(`/u/${creatorInfo.username}`, '_blank');
-                    }
-                  }}
                 >
                   {creatorInfo.fullName || creatorInfo.username || "Unknown User"}
-                </span>
+                </Link>
               </div>
             )}
           </div>

@@ -147,13 +147,7 @@ export default function SettingsPage() {
 
               const resendData = await resendResponse.json();
 
-              if (resendData.success) {
-                toast({
-                  title: "Success",
-                  description: "Email notification settings updated.",
-                  variant: "default",
-                });
-              } else if (resendData.error) {
+              if (!resendData.success && resendData.error) {
                 console.error('Error updating Resend audience subscription:', resendData.error);
               }
             } catch (resendError) {
@@ -441,11 +435,6 @@ export default function SettingsPage() {
           [cardType]: true
         }));
 
-        toast({
-          title: "Settings updated",
-          description: "Your settings have been successfully updated.",
-        });
-
         // Clear success message after 3 seconds
         setTimeout(() => {
           setSuccessStates(prev => ({
@@ -454,19 +443,10 @@ export default function SettingsPage() {
           }));
         }, 3000);
       } else {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to update settings",
-          variant: "destructive",
-        });
+        console.error("Error updating settings:", data.error || "Failed to update settings");
       }
     } catch (error) {
       console.error("Error saving settings:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
     } finally {
       // Reset loading state for this specific card
       setSavingStates(prev => ({
@@ -488,11 +468,6 @@ export default function SettingsPage() {
       router.push("/app-entry");
     } catch (error) {
       console.error("Error logging out:", error);
-      toast({
-        title: "Error",
-        description: "Failed to log out. Please try again.",
-        variant: "destructive",
-      });
       setLoggingOut(false);
     }
   };

@@ -184,7 +184,7 @@ export default function VerifyInviteClient() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-gradient-to-b from-background to-background/95">
+    <div className="flex min-h-screen flex-col items-center justify-start sm:justify-center p-4 pt-16 sm:pt-4 bg-gradient-to-b from-background to-background/95">
       <SearchParamsProvider onParamsChange={handleParamsChange} />
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1 text-center">
@@ -213,15 +213,20 @@ export default function VerifyInviteClient() {
                     key={index}
                     ref={(el) => (inputRefs.current[index] = el)}
                     type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     maxLength={1}
                     value={digit}
                     onChange={(e) => {
+                      // Only allow numbers
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+
                       const newCode = [...inviteCode];
-                      newCode[index] = e.target.value;
+                      newCode[index] = value;
                       setInviteCode(newCode);
 
                       // Auto-focus next input
-                      if (e.target.value && index < inviteCode.length - 1) {
+                      if (value && index < inviteCode.length - 1) {
                         inputRefs.current[index + 1]?.focus();
                       }
                     }}
