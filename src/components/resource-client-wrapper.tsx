@@ -35,7 +35,10 @@ export default function ResourceClientWrapper() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent
+          className="sm:max-w-[600px]"
+          onOpenAutoFocus={(e) => e.preventDefault()} // Prevent auto-focus on open
+        >
           <DialogHeader>
             <DialogTitle>Upload New Resource</DialogTitle>
             <DialogDescription>

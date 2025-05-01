@@ -44,6 +44,39 @@ export default function KeyboardAwareLayout() {
             // This difference is approximately the keyboard height
             const keyboardHeight = window.innerHeight - viewport!.height;
 
+            // Check if any input is focused
+            const isInputFocused = document.activeElement instanceof HTMLInputElement ||
+                                  document.activeElement instanceof HTMLTextAreaElement;
+
+            // Check specifically for chat input
+            const isChatInputFocused = isInputFocused &&
+                                      ((document.activeElement as HTMLElement).classList.contains('simple-group-chat-input') ||
+                                       (document.activeElement instanceof HTMLInputElement &&
+                                        document.activeElement.placeholder &&
+                                        document.activeElement.placeholder.includes("Type your message")));
+
+            // Force hide navbar if chat input is focused, regardless of keyboard height
+            if (isChatInputFocused) {
+              console.log("Chat input is focused - forcing navbar to hide");
+              (bottomNavbar as HTMLElement).style.transform = 'translateY(120%)';
+              (bottomNavbar as HTMLElement).style.transition = 'transform 0.3s ease';
+
+              // Also hide any action buttons that might be above the navbar
+              const actionButton = document.querySelector('.rounded-full.shadow-md.h-14.w-14.bg-primary.-mt-6');
+              if (actionButton) {
+                (actionButton as HTMLElement).style.opacity = '0';
+                (actionButton as HTMLElement).style.transition = 'opacity 0.3s ease';
+              }
+
+              // Adjust the chat container to reclaim the space
+              const chatContainer = document.querySelector('.chat-container');
+              if (chatContainer) {
+                (chatContainer as HTMLElement).style.paddingBottom = '0';
+                (chatContainer as HTMLElement).style.transition = 'padding-bottom 0.3s ease';
+              }
+              return;
+            }
+
             if (keyboardHeight > 150) { // Threshold to detect keyboard
               // When keyboard is visible, hide the navbar with extra offset for the plus button
               (bottomNavbar as HTMLElement).style.transform = 'translateY(120%)'; // Increased from 100% to 120%
@@ -55,14 +88,43 @@ export default function KeyboardAwareLayout() {
                 (actionButton as HTMLElement).style.opacity = '0';
                 (actionButton as HTMLElement).style.transition = 'opacity 0.3s ease';
               }
-            } else {
-              // When keyboard is hidden, show the navbar
+
+              // Adjust the chat container to reclaim the space
+              const chatContainer = document.querySelector('.chat-container');
+              if (chatContainer) {
+                (chatContainer as HTMLElement).style.paddingBottom = '0';
+                (chatContainer as HTMLElement).style.marginBottom = '0';
+                (chatContainer as HTMLElement).style.bottom = '0';
+                (chatContainer as HTMLElement).style.transition = 'all 0.3s ease';
+              }
+
+              // Also adjust the card content
+              const cardContent = document.querySelector('.chat-container .flex-1.overflow-hidden.flex.flex-col');
+              if (cardContent) {
+                (cardContent as HTMLElement).style.paddingBottom = '0';
+              }
+            } else if (!isInputFocused) {
+              // Only show navbar when keyboard is hidden AND no input is focused
               (bottomNavbar as HTMLElement).style.transform = 'translateY(0)';
 
               // Show action buttons again
               const actionButton = document.querySelector('.rounded-full.shadow-md.h-14.w-14.bg-primary.-mt-6');
               if (actionButton) {
                 (actionButton as HTMLElement).style.opacity = '1';
+              }
+
+              // Restore chat container padding
+              const chatContainer = document.querySelector('.chat-container');
+              if (chatContainer) {
+                (chatContainer as HTMLElement).style.paddingBottom = '';
+                (chatContainer as HTMLElement).style.marginBottom = '';
+                (chatContainer as HTMLElement).style.bottom = '';
+              }
+
+              // Restore card content padding
+              const cardContent = document.querySelector('.chat-container .flex-1.overflow-hidden.flex.flex-col');
+              if (cardContent) {
+                (cardContent as HTMLElement).style.paddingBottom = '';
               }
             }
           }
@@ -74,13 +136,16 @@ export default function KeyboardAwareLayout() {
 
         // Add event listeners for input focus/blur
         const handleInputFocus = () => {
-          // Small delay to ensure the keyboard is fully shown
+          // Only check after a delay if the keyboard is visible
           setTimeout(() => {
             const keyboardHeight = window.innerHeight - (window.visualViewport?.height || 0);
+
+            // Only hide navbar if keyboard is actually visible
             if (keyboardHeight > 150) {
               const bottomNavbar = document.querySelector('[class*="fixed bottom-0 left-0 right-0 z-50"]');
               if (bottomNavbar) {
                 (bottomNavbar as HTMLElement).style.transform = 'translateY(120%)';
+                (bottomNavbar as HTMLElement).style.transition = 'transform 0.3s ease';
               }
 
               // Also hide any action buttons that might be above the navbar
@@ -111,7 +176,14 @@ export default function KeyboardAwareLayout() {
         document.addEventListener('focusin', (e) => {
           if (e.target instanceof HTMLInputElement ||
               e.target instanceof HTMLTextAreaElement) {
-            handleInputFocus();
+            // Always handle focus for chat inputs
+            if ((e.target as HTMLElement).closest('.simple-group-chat-input') ||
+                (e.target.placeholder && e.target.placeholder.includes("Type your message"))) {
+              console.log("Chat input focused - hiding navbar");
+              handleInputFocus();
+            } else {
+              handleInputFocus();
+            }
           }
         });
 

@@ -296,6 +296,7 @@ export default function ScheduleGroupMeeting({
           setDefaultTimes();
         }
       }}
+      modal={true}
     >
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
@@ -303,14 +304,26 @@ export default function ScheduleGroupMeeting({
           Schedule Meeting
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent
+        className={`${isMobile ? 'w-full h-[100dvh] max-h-[100dvh] p-4 rounded-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95' : 'sm:max-w-[500px]'}`}
+        style={isMobile ? {
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          transform: 'none',
+          overflow: 'auto'
+        } : {}}
+        onOpenAutoFocus={(e) => e.preventDefault()} // Prevent auto-focus on open
+      >
         <DialogHeader>
           <DialogTitle>Schedule a Meeting</DialogTitle>
           <DialogDescription>
             Create a new meeting for this study group.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className={`space-y-4 py-4 ${isMobile ? 'pb-32' : ''}`}>
           <div className="grid gap-2">
             <div className="flex justify-between">
               <Label htmlFor="meeting-title">Title</Label>
@@ -485,7 +498,7 @@ export default function ScheduleGroupMeeting({
             </div>
           </div>
         </div>
-        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+        <DialogFooter className={`flex-col sm:flex-row gap-2 sm:gap-0 ${isMobile ? 'fixed bottom-0 left-0 right-0 bg-background py-4 border-t mt-4 px-4 z-50' : ''}`}>
           <Button
             variant="outline"
             onClick={() => {

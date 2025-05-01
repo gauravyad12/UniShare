@@ -19,7 +19,6 @@ import {
   ArrowLeft,
   X,
   Loader2,
-  ChevronDown,
   Menu,
   ArrowUp
 } from "lucide-react";
@@ -57,6 +56,218 @@ export default function SimpleGroupChat({
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingCooldownRef = useRef<NodeJS.Timeout | null>(null);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  // Detect mobile devices and keyboard visibility
+  useEffect(() => {
+    const checkMobile = () => {
+      const width = window.innerWidth;
+      const hasTouchCapability = 'ontouchstart' in window ||
+                                navigator.maxTouchPoints > 0 ||
+                                (navigator as any).msMaxTouchPoints > 0;
+
+      // Consider mobile if width is small OR device has touch capability
+      const mobileDevice = width < 768 || hasTouchCapability;
+      setIsMobile(mobileDevice);
+    };
+
+    // Initial check
+    checkMobile();
+
+    // Add event listener for window resize
+    window.addEventListener("resize", checkMobile);
+
+    // Only apply keyboard detection on mobile
+    if (isMobile) {
+      // For Chrome's VirtualKeyboard API (Chromium browsers)
+      if ('virtualKeyboard' in navigator) {
+        const virtualKeyboard = (navigator as any).virtualKeyboard;
+        virtualKeyboard.overlaysContent = true;
+
+        // Listen for keyboard visibility changes
+        virtualKeyboard.addEventListener('geometrychange', () => {
+          setIsKeyboardVisible(virtualKeyboard.boundingRect.height > 0);
+        });
+      }
+      // For Safari and other browsers, use visual viewport API
+      else if ('visualViewport' in window) {
+        const viewport = window.visualViewport;
+
+        // Function to handle viewport resize
+        const handleViewportResize = () => {
+          // Calculate the difference between window height and visual viewport height
+          // This difference is approximately the keyboard height
+          const keyboardHeight = window.innerHeight - viewport!.height;
+          setIsKeyboardVisible(keyboardHeight > 150); // Threshold to detect keyboard
+
+          // Directly hide the navbar when keyboard is visible
+          if (keyboardHeight > 150) {
+            const bottomNavbar = document.querySelector('[class*="fixed bottom-0 left-0 right-0 z-50"]');
+            if (bottomNavbar) {
+              (bottomNavbar as HTMLElement).style.transform = 'translateY(120%)';
+              (bottomNavbar as HTMLElement).style.transition = 'transform 0.3s ease';
+            }
+
+            // Also hide any action buttons that might be above the navbar
+            const actionButton = document.querySelector('.rounded-full.shadow-md.h-14.w-14.bg-primary.-mt-6');
+            if (actionButton) {
+              (actionButton as HTMLElement).style.opacity = '0';
+              (actionButton as HTMLElement).style.transition = 'opacity 0.3s ease';
+            }
+
+            // Adjust the chat container to reclaim the space
+            const chatContainer = document.querySelector('.chat-container');
+            if (chatContainer) {
+              (chatContainer as HTMLElement).style.paddingBottom = '0';
+              (chatContainer as HTMLElement).style.marginBottom = '0';
+              (chatContainer as HTMLElement).style.bottom = '0';
+              (chatContainer as HTMLElement).style.transition = 'all 0.3s ease';
+            }
+
+            // Also adjust the card content
+            const cardContent = document.querySelector('.chat-container .flex-1.overflow-hidden.flex.flex-col');
+            if (cardContent) {
+              (cardContent as HTMLElement).style.paddingBottom = '0';
+            }
+
+            // Make the input container more compact
+            const inputContainer = document.querySelector('.chat-container .sticky.bottom-0');
+            if (inputContainer) {
+              (inputContainer as HTMLElement).style.marginBottom = '0';
+              (inputContainer as HTMLElement).style.paddingBottom = '0';
+            }
+          }
+        };
+
+        // Add event listeners for visual viewport changes
+        viewport?.addEventListener('resize', handleViewportResize);
+        viewport?.addEventListener('scroll', handleViewportResize);
+
+        // Cleanup function for viewport listeners
+        return () => {
+          viewport?.removeEventListener('resize', handleViewportResize);
+          viewport?.removeEventListener('scroll', handleViewportResize);
+          window.removeEventListener("resize", checkMobile);
+        };
+      }
+    }
+
+    // Cleanup for non-mobile case
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+    };
+  }, [isMobile]);
+
+  // Add direct event listeners to chat input
+  useEffect(() => {
+    if (isMobile) {
+      // Find all chat inputs
+      const chatInputs = document.querySelectorAll('.simple-group-chat-input');
+
+      const handleFocus = () => {
+        // Only hide navbar if we're on a real mobile device with a virtual keyboard
+        if ('visualViewport' in window) {
+          // Check after a delay if the keyboard is visible
+          setTimeout(() => {
+            const currentHeight = window.visualViewport?.height || window.innerHeight;
+            const keyboardHeight = window.innerHeight - currentHeight;
+
+            // Only hide navbar if keyboard is actually visible
+            if (keyboardHeight > 150) {
+              // Hide navbar when chat input is focused
+              const bottomNavbar = document.querySelector('[class*="fixed bottom-0 left-0 right-0 z-50"]');
+              if (bottomNavbar) {
+                (bottomNavbar as HTMLElement).style.transform = 'translateY(120%)';
+                (bottomNavbar as HTMLElement).style.transition = 'transform 0.3s ease';
+              }
+
+              // Also hide any action buttons that might be above the navbar
+              const actionButton = document.querySelector('.rounded-full.shadow-md.h-14.w-14.bg-primary.-mt-6');
+              if (actionButton) {
+                (actionButton as HTMLElement).style.opacity = '0';
+                (actionButton as HTMLElement).style.transition = 'opacity 0.3s ease';
+              }
+
+              // Adjust the chat container to reclaim the space
+              const chatContainer = document.querySelector('.chat-container');
+              if (chatContainer) {
+                (chatContainer as HTMLElement).style.paddingBottom = '0';
+                (chatContainer as HTMLElement).style.marginBottom = '0';
+                (chatContainer as HTMLElement).style.bottom = '0';
+                (chatContainer as HTMLElement).style.transition = 'all 0.3s ease';
+              }
+
+              // Also adjust the card content
+              const cardContent = document.querySelector('.chat-container .flex-1.overflow-hidden.flex.flex-col');
+              if (cardContent) {
+                (cardContent as HTMLElement).style.paddingBottom = '0';
+              }
+
+              // Make the input container more compact
+              const inputContainer = document.querySelector('.chat-container .sticky.bottom-0');
+              if (inputContainer) {
+                (inputContainer as HTMLElement).style.marginBottom = '0';
+                (inputContainer as HTMLElement).style.paddingBottom = '0';
+              }
+
+              // Adjust the New Messages button position
+              const newMessagesButton = document.querySelector('.new-messages-button');
+              if (newMessagesButton) {
+                // Use a fixed pixel value for more precise positioning
+                (newMessagesButton.parentElement as HTMLElement).style.bottom = '80px';
+              }
+            }
+          }, 300); // Wait for keyboard to appear
+        }
+      };
+
+      // Add focus listeners to all chat inputs
+      chatInputs.forEach(input => {
+        input.addEventListener('focus', handleFocus);
+      });
+
+      // Cleanup
+      return () => {
+        chatInputs.forEach(input => {
+          input.removeEventListener('focus', handleFocus);
+        });
+      };
+    }
+  }, [isMobile]);
+
+  // Simple keyboard detection for button positioning
+  useEffect(() => {
+    if (!isMobile || !('visualViewport' in window)) return;
+
+    const viewport = window.visualViewport;
+
+    const handleViewportChange = () => {
+      const keyboardHeight = window.innerHeight - (viewport?.height || window.innerHeight);
+      const isKeyboardShown = keyboardHeight > 150;
+
+      // Update isKeyboardVisible state
+      setIsKeyboardVisible(isKeyboardShown);
+
+      if (isKeyboardShown) {
+        console.log('Keyboard visible - button will be positioned at 5rem from bottom');
+      } else {
+        console.log('Keyboard hidden - button will be positioned at 8rem from bottom');
+      }
+    };
+
+    viewport?.addEventListener('resize', handleViewportChange);
+    viewport?.addEventListener('scroll', handleViewportChange);
+
+    // Initial check
+    handleViewportChange();
+
+    // Cleanup
+    return () => {
+      viewport?.removeEventListener('resize', handleViewportChange);
+      viewport?.removeEventListener('scroll', handleViewportChange);
+    };
+  }, [isMobile]);
 
   // Component state initialized
 
@@ -137,45 +348,53 @@ export default function SimpleGroupChat({
 
     const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
 
-    // Use different thresholds for desktop and mobile
-    // Desktop needs a larger threshold because of different scroll behavior
-    const isMobile = window.innerWidth < 768; // md breakpoint in Tailwind
-    const threshold = isMobile ? 150 : 250; // 100px threshold for desktop, 50px for mobile
-
+    // Calculate how far from the bottom we are
     const scrolledFromBottom = scrollHeight - scrollTop - clientHeight;
+
+    // Use a consistent threshold for simplicity
+    const threshold = 200;
+
     const isAtBottomNow = scrolledFromBottom < threshold;
 
-    // Only update state if it's changed to avoid unnecessary re-renders
+    // Simple state updates without delays or double-checks
+    if (!isAtBottomNow && !isButtonVisible) {
+      setIsButtonVisible(true);
+    }
+    else if (isAtBottomNow && isButtonVisible) {
+      setIsButtonVisible(false);
+    }
+
+    // Update at-bottom state
     if (isAtBottomNow !== isAtBottom) {
       setIsAtBottom(isAtBottomNow);
-
-      // Show button with animation when scrolling up
-      if (!isAtBottomNow) {
-          setIsButtonVisible(true);
-      } else {
-        // Explicitly hide button when at bottom
-        setIsButtonVisible(false);
-      }
     }
-  }, [isAtBottom]);
+  }, [isAtBottom, isButtonVisible]);
 
 
   // Scroll to bottom function
   const scrollToBottom = useCallback(() => {
-    if (messagesEndRef.current) {
-      // Start fade out animation
-      setIsButtonVisible(false);
-
-      // Scroll to bottom - use a more forceful approach
+    if (messagesEndRef.current && messagesContainerRef.current) {
+      // First try smooth scrolling
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
 
-      // Also set a timeout to ensure we're really at the bottom
-      setTimeout(() => {
-        if (messagesEndRef.current) {
+      // Then force scroll with a single timeout to ensure it works
+      // This is more reliable and less likely to cause glitches
+      const timeout = setTimeout(() => {
+        if (messagesEndRef.current && messagesContainerRef.current) {
+          // Force scroll with auto behavior as a fallback
           messagesEndRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
+
+          // Also try direct scrollTop setting as another fallback
+          const container = messagesContainerRef.current;
+          container.scrollTop = container.scrollHeight;
+
+          // Update state
           setIsAtBottom(true);
         }
       }, 300);
+
+      // Return cleanup function
+      return () => clearTimeout(timeout);
     }
   }, []);
 
@@ -645,7 +864,7 @@ export default function SimpleGroupChat({
 
   if (loading) {
     return (
-      <div className="fixed z-20 flex top-0 md:top-[69px] left-0 right-0 bottom-0 border-t border-border md:border-t">
+      <div className="fixed z-20 flex top-0 md:top-[69px] left-0 right-0 bottom-0 border-t border-border md:border-t chat-container">
         <div className="container mx-auto flex px-0 sm:px-0 md:px-4">
           <div className="hidden md:block w-80 h-[calc(100vh-69px)]">
             <Card className="h-full border-r border-b-0 border-t-0 border-l-0 rounded-none shadow-none">
@@ -698,7 +917,7 @@ export default function SimpleGroupChat({
   }
 
   return (
-    <div className="fixed z-20 flex top-0 md:top-[69px] left-0 right-0 bottom-0 border-t border-border md:border-t">
+    <div className="fixed z-20 flex top-0 md:top-[69px] left-0 right-0 bottom-0 border-t border-border md:border-t chat-container">
       <div className="w-full mx-auto flex px-0 md:container md:px-4">
         {/* Desktop sidebar - always visible */}
         <div className="hidden md:block w-80 h-[calc(100vh-69px)]">
@@ -752,7 +971,7 @@ export default function SimpleGroupChat({
             </>
           )}
         </AnimatePresence>
-        <Card className="relative flex-1 border-none shadow-none px-0 sm:px-0 md:px-0 overflow-hidden flex flex-col pb-20 md:pb-4 h-screen md:h-[calc(100vh-69px)]">
+        <Card className={`relative flex-1 border-none shadow-none px-0 sm:px-0 md:px-0 overflow-hidden flex flex-col ${isMobile && isKeyboardVisible ? 'pb-0' : 'pb-20'} md:pb-4 h-screen md:h-[calc(100vh-69px)] transition-all duration-200`}>
       <Button
         variant="ghost"
         size="icon"
@@ -796,7 +1015,7 @@ export default function SimpleGroupChat({
           onScroll={() => checkIfScrolledToBottom()}
           className="flex-1 overflow-y-auto scrollbar-hide border-none rounded-none px-0.5 sm:px-2 md:px-4 py-2 bg-background relative"
         >
-          {/* Removed scroll button from here - moved to bottom of chat */}
+          {/* We'll move the button to the input container */}
 
           {messages.length > 0 ? (
             <div className="space-y-3 pt-3">
@@ -910,34 +1129,15 @@ export default function SimpleGroupChat({
           )}
         </div>
 
-        {/* Scroll to bottom button - absolute positioned to avoid affecting layout */}
-        <AnimatePresence>
-          {!isAtBottom && isButtonVisible && messages.length > 0 && (
-            <motion.div
-              className="absolute bottom-40 sm:bottom-36 md:bottom-32 left-0 right-0 z-10 pointer-events-none flex justify-center"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Button
-                variant="default"
-                size="sm"
-                className="rounded-full shadow-lg animate-bounce bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-5 border-2 border-background pointer-events-auto"
-                onClick={scrollToBottom}
-              >
-                <ChevronDown className="h-5 w-5 mr-2" />
-                New Messages
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* We'll move the button inside the input container */}
 
-        <div className="sticky bottom-0 bg-background px-0.5 sm:px-2 md:px-4 py-2 w-full">
+        <div className={`sticky bottom-0 bg-background px-0.5 sm:px-2 md:px-4 ${isMobile && isKeyboardVisible ? 'py-0 mb-0' : 'py-2'} w-full transition-all duration-200 relative`}>
+
+          {/* We'll move the button to the flex container with the input and plus button */}
 
           {/* Typing indicator */}
           {Object.keys(typingUsers).length > 0 && (
-            <div className="flex items-center mb-2 text-sm text-muted-foreground w-full md:max-w-3xl">
+            <div className={`flex items-center ${isMobile && isKeyboardVisible ? 'mb-0 text-xs' : 'mb-2 text-sm'} text-muted-foreground w-full md:max-w-3xl transition-all duration-200`}>
               <span>
                 {Object.keys(typingUsers).length === 1
                   ? `${Object.values(typingUsers)[0].full_name || Object.values(typingUsers)[0].username || 'Someone'} is typing`
@@ -950,7 +1150,38 @@ export default function SimpleGroupChat({
               </span>
             </div>
           )}
-          <div className="flex gap-2 items-center w-full md:mx-auto md:max-w-3xl">
+          <div className={`flex ${isMobile && isKeyboardVisible ? 'gap-1' : 'gap-2'} items-center w-full md:mx-auto md:max-w-3xl transition-all duration-200 relative`}>
+            {/* New Messages button - centered relative to the input and plus button */}
+            <div className="absolute left-0 right-0 top-0 flex justify-center z-[100] pointer-events-none" style={{ transform: 'translateY(-100%)', marginTop: '-1rem' }}>
+              <AnimatePresence>
+                {!isAtBottom && isButtonVisible && messages.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="rounded-full shadow-lg bg-background border border-border text-foreground hover:bg-background/90 px-4 py-2 pointer-events-auto"
+                      onClick={() => {
+                        // Hide the button with animation before scrolling
+                        setIsButtonVisible(false);
+                        // Then scroll to bottom after a short delay
+                        setTimeout(scrollToBottom, 100);
+                      }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-2">
+                        <path d="m6 9 6 6 6-6"/>
+                      </svg>
+                      New Messages
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             <ShareGroupResource
               groupId={group.id}
               onResourceSelected={(resourceId, resourceTitle) => {
@@ -963,12 +1194,56 @@ export default function SimpleGroupChat({
               <Input
                 placeholder="Type your message..."
                 value={newMessage}
-                className="rounded-full bg-muted/50 focus-visible:ring-primary/50 pr-10 w-full"
+                className={`rounded-full bg-muted/50 focus-visible:ring-primary/50 pr-10 w-full simple-group-chat-input ${isMobile && isKeyboardVisible ? 'h-8 py-1' : 'h-10 py-2'}`}
                 onChange={(e) => {
                   setNewMessage(e.target.value);
                   // Only update typing status if we're not in a cooldown period
                   if (!typingCooldownRef.current) {
                     updateTypingStatus(true);
+                  }
+                }}
+                onFocus={() => {
+                  // Only hide navbar if we're on a real mobile device with a virtual keyboard
+                  if (isMobile && 'visualViewport' in window) {
+                    // Just check after a delay if the keyboard is visible
+
+                    setTimeout(() => {
+                      const currentHeight = window.visualViewport?.height || window.innerHeight;
+                      const keyboardHeight = window.innerHeight - currentHeight;
+
+                      // Only hide navbar if keyboard is actually visible
+                      if (keyboardHeight > 150) {
+                        const bottomNavbar = document.querySelector('[class*="fixed bottom-0 left-0 right-0 z-50"]');
+                        if (bottomNavbar) {
+                          (bottomNavbar as HTMLElement).style.transform = 'translateY(120%)';
+                          (bottomNavbar as HTMLElement).style.transition = 'transform 0.3s ease';
+                        }
+
+                        // Also hide any action buttons that might be above the navbar
+                        const actionButton = document.querySelector('.rounded-full.shadow-md.h-14.w-14.bg-primary.-mt-6');
+                        if (actionButton) {
+                          (actionButton as HTMLElement).style.opacity = '0';
+                          (actionButton as HTMLElement).style.transition = 'opacity 0.3s ease';
+                        }
+                      }
+                    }, 300); // Wait for keyboard to appear
+                  }
+                }}
+                onBlur={() => {
+                  // Only restore the navbar if we're not still in the keyboard state
+                  if (isMobile && !isKeyboardVisible) {
+                    setTimeout(() => {
+                      const bottomNavbar = document.querySelector('[class*="fixed bottom-0 left-0 right-0 z-50"]');
+                      if (bottomNavbar) {
+                        (bottomNavbar as HTMLElement).style.transform = 'translateY(0)';
+                      }
+
+                      // Show action buttons again
+                      const actionButton = document.querySelector('.rounded-full.shadow-md.h-14.w-14.bg-primary.-mt-6');
+                      if (actionButton) {
+                        (actionButton as HTMLElement).style.opacity = '1';
+                      }
+                    }, 300); // Small delay to ensure we don't restore too early
                   }
                 }}
                 onKeyDown={(e) => {
