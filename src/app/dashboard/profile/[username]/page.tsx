@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { FollowButton } from "@/components/follow-button";
 import { Card, CardContent } from "@/components/ui/card";
+import ShareProfileButton from "@/components/share-profile-button";
 
 export default function ProfilePage({
   params,
@@ -272,7 +273,18 @@ export default function ProfilePage({
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <div className="bg-card rounded-lg shadow-md p-6 mb-8">
+      <div className="bg-card rounded-lg shadow-md p-6 mb-8 relative">
+        {/* Share button positioned absolutely in the top right */}
+        <div className="absolute top-4 right-4 z-10">
+          <ShareProfileButton
+            username={profile.username}
+            fullName={profile.full_name}
+            bio={profile.bio}
+            size="sm"
+            variant="outline"
+          />
+        </div>
+
         <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
           <Avatar className="h-24 w-24 border-2 border-primary">
             <AvatarImage
@@ -299,13 +311,15 @@ export default function ProfilePage({
                 <p className="text-muted-foreground">@{profile.username}</p>
               </div>
 
-              {!isCurrentUserProfile && currentUser && (
-                <FollowButton
-                  userId={profile.id}
-                  initialIsFollowing={followStats.isFollowing}
-                  onFollowStatusChange={handleFollowStatusChange}
-                />
-              )}
+              <div className="flex items-center gap-2">
+                {!isCurrentUserProfile && currentUser && (
+                  <FollowButton
+                    userId={profile.id}
+                    initialIsFollowing={followStats.isFollowing}
+                    onFollowStatusChange={handleFollowStatusChange}
+                  />
+                )}
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-4 mt-4">

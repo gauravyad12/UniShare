@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import ResourceCard from "@/components/resource-card";
 import StudyGroupCard from "@/components/study-group-card";
+import ShareProfileButton from "@/components/share-profile-button";
 import { useEffect, useState } from "react";
 import { UserPlus, UsersRound } from "lucide-react";
 
@@ -284,54 +285,67 @@ export default function UserProfilePage({
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        {/* Profile Header */}
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-6 mb-8 align-top">
-          <Avatar className="w-24 h-24 border-2 border-primary">
-            <AvatarImage
-              src={profileData?.avatar_url || undefined}
-              alt={profileData?.full_name || profileData?.username || "User"}
+        {/* Profile Header with Share Button in top right */}
+        <div className="relative mb-8">
+          {/* Share Button in top right */}
+          <div className="absolute top-0 right-0 z-10">
+            <ShareProfileButton
+              username={profileData?.username || ""}
+              fullName={profileData?.full_name || ""}
+              bio={profileData?.bio || ""}
+              size="sm"
             />
-            <AvatarFallback className="text-xl">
-              {(profileData?.full_name || profileData?.username || "U")
-                .substring(0, 2)
-                .toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          </div>
 
-          <div className="text-center md:text-left">
-            <h1 className="text-3xl font-bold">
-              {profileData?.full_name || profileData?.username || "User"}
-            </h1>
-            <p className="text-muted-foreground mb-2">
-              @{profileData?.username || "username"}
-            </p>
-            {profileData?.university_name && (
-              <p className="text-sm mb-2">
-                <span className="font-medium">University:</span>{" "}
-                {profileData.university_name}
+          {/* Profile Content */}
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 align-top">
+            <Avatar className="w-24 h-24 border-2 border-primary">
+              <AvatarImage
+                src={profileData?.avatar_url || undefined}
+                alt={profileData?.full_name || profileData?.username || "User"}
+              />
+              <AvatarFallback className="text-xl">
+                {(profileData?.full_name || profileData?.username || "U")
+                  .substring(0, 2)
+                  .toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+
+            <div className="text-center md:text-left">
+              <h1 className="text-3xl font-bold">
+                {profileData?.full_name || profileData?.username || "User"}
+              </h1>
+              <p className="text-muted-foreground mb-2">
+                @{profileData?.username || "username"}
               </p>
-            )}
-            {profileData?.major && (
-              <p className="text-sm mb-2">
-                <span className="font-medium">Major:</span> {profileData.major}
-              </p>
-            )}
-            {profileData?.bio && (
-              <p className="mt-3 text-sm">{profileData.bio}</p>
-            )}
-            <div className="flex gap-4 mt-4 md:justify-start justify-center">
-              <div className="bg-card rounded-md px-3 py-2 shadow-sm border">
-                <div className="font-bold text-base">{followStats.followingCount}</div>
-                <div className="flex items-center justify-center gap-1 text-muted-foreground text-xs">
-                  <UserPlus className="h-3 w-3" />
-                  <span>Following</span>
+              {profileData?.university_name && (
+                <p className="text-sm mb-2">
+                  <span className="font-medium">University:</span>{" "}
+                  {profileData.university_name}
+                </p>
+              )}
+              {profileData?.major && (
+                <p className="text-sm mb-2">
+                  <span className="font-medium">Major:</span> {profileData.major}
+                </p>
+              )}
+              {profileData?.bio && (
+                <p className="mt-3 text-sm">{profileData.bio}</p>
+              )}
+              <div className="flex gap-4 mt-4 md:justify-start justify-center">
+                <div className="bg-card rounded-md px-3 py-2 shadow-sm border">
+                  <div className="font-bold text-base">{followStats.followingCount}</div>
+                  <div className="flex items-center justify-center gap-1 text-muted-foreground text-xs">
+                    <UserPlus className="h-3 w-3" />
+                    <span>Following</span>
+                  </div>
                 </div>
-              </div>
-              <div className="bg-card rounded-md px-3 py-2 shadow-sm border">
-                <div className="font-bold text-base">{followStats.followersCount}</div>
-                <div className="flex items-center justify-center gap-1 text-muted-foreground text-xs">
-                  <UsersRound className="h-3 w-3" />
-                  <span>Followers</span>
+                <div className="bg-card rounded-md px-3 py-2 shadow-sm border">
+                  <div className="font-bold text-base">{followStats.followersCount}</div>
+                  <div className="flex items-center justify-center gap-1 text-muted-foreground text-xs">
+                    <UsersRound className="h-3 w-3" />
+                    <span>Followers</span>
+                  </div>
                 </div>
               </div>
             </div>
