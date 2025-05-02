@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://cdn-icons-png.flaticon.com/512/5846/5846384.png" width=100 alt="logo">
+  <img src="https://github.com/ScorpiSoftware/UniShare/blob/main/public/android-chrome-512x512.png" width=100 alt="logo">
   
   ## UniShare
   A modern all-in-one student dashboard<br><br>
