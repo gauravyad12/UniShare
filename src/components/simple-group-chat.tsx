@@ -26,7 +26,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-import { useToast } from "./ui/use-toast";
 import { TypingUsers } from "@/types/chat";
 import "@/types/supabase-typing-status";
 import ShareGroupResource from "./share-group-resource";
@@ -39,7 +38,6 @@ export default function SimpleGroupChat({
   group,
 }: SimpleGroupChatProps) {
   const router = useRouter();
-  const { toast } = useToast();
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -603,11 +601,7 @@ export default function SimpleGroupChat({
 
             // If user is not a member or creator, redirect to study groups page
             if (!isUserMember) {
-              toast({
-                title: "Access Denied",
-                description: "You must be a member of this study group to view the chat.",
-                variant: "destructive",
-              });
+              console.error("Access Denied: You must be a member of this study group to view the chat.");
               router.push('/dashboard/study-groups');
               return;
             }
@@ -624,11 +618,7 @@ export default function SimpleGroupChat({
             console.log('User membership status (fallback):', isUserMember);
 
             if (!isUserMember) {
-              toast({
-                title: "Access Denied",
-                description: "You must be a member of this study group to view the chat.",
-                variant: "destructive",
-              });
+              console.error("Access Denied: You must be a member of this study group to view the chat.");
               router.push('/dashboard/study-groups');
               return;
             }
@@ -839,11 +829,6 @@ export default function SimpleGroupChat({
       }
     } catch (error) {
       console.error("Error sending message:", error);
-      toast({
-        title: "Error",
-        description: "Failed to send message. Please try again.",
-        variant: "destructive",
-      });
     } finally {
       setSending(false);
     }

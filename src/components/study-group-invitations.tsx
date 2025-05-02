@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -61,7 +60,6 @@ export default function StudyGroupInvitations({
   groupId,
   isAdmin,
 }: StudyGroupInvitationsProps) {
-  const { toast } = useToast();
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -84,11 +82,6 @@ export default function StudyGroupInvitations({
       setInvitations(data.invitations || []);
     } catch (error) {
       console.error("Error fetching invitations:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load invitations. Please try again.",
-        variant: "destructive",
-      });
     } finally {
       setLoading(false);
     }
@@ -102,11 +95,7 @@ export default function StudyGroupInvitations({
     try {
       // Validate max uses input
       if (maxUses && (isNaN(parseInt(maxUses)) || parseInt(maxUses) < 1)) {
-        toast({
-          title: "Invalid Input",
-          description: "Max uses must be a positive number",
-          variant: "destructive",
-        });
+        console.error("Invalid Input: Max uses must be a positive number");
         return;
       }
 
@@ -132,21 +121,11 @@ export default function StudyGroupInvitations({
       const data = await response.json();
       setInvitations([data.invitation, ...invitations]);
 
-      toast({
-        title: "Invitation Created",
-        description: "Your invitation link is ready to share.",
-      });
-
       // Reset form
       setExpiresIn("24");
       setMaxUses("");
     } catch (error) {
-      console.error("Error creating invitation:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create invitation",
-        variant: "destructive",
-      });
+      console.error("Error creating invitation:", error instanceof Error ? error.message : "Failed to create invitation");
     } finally {
       setCreating(false);
     }
@@ -163,22 +142,12 @@ export default function StudyGroupInvitations({
     navigator.clipboard.writeText(link);
     setCopied(true);
 
-    toast({
-      title: "Copied!",
-      description: "Invitation link copied to clipboard",
-    });
-
     setTimeout(() => setCopied(false), 2000);
   };
 
   const copyInvitationCode = (code: string) => {
     navigator.clipboard.writeText(code);
     setCopied(true);
-
-    toast({
-      title: "Copied!",
-      description: "Invitation code copied to clipboard",
-    });
 
     setTimeout(() => setCopied(false), 2000);
   };

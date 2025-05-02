@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy, Check } from "lucide-react";
-import { useToast, toast } from "@/lib/mobile-aware-toast";
 import { cn } from "@/lib/utils";
 
 interface CopyButtonProps {
@@ -27,17 +26,11 @@ export default function CopyButton({
   iconOnly = true,
   children,
 }: CopyButtonProps) {
-  const { toast } = useToast();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(text);
     setCopied(true);
-
-    toast({
-      title: "Copied",
-      description: "Copied to clipboard",
-    });
 
     if (onCopy) {
       onCopy();

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useToast } from "./ui/use-toast";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -27,7 +26,6 @@ export default function CreateStudyGroupForm({
   universityId,
 }: CreateStudyGroupFormProps) {
   const router = useRouter();
-  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -175,11 +173,6 @@ export default function CreateStudyGroupForm({
 
       // No need to join the study group - the stored procedure already handles that
 
-      toast({
-        title: "Success",
-        description: "Study group created successfully",
-      });
-
       // Add a small delay before redirecting to ensure database operations complete
       setTimeout(() => {
         // Redirect to the new study group page using URL parameters
@@ -187,11 +180,7 @@ export default function CreateStudyGroupForm({
         router.refresh();
       }, 1000);
     } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err.message || "Failed to create study group",
-        variant: "destructive",
-      });
+      console.error("Failed to create study group:", err.message || "Unknown error");
     } finally {
       setIsSubmitting(false);
     }

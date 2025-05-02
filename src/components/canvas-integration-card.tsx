@@ -13,7 +13,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
 import { Loader2, RefreshCw, Link as LinkIcon, CheckCircle, XCircle, ChevronDown, ChevronUp, BookOpen, GraduationCap, X, HelpCircle, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
@@ -52,7 +51,6 @@ interface CanvasIntegration {
 }
 
 export default function CanvasIntegrationCard() {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -184,11 +182,6 @@ export default function CanvasIntegrationCard() {
       }
     } catch (error) {
       console.error("Error fetching Canvas status:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch Canvas integration status",
-        variant: "destructive",
-      });
     } finally {
       setLoading(false);
     }
@@ -200,11 +193,7 @@ export default function CanvasIntegrationCard() {
       setConnectionError(null);
 
       if (!domain || !accessToken) {
-        toast({
-          title: "Error",
-          description: "Canvas domain and access token are required",
-          variant: "destructive",
-        });
+        console.error("Canvas domain and access token are required");
         return;
       }
 
@@ -223,10 +212,7 @@ export default function CanvasIntegrationCard() {
         setIsConnected(true);
         setIntegration(data.integration);
         setAccessToken("");
-        toast({
-          title: "Success",
-          description: "Canvas integration connected successfully",
-        });
+        console.log("Canvas integration connected successfully");
 
         // Sync GPA after connecting
         syncGpa();
@@ -237,12 +223,7 @@ export default function CanvasIntegrationCard() {
 
         // Set the error message for display in the UI
         setConnectionError(errorMessage);
-
-        toast({
-          title: "Connection Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        console.error("Connection Error:", errorMessage);
       }
     } catch (error) {
       console.error("Error connecting Canvas:", error);
@@ -250,12 +231,7 @@ export default function CanvasIntegrationCard() {
       // Set an error message for display in the UI
       const errorMessage = getUserFriendlyErrorMessage("Network error: Connection failed");
       setConnectionError(errorMessage);
-
-      toast({
-        title: "Connection Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      console.error("Connection Error:", errorMessage);
     } finally {
       setConnecting(false);
     }
@@ -285,24 +261,12 @@ export default function CanvasIntegrationCard() {
         setIntegration(null);
         setCourses([]);
 
-        toast({
-          title: "Success",
-          description: "Canvas integration disconnected successfully",
-        });
+        console.log("Canvas integration disconnected successfully");
       } else {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to disconnect Canvas integration",
-          variant: "destructive",
-        });
+        console.error("Failed to disconnect Canvas integration:", data.error || "Unknown error");
       }
     } catch (error) {
       console.error("Error disconnecting Canvas:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
     } finally {
       setDisconnecting(false);
     }
@@ -527,24 +491,12 @@ export default function CanvasIntegrationCard() {
           console.log("No courses data available in sync response");
         }
 
-        toast({
-          title: "Success",
-          description: "Canvas GPA synced successfully",
-        });
+        console.log("Success: Canvas GPA synced successfully");
       } else {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to sync Canvas GPA",
-          variant: "destructive",
-        });
+        console.error("Error: " + (data.error || "Failed to sync Canvas GPA"));
       }
     } catch (error) {
       console.error("Error syncing Canvas GPA:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
     } finally {
       setSyncing(false);
     }
@@ -692,17 +644,9 @@ export default function CanvasIntegrationCard() {
         }
       }
 
-      toast({
-        title: "Success",
-        description: `Course ${excluded ? "excluded from" : "included in"} GPA calculation`,
-      });
+      console.log(`Success: Course ${excluded ? "excluded from" : "included in"} GPA calculation`);
     } catch (error) {
       console.error("Error toggling course exclusion:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
     } finally {
       setUpdatingCourse(null);
     }

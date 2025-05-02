@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
 import {
   RefreshCw,
   Share2,
@@ -44,7 +43,6 @@ import { Progress } from "@/components/ui/progress";
 
 export default function InvitePage() {
   const supabase = createClient();
-  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [sending, setSending] = useState(false);
@@ -121,18 +119,13 @@ export default function InvitePage() {
         await fetchSentInvitations();
       } catch (error) {
         console.error("Error fetching invite code:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load invite code",
-          variant: "destructive",
-        });
       } finally {
         setLoading(false);
       }
     };
 
     fetchInviteCode();
-  }, [supabase, toast]);
+  }, [supabase]);
 
   const fetchSentInvitations = async () => {
     try {
@@ -181,10 +174,7 @@ export default function InvitePage() {
           isVerified: true
         }));
 
-        toast({
-          title: "Congratulations!",
-          description: "Your profile has been verified!",
-        });
+        console.log("Congratulations! Your profile has been verified!");
       }
     } catch (error) {
       console.error("Error verifying profile:", error);
@@ -194,21 +184,13 @@ export default function InvitePage() {
   const generateInviteCode = async () => {
     // Check if the user has already reached the maximum number of invite codes
     if (maxInviteCodesReached) {
-      toast({
-        title: "Limit Reached",
-        description: `You have reached the maximum limit of ${MAX_INVITE_CODES} invite codes.`,
-        variant: "destructive",
-      });
+      console.error(`Limit Reached: You have reached the maximum limit of ${MAX_INVITE_CODES} invite codes.`);
       return;
     }
 
     // Check if the user has already reached the maximum number of successful invites
     if (verificationStatus.hasReachedMaxInvites) {
-      toast({
-        title: "Limit Reached",
-        description: `You have already reached the maximum limit of 5 successful invites.`,
-        variant: "destructive",
-      });
+      console.error("Limit Reached: You have already reached the maximum limit of 5 successful invites.");
       return;
     }
 
@@ -248,17 +230,9 @@ export default function InvitePage() {
         return newCount;
       });
 
-      toast({
-        title: "Success",
-        description: "New invite code generated successfully",
-      });
+      console.log("Success: New invite code generated successfully");
     } catch (error) {
-      console.error("Error generating invite code:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to generate invite code",
-        variant: "destructive",
-      });
+      console.error("Error generating invite code:", error.message || "Failed to generate invite code");
     } finally {
       setGenerating(false);
     }
@@ -288,10 +262,7 @@ export default function InvitePage() {
         throw new Error(data.error || "Failed to send invitation email");
       }
 
-      toast({
-        title: "Success",
-        description: "Invitation email sent successfully",
-      });
+      console.log("Success: Invitation email sent successfully");
 
       // Clear email input and close dialog
       setEmailInput("");
@@ -300,12 +271,7 @@ export default function InvitePage() {
       // Refresh sent invitations list
       await fetchSentInvitations();
     } catch (error) {
-      console.error("Error sending invitation email:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to send invitation email",
-        variant: "destructive",
-      });
+      console.error("Error sending invitation email:", error.message || "Failed to send invitation email");
     } finally {
       setSending(false);
     }
@@ -313,10 +279,7 @@ export default function InvitePage() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied",
-      description: "Copied to clipboard",
-    });
+    console.log("Copied to clipboard");
   };
 
   const shareInvite = async () => {

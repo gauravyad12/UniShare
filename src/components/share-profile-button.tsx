@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Share2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
 
 interface ShareProfileButtonProps {
   username: string;
@@ -21,15 +20,9 @@ export default function ShareProfileButton({
   size = "default",
   className = "",
 }: ShareProfileButtonProps) {
-  const { toast } = useToast();
-
   // Function to copy to clipboard
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied",
-      description: "Profile link copied to clipboard",
-    });
   };
 
   // Function to share profile

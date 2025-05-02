@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -37,7 +36,6 @@ export default function StudyGroupsClientPaginated({
   tab?: string;
   initialPage?: number;
 }) {
-  const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -165,18 +163,13 @@ export default function StudyGroupsClientPaginated({
         setFilteredMyGroups(result.myStudyGroups || []);
       } catch (error) {
         console.error('Error fetching study groups:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load study groups. Please try again.",
-          variant: "destructive",
-        });
       } finally {
         setLoading(false);
       }
     }
 
     fetchData();
-  }, [currentPage, searchQuery, toast]);
+  }, [currentPage, searchQuery]);
 
   // Make sure userGroupIds includes all IDs from myStudyGroups
   const { userGroupIds = [], myStudyGroups = [] } = data || {};
@@ -187,11 +180,7 @@ export default function StudyGroupsClientPaginated({
   // Function to handle joining a group with an invitation code
   const handleJoinGroup = async () => {
     if (!inviteCode.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter an invitation code",
-        variant: "destructive",
-      });
+      console.error("Please enter an invitation code");
       return;
     }
 
@@ -212,10 +201,7 @@ export default function StudyGroupsClientPaginated({
         throw new Error(data.error || "Failed to join study group");
       }
 
-      toast({
-        title: "Success!",
-        description: data.message || "You have successfully joined the study group",
-      });
+      console.log("Successfully joined study group:", data.message || "Success");
 
       // Close the dialog
       setJoinDialogOpen(false);
@@ -224,12 +210,7 @@ export default function StudyGroupsClientPaginated({
       // Redirect to the study group page
       router.push(`/dashboard/study-groups?view=${data.studyGroupId}`);
     } catch (error) {
-      console.error("Error joining study group:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to join study group",
-        variant: "destructive",
-      });
+      console.error("Error joining study group:", error instanceof Error ? error.message : "Unknown error");
     } finally {
       setJoiningGroup(false);
     }

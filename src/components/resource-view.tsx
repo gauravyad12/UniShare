@@ -118,12 +118,6 @@ export default function ResourceView({
   // Function to copy to clipboard
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-
-    // Use our mobile-aware toast system
-    showDownloadToast({
-      title: "Link copied to clipboard",
-      status: "success"
-    });
   };
 
   // Function to share resource

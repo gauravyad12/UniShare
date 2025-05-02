@@ -28,7 +28,6 @@ import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import RealtimeUnreadBadgeWrapper from "@/components/realtime-unread-badge-wrapper";
 import ShareStudyGroupButton from "@/components/share-study-group-button";
-import { useToast } from "./ui/use-toast";
 
 interface StudyGroupViewWrapperProps {
   group: any;
@@ -40,7 +39,6 @@ export default function StudyGroupViewWrapper({
 }: StudyGroupViewWrapperProps) {
   console.log('StudyGroupViewWrapper rendering with group:', group);
   const router = useRouter();
-  const { toast } = useToast();
   const [isMember, setIsMember] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [members, setMembers] = useState<any[]>([]);
@@ -135,11 +133,7 @@ export default function StudyGroupViewWrapper({
         .maybeSingle();
 
       if (existingMember) {
-        toast({
-          title: "Already a member",
-          description: "You are already a member of this study group",
-          variant: "default",
-        });
+        console.log("User is already a member of this study group");
         return;
       }
 
@@ -157,11 +151,7 @@ export default function StudyGroupViewWrapper({
         throw error;
       }
 
-      toast({
-        title: "Success!",
-        description: "You have joined the study group",
-        variant: "default",
-      });
+      console.log("Successfully joined the study group");
 
       setIsMember(true);
 
@@ -169,11 +159,6 @@ export default function StudyGroupViewWrapper({
       router.refresh();
     } catch (error) {
       console.error("Error joining group:", error);
-      toast({
-        title: "Error",
-        description: "Failed to join the study group. Please try again.",
-        variant: "destructive",
-      });
     }
   };
 

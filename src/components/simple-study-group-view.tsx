@@ -37,7 +37,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { useToast } from "./ui/use-toast";
 import StudyGroupManagement from "./study-group-management";
 import StudyGroupInvitations from "./study-group-invitations";
 import AddResourceToGroup from "./add-resource-to-group";
@@ -54,7 +53,6 @@ export default function SimpleStudyGroupView({
   group,
 }: SimpleStudyGroupViewProps) {
   const router = useRouter();
-  const { toast } = useToast();
   const [isMember, setIsMember] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
@@ -220,20 +218,12 @@ export default function SimpleStudyGroupView({
       }
 
       if (data.alreadyMember) {
-        toast({
-          title: "Already a member",
-          description: "You are already a member of this study group",
-          variant: "default",
-        });
+        console.log("User is already a member of this study group");
         setJoiningGroup(false);
         return;
       }
 
-      toast({
-        title: "Success!",
-        description: "You have joined the study group",
-        variant: "default",
-      });
+      console.log("Successfully joined the study group");
 
       setIsMember(true);
       setMembers([...members, {
@@ -272,11 +262,7 @@ export default function SimpleStudyGroupView({
           }
 
           // Success!
-          toast({
-            title: "Success!",
-            description: "You have joined the study group",
-            variant: "default",
-          });
+          console.log("Successfully joined the study group via direct endpoint");
 
           setIsMember(true);
           setMembers([...members, {
@@ -296,11 +282,7 @@ export default function SimpleStudyGroupView({
         }
       }
 
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to join the study group. Please try again.",
-        variant: "destructive",
-      });
+      console.error("Failed to join the study group:", error instanceof Error ? error.message : "Unknown error");
     } finally {
       setJoiningGroup(false);
     }
@@ -336,11 +318,7 @@ export default function SimpleStudyGroupView({
         throw new Error(data.error || 'Failed to leave the group');
       }
 
-      toast({
-        title: "Success!",
-        description: "You have left the study group",
-        variant: "default",
-      });
+      console.log("Successfully left the study group");
 
       setIsMember(false);
       setMembers(members.filter(member => member.user_id !== userId));
@@ -348,12 +326,7 @@ export default function SimpleStudyGroupView({
       // Refresh the page to update the UI
       router.refresh();
     } catch (error) {
-      console.error("Error leaving group:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to leave the study group. Please try again.",
-        variant: "destructive",
-      });
+      console.error("Error leaving group:", error instanceof Error ? error.message : "Unknown error");
     } finally {
       setLeavingGroup(false);
     }
@@ -383,22 +356,13 @@ export default function SimpleStudyGroupView({
         throw new Error(data.error || 'Failed to remove the resource');
       }
 
-      toast({
-        title: "Resource Removed",
-        description: "The resource has been removed from the group",
-        variant: "default",
-      });
+      console.log("Resource successfully removed from the group");
 
       // Update the resources list
       setResources(resources.filter(resource => resource.resource_id !== resourceId));
 
     } catch (error) {
-      console.error("Error removing resource:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to remove the resource. Please try again.",
-        variant: "destructive",
-      });
+      console.error("Error removing resource:", error instanceof Error ? error.message : "Unknown error");
     } finally {
       setRemovingResourceId(null);
     }

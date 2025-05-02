@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar, Clock, Loader2 } from "lucide-react";
-import { useToast } from "./ui/use-toast";
 import MobileDateTimePicker from "./mobile-date-time-picker";
 
 interface UpdateMeetingTimeProps {
@@ -34,7 +33,6 @@ export default function UpdateMeetingTime({
   open,
   onOpenChange,
 }: UpdateMeetingTimeProps) {
-  const { toast } = useToast();
   const [startDate, setStartDate] = useState(format(new Date(currentStartTime), "yyyy-MM-dd"));
   const [startTime, setStartTime] = useState(format(new Date(currentStartTime), "HH:mm"));
   const [endDate, setEndDate] = useState(format(new Date(currentEndTime), "yyyy-MM-dd"));
@@ -74,20 +72,12 @@ export default function UpdateMeetingTime({
   const handleUpdateTime = async () => {
     // Validate inputs
     if (!startDate || !startTime) {
-      toast({
-        title: "Missing start time",
-        description: "Please enter a start date and time",
-        variant: "destructive",
-      });
+      console.error("Missing start time: Please enter a start date and time");
       return;
     }
 
     if (!endDate || !endTime) {
-      toast({
-        title: "Missing end time",
-        description: "Please enter an end date and time",
-        variant: "destructive",
-      });
+      console.error("Missing end time: Please enter an end date and time");
       return;
     }
 
@@ -107,20 +97,12 @@ export default function UpdateMeetingTime({
 
     // Validate dates
     if (isNaN(startDateTimeValue.getTime()) || isNaN(endDateTimeValue.getTime())) {
-      toast({
-        title: "Invalid date/time",
-        description: "Please enter valid dates and times",
-        variant: "destructive",
-      });
+      console.error("Invalid date/time: Please enter valid dates and times");
       return;
     }
 
     if (startDateTimeValue >= endDateTimeValue) {
-      toast({
-        title: "Invalid time range",
-        description: "End time must be after start time",
-        variant: "destructive",
-      });
+      console.error("Invalid time range: End time must be after start time");
       return;
     }
 
@@ -146,10 +128,7 @@ export default function UpdateMeetingTime({
         throw new Error(data.error || 'Failed to update meeting time');
       }
 
-      toast({
-        title: "Success",
-        description: "Meeting time updated successfully",
-      });
+      console.log("Success: Meeting time updated successfully");
 
       // Call the callback to refresh the meetings list
       onUpdate();
@@ -157,12 +136,7 @@ export default function UpdateMeetingTime({
       // Close the dialog
       onOpenChange(false);
     } catch (error) {
-      console.error("Error updating meeting time:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update meeting time",
-        variant: "destructive",
-      });
+      console.error("Error updating meeting time:", error instanceof Error ? error.message : "Failed to update meeting time");
     } finally {
       setUpdating(false);
     }

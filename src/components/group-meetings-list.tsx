@@ -13,7 +13,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useToast } from "./ui/use-toast";
 import UpdateMeetingTime from "./update-meeting-time";
 
 interface GroupMeetingsListProps {
@@ -25,7 +24,6 @@ export default function GroupMeetingsList({
   groupId,
   refreshTrigger = 0,
 }: GroupMeetingsListProps) {
-  const { toast } = useToast();
   const [meetings, setMeetings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -112,21 +110,13 @@ export default function GroupMeetingsList({
         throw new Error(data.error || 'Failed to delete the meeting');
       }
 
-      toast({
-        title: "Meeting Deleted",
-        description: "The meeting has been deleted successfully",
-      });
+      console.log("Meeting deleted successfully");
 
       // Update the meetings list
       setMeetings(meetings.filter(meeting => meeting.id !== meetingId));
 
     } catch (error) {
-      console.error("Error deleting meeting:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete the meeting. Please try again.",
-        variant: "destructive",
-      });
+      console.error("Error deleting meeting:", error instanceof Error ? error.message : "Unknown error");
     } finally {
       setDeletingMeetingId(null);
     }

@@ -40,11 +40,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { createClient } from "@/utils/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
 
 export default function EditProfilePage() {
   const router = useRouter();
-  const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);

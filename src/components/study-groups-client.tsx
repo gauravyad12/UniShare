@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -30,7 +29,6 @@ import StudyGroupCard from "@/components/study-group-card";
 import UserMeetingsCarousel from "@/components/user-meetings-carousel";
 
 export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
-  const { toast } = useToast();
   console.log('StudyGroupsClient rendering with tab:', tab);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -255,11 +253,7 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
   // Function to handle joining a group with an invitation code
   const handleJoinGroup = async () => {
     if (!inviteCode.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter an invitation code",
-        variant: "destructive",
-      });
+      console.error("Please enter an invitation code");
       return;
     }
 
@@ -280,10 +274,7 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
         throw new Error(data.error || "Failed to join study group");
       }
 
-      toast({
-        title: "Success!",
-        description: data.message || "You have successfully joined the study group",
-      });
+      console.log("Success! You have successfully joined the study group:", data.message);
 
       // Close the dialog
       setJoinDialogOpen(false);
@@ -292,12 +283,7 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
       // Redirect to the study group page
       router.push(`/dashboard/study-groups?view=${data.studyGroupId}`);
     } catch (error) {
-      console.error("Error joining study group:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to join study group",
-        variant: "destructive",
-      });
+      console.error("Error joining study group:", error instanceof Error ? error.message : "Failed to join study group");
     } finally {
       setJoiningGroup(false);
     }

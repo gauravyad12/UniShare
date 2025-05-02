@@ -36,11 +36,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { createClient } from "@/utils/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -380,10 +378,7 @@ export default function ProfilePage() {
 
       if (data.success) {
         setSaveSuccess(true);
-        toast({
-          title: "Profile updated",
-          description: "Your profile has been successfully updated.",
-        });
+        console.log("Profile updated successfully");
 
         // Update local profile state
         setProfile({
@@ -398,19 +393,10 @@ export default function ProfilePage() {
         // Clear success message after 3 seconds
         setTimeout(() => setSaveSuccess(false), 3000);
       } else {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to update profile",
-          variant: "destructive",
-        });
+        console.error("Error: " + (data.error || "Failed to update profile"));
       }
     } catch (error) {
       console.error("Error saving profile:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
     } finally {
       setSaving(false);
     }
@@ -444,19 +430,9 @@ export default function ProfilePage() {
         avatar_url: data.avatarUrl,
       });
 
-      toast({
-        title: "Profile picture updated",
-        description: "Your profile picture has been successfully updated.",
-      });
+      console.log("Profile picture updated successfully");
     } catch (error: unknown) {
-      console.error("Error uploading image:", error);
-      toast({
-        title: "Error",
-        description:
-          "Failed to upload profile picture: " +
-          (error instanceof Error ? error.message : String(error)),
-        variant: "destructive",
-      });
+      console.error("Error uploading image:", error instanceof Error ? error.message : String(error));
     } finally {
       setSaving(false);
     }

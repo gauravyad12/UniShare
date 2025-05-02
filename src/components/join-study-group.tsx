@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +22,6 @@ interface JoinStudyGroupProps {
 
 export default function JoinStudyGroup({ code: initialCode }: JoinStudyGroupProps) {
   const router = useRouter();
-  const { toast } = useToast();
   const [code, setCode] = useState(initialCode || "");
   const [loading, setLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -40,11 +38,7 @@ export default function JoinStudyGroup({ code: initialCode }: JoinStudyGroupProp
 
   const handleJoin = async () => {
     if (!code.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter an invitation code",
-        variant: "destructive",
-      });
+      console.error("Please enter an invitation code");
       return;
     }
 
@@ -71,20 +65,12 @@ export default function JoinStudyGroup({ code: initialCode }: JoinStudyGroupProp
         throw new Error(data.error || "Failed to join study group");
       }
 
-      toast({
-        title: "Success!",
-        description: data.message || "You have successfully joined the study group",
-      });
+      console.log(data.message || "You have successfully joined the study group");
 
       // Redirect to the study group page
       router.push(`/dashboard/study-groups?view=${data.studyGroupId}`);
     } catch (error) {
-      console.error("Error joining study group:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to join study group",
-        variant: "destructive",
-      });
+      console.error("Error joining study group:", error instanceof Error ? error.message : "Failed to join study group");
     } finally {
       setLoading(false);
     }

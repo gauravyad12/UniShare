@@ -15,14 +15,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
 
 export default function ResponsiveJoinButton() {
   const [isDesktop, setIsDesktop] = useState(true);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [joiningGroup, setJoiningGroup] = useState(false);
-  const { toast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
@@ -47,11 +45,7 @@ export default function ResponsiveJoinButton() {
   // Function to handle joining a group with an invitation code
   const handleJoinGroup = async () => {
     if (!inviteCode.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter an invitation code",
-        variant: "destructive",
-      });
+      console.error("Please enter an invitation code");
       return;
     }
 
@@ -72,10 +66,7 @@ export default function ResponsiveJoinButton() {
         throw new Error(data.error || "Failed to join study group");
       }
 
-      toast({
-        title: "Success!",
-        description: data.message || "You have successfully joined the study group",
-      });
+      console.log(data.message || "You have successfully joined the study group");
 
       // Close the dialog
       setJoinDialogOpen(false);
@@ -84,12 +75,7 @@ export default function ResponsiveJoinButton() {
       // Redirect to the study group page
       router.push(`/dashboard/study-groups?view=${data.studyGroupId}`);
     } catch (error) {
-      console.error("Error joining study group:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to join study group",
-        variant: "destructive",
-      });
+      console.error("Error joining study group:", error instanceof Error ? error.message : "Failed to join study group");
     } finally {
       setJoiningGroup(false);
     }

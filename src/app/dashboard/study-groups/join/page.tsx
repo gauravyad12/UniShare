@@ -5,23 +5,17 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
 import { Loader2, Users, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 export default function JoinStudyGroupPage() {
   const router = useRouter();
-  const { toast } = useToast();
   const [inviteCode, setInviteCode] = useState("");
   const [joiningGroup, setJoiningGroup] = useState(false);
 
   const handleJoinGroup = async () => {
     if (!inviteCode.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter an invitation code",
-        variant: "destructive",
-      });
+      console.error("Please enter an invitation code");
       return;
     }
 
@@ -42,20 +36,12 @@ export default function JoinStudyGroupPage() {
         throw new Error(data.error || "Failed to join study group");
       }
 
-      toast({
-        title: "Success!",
-        description: data.message || "You have successfully joined the study group",
-      });
+      console.log("Successfully joined study group:", data.message || "Success");
 
       // Redirect to the study group page
       router.push(`/dashboard/study-groups?view=${data.studyGroupId}`);
     } catch (error) {
-      console.error("Error joining study group:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to join study group",
-        variant: "destructive",
-      });
+      console.error("Error joining study group:", error instanceof Error ? error.message : "Unknown error");
     } finally {
       setJoiningGroup(false);
     }
@@ -69,7 +55,7 @@ export default function JoinStudyGroupPage() {
           Back to Study Groups
         </Link>
       </Button>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>Join Private Study Group</CardTitle>
@@ -91,8 +77,8 @@ export default function JoinStudyGroupPage() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button 
-            onClick={handleJoinGroup} 
+          <Button
+            onClick={handleJoinGroup}
             disabled={joiningGroup || !inviteCode.trim()}
             className="w-full"
           >

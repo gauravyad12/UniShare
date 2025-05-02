@@ -27,7 +27,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
 import { MoreHorizontal, UserPlus, UserMinus, Shield, Trash2, Settings } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -60,7 +59,6 @@ export default function StudyGroupManagement({
   onMembersUpdated,
 }: StudyGroupManagementProps) {
   const router = useRouter();
-  const { toast } = useToast();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isMembersDialogOpen, setIsMembersDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -81,21 +79,13 @@ export default function StudyGroupManagement({
         throw new Error(error.error || "Failed to delete study group");
       }
 
-      toast({
-        title: "Success",
-        description: "Study group has been deleted",
-      });
+      console.log("Study group has been deleted successfully");
 
       // Redirect to the study groups page
       router.push("/dashboard/study-groups");
       router.refresh();
     } catch (error) {
-      console.error("Error deleting study group:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete study group",
-        variant: "destructive",
-      });
+      console.error("Error deleting study group:", error instanceof Error ? error.message : "Unknown error");
     } finally {
       setIsDeleting(false);
       setIsDeleteDialogOpen(false);
@@ -120,21 +110,13 @@ export default function StudyGroupManagement({
         throw new Error(error.error || "Failed to promote member");
       }
 
-      toast({
-        title: "Success",
-        description: "Member has been promoted to admin",
-      });
+      console.log("Member has been promoted to admin successfully");
 
       if (onMembersUpdated) {
         onMembersUpdated();
       }
     } catch (error) {
-      console.error("Error promoting member:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to promote member",
-        variant: "destructive",
-      });
+      console.error("Error promoting member:", error instanceof Error ? error.message : "Unknown error");
     } finally {
       setIsUpdatingMember(false);
       setActionUserId(null);
@@ -159,21 +141,13 @@ export default function StudyGroupManagement({
         throw new Error(error.error || "Failed to demote admin");
       }
 
-      toast({
-        title: "Success",
-        description: "Admin has been demoted to member",
-      });
+      console.log("Admin has been demoted to member successfully");
 
       if (onMembersUpdated) {
         onMembersUpdated();
       }
     } catch (error) {
-      console.error("Error demoting admin:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to demote admin",
-        variant: "destructive",
-      });
+      console.error("Error demoting admin:", error instanceof Error ? error.message : "Unknown error");
     } finally {
       setIsUpdatingMember(false);
       setActionUserId(null);
@@ -194,21 +168,13 @@ export default function StudyGroupManagement({
         throw new Error(error.error || "Failed to remove member");
       }
 
-      toast({
-        title: "Success",
-        description: "Member has been removed from the group",
-      });
+      console.log("Member has been removed from the group successfully");
 
       if (onMembersUpdated) {
         onMembersUpdated();
       }
     } catch (error) {
-      console.error("Error removing member:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to remove member",
-        variant: "destructive",
-      });
+      console.error("Error removing member:", error instanceof Error ? error.message : "Unknown error");
     } finally {
       setIsUpdatingMember(false);
       setActionUserId(null);

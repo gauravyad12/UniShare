@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Search, FileText, Share } from "lucide-react";
-import { useToast } from "./ui/use-toast";
 import { Checkbox } from "./ui/checkbox";
 
 interface ShareGroupResourceProps {
@@ -23,7 +22,6 @@ export default function ShareGroupResource({
   groupId,
   onResourceSelected,
 }: ShareGroupResourceProps) {
-  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [resources, setResources] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);

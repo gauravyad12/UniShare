@@ -27,7 +27,6 @@ import {
   LogOut,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
 import { useTheme } from "next-themes";
 import { useThemeContext } from "@/components/theme-context";
 import {
@@ -49,7 +48,6 @@ import {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { toast } = useToast();
   const {
     theme,
     setTheme,
@@ -486,24 +484,13 @@ export default function SettingsPage() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        toast({
-          title: "Account deleted",
-          description:
-            data.message || "Your account has been successfully deleted.",
-        });
+        console.log("Account deleted successfully:", data.message || "Your account has been successfully deleted.");
         router.push("/");
       } else {
         throw new Error(data.error || "Failed to delete account");
       }
     } catch (error) {
-      console.error("Error deleting account:", error);
-      toast({
-        title: "Error",
-        description:
-          error.message ||
-          "Failed to delete your account. Please try again later.",
-        variant: "destructive",
-      });
+      console.error("Error deleting account:", error.message || "Failed to delete your account. Please try again later.");
       setDeletingAccount(false);
     }
   };

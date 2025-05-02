@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Share2 } from "lucide-react";
-import { useToast, toast } from "@/lib/mobile-aware-toast";
 
 interface ShareStudyGroupButtonProps {
   groupId: string;
@@ -21,15 +20,9 @@ export default function ShareStudyGroupButton({
   size = "default",
   className = "",
 }: ShareStudyGroupButtonProps) {
-  const { toast } = useToast();
-
   // Function to copy to clipboard
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied",
-      description: "Link copied to clipboard",
-    });
   };
 
   // Function to share study group

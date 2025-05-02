@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useToast, toast } from "@/lib/mobile-aware-toast";
 import TodoItem from "@/components/todo-item";
 import TodoForm from "@/components/todo-form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,7 +21,6 @@ export default function TodoList() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
-  const { toast } = useToast();
 
   // Fetch todos on component mount
   useEffect(() => {
@@ -42,11 +40,6 @@ export default function TodoList() {
       setTodos(data.todos || []);
     } catch (error) {
       console.error("Error fetching todos:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load your to-do list",
-        variant: "destructive",
-      });
     } finally {
       setLoading(false);
     }
@@ -72,18 +65,8 @@ export default function TodoList() {
 
       const data = await response.json();
       setTodos([data.todo, ...todos]);
-
-      toast({
-        title: "Success",
-        description: "Task added to your to-do list",
-      });
     } catch (error) {
       console.error("Error adding todo:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add task",
-        variant: "destructive",
-      });
     }
   };
 
@@ -110,11 +93,6 @@ export default function TodoList() {
       );
     } catch (error) {
       console.error("Error updating todo:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update task",
-        variant: "destructive",
-      });
     }
   };
 
@@ -139,18 +117,8 @@ export default function TodoList() {
           todo.id === id ? { ...todo, content } : todo
         )
       );
-
-      toast({
-        title: "Success",
-        description: "Task updated",
-      });
     } catch (error) {
       console.error("Error updating todo:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update task",
-        variant: "destructive",
-      });
     }
   };
 
@@ -165,18 +133,8 @@ export default function TodoList() {
       }
 
       setTodos(todos.filter((todo) => todo.id !== id));
-
-      toast({
-        title: "Success",
-        description: "Task deleted",
-      });
     } catch (error) {
       console.error("Error deleting todo:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete task",
-        variant: "destructive",
-      });
     }
   };
 
@@ -184,10 +142,7 @@ export default function TodoList() {
     const completedTodos = todos.filter((todo) => todo.is_completed);
 
     if (completedTodos.length === 0) {
-      toast({
-        title: "Info",
-        description: "No completed tasks to clear",
-      });
+      console.log("No completed tasks to clear");
       return;
     }
 
@@ -202,18 +157,8 @@ export default function TodoList() {
       );
 
       setTodos(todos.filter((todo) => !todo.is_completed));
-
-      toast({
-        title: "Success",
-        description: `Cleared ${completedTodos.length} completed tasks`,
-      });
     } catch (error) {
       console.error("Error clearing completed todos:", error);
-      toast({
-        title: "Error",
-        description: "Failed to clear completed tasks",
-        variant: "destructive",
-      });
     }
   };
 

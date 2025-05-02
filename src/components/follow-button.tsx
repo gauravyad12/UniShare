@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { UserPlus, UserCheck, Loader2 } from "lucide-react";
-import { useToast, toast } from "@/lib/mobile-aware-toast";
 
 interface FollowButtonProps {
   userId: string;
@@ -25,7 +24,6 @@ export function FollowButton({
   const [isCheckingStatus, setIsCheckingStatus] = useState(
     userId ? true : false,
   );
-  const { toast } = useToast();
 
   // Check follow status on mount
   useEffect(() => {
@@ -101,13 +99,6 @@ export function FollowButton({
         const newFollowingState = !isFollowing;
         setIsFollowing(newFollowingState);
 
-        toast({
-          title: newFollowingState ? "Following" : "Unfollowed",
-          description: newFollowingState
-            ? "You are now following this user"
-            : "You have unfollowed this user",
-        });
-
         // After successful follow/unfollow, fetch updated counts
         if (onFollowStatusChange) {
           try {
@@ -134,19 +125,10 @@ export function FollowButton({
           }
         }
       } else {
-        toast({
-          title: "Error",
-          description: data.error || "Something went wrong",
-          variant: "destructive",
-        });
+        console.error("Error following/unfollowing:", data.error || "Something went wrong");
       }
     } catch (error) {
       console.error("Follow request error:", error);
-      toast({
-        title: "Error",
-        description: "Something went wrong with the request",
-        variant: "destructive",
-      });
     } finally {
       setIsLoading(false);
     }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useToast, toast } from "@/lib/mobile-aware-toast";
 import { CheckSquare, Plus, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,7 +21,6 @@ export default function MobileTodoSection() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTodoContent, setNewTodoContent] = useState("");
-  const { toast } = useToast();
 
   // Fetch todos on component mount
   useEffect(() => {
@@ -42,11 +40,6 @@ export default function MobileTodoSection() {
       setTodos(data.todos || []);
     } catch (error) {
       console.error("Error fetching todos:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load your to-do list",
-        variant: "destructive",
-      });
     } finally {
       setLoading(false);
     }
@@ -77,11 +70,6 @@ export default function MobileTodoSection() {
       setNewTodoContent("");
     } catch (error) {
       console.error("Error adding todo:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add task",
-        variant: "destructive",
-      });
     }
   };
 
@@ -108,11 +96,6 @@ export default function MobileTodoSection() {
       );
     } catch (error) {
       console.error("Error updating todo:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update task",
-        variant: "destructive",
-      });
     }
   };
 

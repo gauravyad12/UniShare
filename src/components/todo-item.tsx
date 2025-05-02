@@ -71,14 +71,16 @@ export default function TodoItem({
 
   return (
     <div className={cn(
-      "flex items-start gap-2 p-3 rounded-lg border transition-colors",
+      "flex items-center gap-2 p-3 rounded-lg border transition-colors",
       todo.is_completed ? "bg-muted/50 border-muted" : "bg-card border-border hover:border-primary/20"
     )}>
-      <Checkbox
-        checked={todo.is_completed}
-        onCheckedChange={handleToggleComplete}
-        className="mt-1"
-      />
+      <div className="flex items-center self-center">
+        <Checkbox
+          checked={todo.is_completed}
+          onCheckedChange={handleToggleComplete}
+          className="translate-y-[1px]"
+        />
+      </div>
       <div className="flex-1 min-w-0">
         {isEditing ? (
           <div className="flex gap-2">
@@ -96,31 +98,33 @@ export default function TodoItem({
             </Button>
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="flex flex-col justify-center">
             <p className={cn(
-              "text-sm break-words",
+              "text-sm break-words leading-normal py-0.5",
               todo.is_completed && "line-through text-muted-foreground"
             )}>
               {todo.content}
             </p>
-            <div className="flex flex-wrap gap-2 items-center">
-              {todo.due_date && (
-                <div className="flex items-center text-xs text-muted-foreground">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  {format(new Date(todo.due_date), "MMM d, yyyy")}
-                </div>
-              )}
-              {todo.priority && (
-                <Badge variant="outline" className={cn("text-xs", getPriorityColor(todo.priority))}>
-                  {todo.priority}
-                </Badge>
-              )}
-            </div>
+            {(todo.due_date || todo.priority) && (
+              <div className="flex flex-wrap gap-2 items-center mt-1">
+                {todo.due_date && (
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    {format(new Date(todo.due_date), "MMM d, yyyy")}
+                  </div>
+                )}
+                {todo.priority && (
+                  <Badge variant="outline" className={cn("text-xs", getPriorityColor(todo.priority))}>
+                    {todo.priority}
+                  </Badge>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
       {!isEditing && (
-        <div className="flex gap-1">
+        <div className="flex gap-1 self-center">
           <Button
             size="icon"
             variant="ghost"

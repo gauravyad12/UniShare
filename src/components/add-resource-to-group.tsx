@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Search, FileText, Loader2 } from "lucide-react";
-import { useToast } from "./ui/use-toast";
 import { Checkbox } from "./ui/checkbox";
 
 interface AddResourceToGroupProps {
@@ -27,7 +26,6 @@ export default function AddResourceToGroup({
   groupId,
   onResourceAdded,
 }: AddResourceToGroupProps) {
-  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [resources, setResources] = useState<any[]>([]);
@@ -72,11 +70,7 @@ export default function AddResourceToGroup({
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) {
-          toast({
-            title: "Error",
-            description: "You must be logged in to search resources",
-            variant: "destructive",
-          });
+          console.error("You must be logged in to search resources");
           return;
         }
 
@@ -97,11 +91,6 @@ export default function AddResourceToGroup({
 
         if (error) {
           console.error("Error searching resources:", error);
-          toast({
-            title: "Error",
-            description: "Failed to search resources",
-            variant: "destructive",
-          });
         } else {
           console.log('Resources found:', data.length);
           if (data.length > 0) {
@@ -214,15 +203,11 @@ export default function AddResourceToGroup({
     }, 500);
 
     return () => clearTimeout(debounce);
-  }, [searchTerm, activeTab, toast]);
+  }, [searchTerm, activeTab]);
 
   const handleAddResources = async () => {
     if (selectedResources.length === 0) {
-      toast({
-        title: "No resources selected",
-        description: "Please select at least one resource to add",
-        variant: "destructive",
-      });
+      console.error("No resources selected. Please select at least one resource to add");
       return;
     }
 
@@ -234,11 +219,7 @@ export default function AddResourceToGroup({
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to add resources",
-          variant: "destructive",
-        });
+        console.error("You must be logged in to add resources");
         return;
       }
 
@@ -323,10 +304,7 @@ export default function AddResourceToGroup({
       });
 
       if (successCount > 0) {
-        toast({
-          title: "Resources added",
-          description: `Successfully added ${successCount} resource${successCount > 1 ? 's' : ''} to the group${errorCount > 0 ? ` (${errorCount} failed)` : ''}`,
-        });
+        console.log(`Successfully added ${successCount} resource${successCount > 1 ? 's' : ''} to the group${errorCount > 0 ? ` (${errorCount} failed)` : ''}`);
 
         // Force a delay before calling the callback to ensure the database has time to update
         setTimeout(() => {
@@ -345,25 +323,12 @@ export default function AddResourceToGroup({
         const firstError = results.find(r => !r.success);
         const errorMessage = firstError?.error?.message || firstError?.message || "Unknown error";
 
-        toast({
-          title: "Error adding resources",
-          description: `Failed to add resources: ${errorMessage}`,
-          variant: "destructive",
-        });
+        console.error(`Failed to add resources: ${errorMessage}`);
       } else {
-        toast({
-          title: "No changes",
-          description: "No resources were added to the group",
-          variant: "destructive",
-        });
+        console.log("No resources were added to the group");
       }
     } catch (error) {
       console.error("Error adding resources:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
     } finally {
       setAddingResources(false);
     }

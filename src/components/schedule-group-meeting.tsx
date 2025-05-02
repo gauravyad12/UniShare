@@ -16,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar, Clock, MapPin, Link as LinkIcon, Plus, Loader2 } from "lucide-react";
-import { useToast } from "./ui/use-toast";
 import { format } from "date-fns";
 import MobileDateTimePicker from "./mobile-date-time-picker";
 
@@ -37,7 +36,6 @@ export default function ScheduleGroupMeeting({
   groupId,
   onMeetingScheduled,
 }: ScheduleGroupMeetingProps) {
-  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -65,47 +63,27 @@ export default function ScheduleGroupMeeting({
   const handleScheduleMeeting = async () => {
     // Validate inputs
     if (!title) {
-      toast({
-        title: "Missing title",
-        description: "Please enter a title for the meeting",
-        variant: "destructive",
-      });
+      console.error("Missing title: Please enter a title for the meeting");
       return;
     }
 
     if (title.length > charLimits.title) {
-      toast({
-        title: "Title too long",
-        description: `Title must be ${charLimits.title} characters or less`,
-        variant: "destructive",
-      });
+      console.error(`Title too long: Title must be ${charLimits.title} characters or less`);
       return;
     }
 
     if (description && description.length > charLimits.description) {
-      toast({
-        title: "Description too long",
-        description: `Description must be ${charLimits.description} characters or less`,
-        variant: "destructive",
-      });
+      console.error(`Description too long: Description must be ${charLimits.description} characters or less`);
       return;
     }
 
     if (!startDate || !startTime) {
-      toast({
-        title: "Missing start time",
-        description: "Please enter a start date and time",
-        variant: "destructive",
-      });
+      console.error("Missing start time: Please enter a start date and time");
       return;
     }
 
     if (!endDate || !endTime) {
-      toast({
-        title: "Missing end time",
-        description: "Please enter an end date and time",
-        variant: "destructive",
-      });
+      console.error("Missing end time: Please enter an end date and time");
       return;
     }
 
@@ -125,20 +103,12 @@ export default function ScheduleGroupMeeting({
 
     // Validate dates
     if (isNaN(startDateTimeValue.getTime()) || isNaN(endDateTimeValue.getTime())) {
-      toast({
-        title: "Invalid date/time",
-        description: "Please enter valid dates and times",
-        variant: "destructive",
-      });
+      console.error("Invalid date/time: Please enter valid dates and times");
       return;
     }
 
     if (startDateTimeValue >= endDateTimeValue) {
-      toast({
-        title: "Invalid time range",
-        description: "End time must be after start time",
-        variant: "destructive",
-      });
+      console.error("Invalid time range: End time must be after start time");
       return;
     }
 
@@ -150,11 +120,7 @@ export default function ScheduleGroupMeeting({
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to schedule meetings",
-          variant: "destructive",
-        });
+        console.error("Error: You must be logged in to schedule meetings");
         return;
       }
 
@@ -179,17 +145,9 @@ export default function ScheduleGroupMeeting({
       const data = await response.json();
 
       if (!response.ok) {
-        console.error("Error scheduling meeting:", data.error);
-        toast({
-          title: "Error",
-          description: data.error || "Failed to schedule the meeting",
-          variant: "destructive",
-        });
+        console.error("Error scheduling meeting:", data.error || "Failed to schedule the meeting");
       } else {
-        toast({
-          title: "Meeting scheduled",
-          description: "The meeting has been scheduled successfully",
-        });
+        console.log("Meeting scheduled successfully");
 
         // Call the callback if provided
         if (onMeetingScheduled) {
@@ -202,11 +160,6 @@ export default function ScheduleGroupMeeting({
       }
     } catch (error) {
       console.error("Unexpected error:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
     } finally {
       setScheduling(false);
     }
