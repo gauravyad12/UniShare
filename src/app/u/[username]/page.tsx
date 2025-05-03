@@ -287,8 +287,8 @@ export default function UserProfilePage({
       <div className="max-w-4xl mx-auto">
         {/* Profile Header with Share Button in top right */}
         <div className="relative mb-8">
-          {/* Share Button in top right */}
-          <div className="absolute top-0 right-0 z-10">
+          {/* Share Button in top right - hidden on mobile */}
+          <div className="absolute top-0 right-0 z-10 hidden md:block">
             <ShareProfileButton
               username={profileData?.username || ""}
               fullName={profileData?.full_name || ""}
@@ -332,6 +332,16 @@ export default function UserProfilePage({
               {profileData?.bio && (
                 <p className="mt-3 text-sm">{profileData.bio}</p>
               )}
+              {/* Share button for mobile view */}
+              <div className="flex justify-center md:hidden mt-4">
+                <ShareProfileButton
+                  username={profileData?.username || ""}
+                  fullName={profileData?.full_name || ""}
+                  bio={profileData?.bio || ""}
+                  size="sm"
+                />
+              </div>
+
               <div className="flex gap-4 mt-4 md:justify-start justify-center">
                 <div className="bg-card rounded-md px-3 py-2 shadow-sm border">
                   <div className="font-bold text-base">{followStats.followingCount}</div>

@@ -274,13 +274,13 @@ export default function ProfilePage({
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="bg-card rounded-lg shadow-md p-6 mb-8 relative">
-        {/* Share button positioned absolutely in the top right */}
-        <div className="absolute top-4 right-4 z-10">
+        {/* Share button positioned absolutely in the right, aligned with avatar top on mobile */}
+        <div className="absolute right-4 z-10 md:hidden block" style={{ top: "calc(1.5rem)" }}>
           <ShareProfileButton
             username={profile.username}
             fullName={profile.full_name}
             bio={profile.bio}
-            size="sm"
+            size="sm" /* Keep small size for the corner button */
             variant="outline"
           />
         </div>
@@ -319,6 +319,16 @@ export default function ProfilePage({
                     onFollowStatusChange={handleFollowStatusChange}
                   />
                 )}
+                {/* Share button - visible on desktop, hidden on mobile (since it's in the corner for mobile) */}
+                <div className="hidden md:block">
+                  <ShareProfileButton
+                    username={profile.username}
+                    fullName={profile.full_name}
+                    bio={profile.bio}
+                    variant="outline"
+                    className="h-9" /* Match the default height of the follow button */
+                  />
+                </div>
               </div>
             </div>
 
