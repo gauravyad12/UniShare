@@ -104,14 +104,14 @@ export default function SimpleGroupChat({
             const bottomNavbar = document.querySelector('[class*="fixed bottom-0 left-0 right-0 z-50"]');
             if (bottomNavbar) {
               (bottomNavbar as HTMLElement).style.transform = 'translateY(120%)';
-              (bottomNavbar as HTMLElement).style.transition = 'transform 0.3s ease';
+              (bottomNavbar as HTMLElement).style.transition = 'transform 0.1s ease';
             }
 
             // Also hide any action buttons that might be above the navbar
             const actionButton = document.querySelector('.rounded-full.shadow-md.h-14.w-14.bg-primary.-mt-6');
             if (actionButton) {
               (actionButton as HTMLElement).style.opacity = '0';
-              (actionButton as HTMLElement).style.transition = 'opacity 0.3s ease';
+              (actionButton as HTMLElement).style.transition = 'opacity 0.1s ease';
             }
 
             // Adjust the chat container to reclaim the space
@@ -120,7 +120,7 @@ export default function SimpleGroupChat({
               (chatContainer as HTMLElement).style.paddingBottom = '0';
               (chatContainer as HTMLElement).style.marginBottom = '0';
               (chatContainer as HTMLElement).style.bottom = '0';
-              (chatContainer as HTMLElement).style.transition = 'all 0.3s ease';
+              (chatContainer as HTMLElement).style.transition = 'all 0.1s ease';
             }
 
             // Also adjust the card content
@@ -177,14 +177,14 @@ export default function SimpleGroupChat({
               const bottomNavbar = document.querySelector('[class*="fixed bottom-0 left-0 right-0 z-50"]');
               if (bottomNavbar) {
                 (bottomNavbar as HTMLElement).style.transform = 'translateY(120%)';
-                (bottomNavbar as HTMLElement).style.transition = 'transform 0.3s ease';
+                (bottomNavbar as HTMLElement).style.transition = 'transform 0.1s ease';
               }
 
               // Also hide any action buttons that might be above the navbar
               const actionButton = document.querySelector('.rounded-full.shadow-md.h-14.w-14.bg-primary.-mt-6');
               if (actionButton) {
                 (actionButton as HTMLElement).style.opacity = '0';
-                (actionButton as HTMLElement).style.transition = 'opacity 0.3s ease';
+                (actionButton as HTMLElement).style.transition = 'opacity 0.1s ease';
               }
 
               // Adjust the chat container to reclaim the space
@@ -193,7 +193,7 @@ export default function SimpleGroupChat({
                 (chatContainer as HTMLElement).style.paddingBottom = '0';
                 (chatContainer as HTMLElement).style.marginBottom = '0';
                 (chatContainer as HTMLElement).style.bottom = '0';
-                (chatContainer as HTMLElement).style.transition = 'all 0.3s ease';
+                (chatContainer as HTMLElement).style.transition = 'all 0.1s ease';
               }
 
               // Also adjust the card content
@@ -216,7 +216,7 @@ export default function SimpleGroupChat({
                 (newMessagesButton.parentElement as HTMLElement).style.bottom = '80px';
               }
             }
-          }, 300); // Wait for keyboard to appear
+          }, 50); // Reduced delay for faster response
         }
       };
 
@@ -956,7 +956,7 @@ export default function SimpleGroupChat({
             </>
           )}
         </AnimatePresence>
-        <Card className={`relative flex-1 border-none shadow-none px-0 sm:px-0 md:px-0 overflow-hidden flex flex-col ${isMobile && isKeyboardVisible ? 'pb-0' : 'pb-20'} md:pb-4 h-screen md:h-[calc(100vh-69px)] transition-all duration-200`}>
+        <Card className={`relative flex-1 border-none shadow-none px-0 sm:px-0 md:px-0 overflow-hidden flex flex-col ${isMobile && isKeyboardVisible ? 'pb-0' : 'pb-20'} md:pb-4 h-screen md:h-[calc(100vh-69px)] transition-all duration-100`}>
       <Button
         variant="ghost"
         size="icon"
@@ -1116,13 +1116,13 @@ export default function SimpleGroupChat({
 
         {/* We'll move the button inside the input container */}
 
-        <div className={`sticky bottom-0 bg-background px-0.5 sm:px-2 md:px-4 ${isMobile && isKeyboardVisible ? 'py-0 mb-0' : 'py-2'} w-full transition-all duration-200 relative`}>
+        <div className={`sticky bottom-0 bg-background px-0.5 sm:px-2 md:px-4 ${isMobile && isKeyboardVisible ? 'py-0 mb-0' : 'py-2'} w-full transition-all duration-100 relative`}>
 
           {/* We'll move the button to the flex container with the input and plus button */}
 
           {/* Typing indicator */}
           {Object.keys(typingUsers).length > 0 && (
-            <div className={`flex items-center ${isMobile && isKeyboardVisible ? 'mb-0 text-xs' : 'mb-2 text-sm'} text-muted-foreground w-full md:max-w-3xl transition-all duration-200`}>
+            <div className={`flex items-center ${isMobile && isKeyboardVisible ? 'mb-0 text-xs' : 'mb-2 text-sm'} text-muted-foreground w-full md:max-w-3xl transition-all duration-100`}>
               <span>
                 {Object.keys(typingUsers).length === 1
                   ? `${Object.values(typingUsers)[0].full_name || Object.values(typingUsers)[0].username || 'Someone'} is typing`
@@ -1135,7 +1135,7 @@ export default function SimpleGroupChat({
               </span>
             </div>
           )}
-          <div className={`flex ${isMobile && isKeyboardVisible ? 'gap-1' : 'gap-2'} items-center w-full md:mx-auto md:max-w-3xl transition-all duration-200 relative`}>
+          <div className={`flex ${isMobile && isKeyboardVisible ? 'gap-1' : 'gap-2'} items-center w-full md:mx-auto md:max-w-3xl transition-all duration-100 relative`}>
             {/* New Messages button - centered relative to the input and plus button */}
             <div className="absolute left-0 right-0 top-0 flex justify-center z-[100] pointer-events-none" style={{ transform: 'translateY(-100%)', marginTop: '-1rem' }}>
               <AnimatePresence>
@@ -1201,17 +1201,17 @@ export default function SimpleGroupChat({
                         const bottomNavbar = document.querySelector('[class*="fixed bottom-0 left-0 right-0 z-50"]');
                         if (bottomNavbar) {
                           (bottomNavbar as HTMLElement).style.transform = 'translateY(120%)';
-                          (bottomNavbar as HTMLElement).style.transition = 'transform 0.3s ease';
+                          (bottomNavbar as HTMLElement).style.transition = 'transform 0.1s ease';
                         }
 
                         // Also hide any action buttons that might be above the navbar
                         const actionButton = document.querySelector('.rounded-full.shadow-md.h-14.w-14.bg-primary.-mt-6');
                         if (actionButton) {
                           (actionButton as HTMLElement).style.opacity = '0';
-                          (actionButton as HTMLElement).style.transition = 'opacity 0.3s ease';
+                          (actionButton as HTMLElement).style.transition = 'opacity 0.1s ease';
                         }
                       }
-                    }, 300); // Wait for keyboard to appear
+                    }, 50); // Reduced delay for faster response
                   }
                 }}
                 onBlur={() => {
@@ -1228,7 +1228,7 @@ export default function SimpleGroupChat({
                       if (actionButton) {
                         (actionButton as HTMLElement).style.opacity = '1';
                       }
-                    }, 300); // Small delay to ensure we don't restore too early
+                    }, 50); // Reduced delay for faster response
                   }
                 }}
                 onKeyDown={(e) => {

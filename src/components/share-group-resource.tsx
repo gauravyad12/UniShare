@@ -26,6 +26,7 @@ export default function ShareGroupResource({
   const [resources, setResources] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedResource, setSelectedResource] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
 
   // Fetch group resources initially
   useEffect(() => {
@@ -125,11 +126,12 @@ export default function ShareGroupResource({
       onResourceSelected(resourceId, resourceTitle);
       setSelectedResource(null);
       setSearchTerm("");
+      setOpen(false); // Close the popover when a resource is selected
     }
   };
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
@@ -139,7 +141,7 @@ export default function ShareGroupResource({
           <Plus className="h-5 w-5" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="start">
+      <PopoverContent className="w-80 p-0" align="start" sideOffset={16}>
         <div className="p-4 pb-0">
           <div className="font-medium mb-2">Share Resource</div>
           <div className="text-sm text-muted-foreground mb-4">

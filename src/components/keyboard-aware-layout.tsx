@@ -59,20 +59,20 @@ export default function KeyboardAwareLayout() {
             if (isChatInputFocused) {
               console.log("Chat input is focused - forcing navbar to hide");
               (bottomNavbar as HTMLElement).style.transform = 'translateY(120%)';
-              (bottomNavbar as HTMLElement).style.transition = 'transform 0.3s ease';
+              (bottomNavbar as HTMLElement).style.transition = 'transform 0.1s ease';
 
               // Also hide any action buttons that might be above the navbar
               const actionButton = document.querySelector('.rounded-full.shadow-md.h-14.w-14.bg-primary.-mt-6');
               if (actionButton) {
                 (actionButton as HTMLElement).style.opacity = '0';
-                (actionButton as HTMLElement).style.transition = 'opacity 0.3s ease';
+                (actionButton as HTMLElement).style.transition = 'opacity 0.1s ease';
               }
 
               // Adjust the chat container to reclaim the space
               const chatContainer = document.querySelector('.chat-container');
               if (chatContainer) {
                 (chatContainer as HTMLElement).style.paddingBottom = '0';
-                (chatContainer as HTMLElement).style.transition = 'padding-bottom 0.3s ease';
+                (chatContainer as HTMLElement).style.transition = 'padding-bottom 0.1s ease';
               }
               return;
             }
@@ -80,13 +80,13 @@ export default function KeyboardAwareLayout() {
             if (keyboardHeight > 150) { // Threshold to detect keyboard
               // When keyboard is visible, hide the navbar with extra offset for the plus button
               (bottomNavbar as HTMLElement).style.transform = 'translateY(120%)'; // Increased from 100% to 120%
-              (bottomNavbar as HTMLElement).style.transition = 'transform 0.3s ease';
+              (bottomNavbar as HTMLElement).style.transition = 'transform 0.1s ease';
 
               // Also hide any action buttons that might be above the navbar
               const actionButton = document.querySelector('.rounded-full.shadow-md.h-14.w-14.bg-primary.-mt-6');
               if (actionButton) {
                 (actionButton as HTMLElement).style.opacity = '0';
-                (actionButton as HTMLElement).style.transition = 'opacity 0.3s ease';
+                (actionButton as HTMLElement).style.transition = 'opacity 0.1s ease';
               }
 
               // Adjust the chat container to reclaim the space
@@ -95,7 +95,7 @@ export default function KeyboardAwareLayout() {
                 (chatContainer as HTMLElement).style.paddingBottom = '0';
                 (chatContainer as HTMLElement).style.marginBottom = '0';
                 (chatContainer as HTMLElement).style.bottom = '0';
-                (chatContainer as HTMLElement).style.transition = 'all 0.3s ease';
+                (chatContainer as HTMLElement).style.transition = 'all 0.1s ease';
               }
 
               // Also adjust the card content
@@ -145,17 +145,17 @@ export default function KeyboardAwareLayout() {
               const bottomNavbar = document.querySelector('[class*="fixed bottom-0 left-0 right-0 z-50"]');
               if (bottomNavbar) {
                 (bottomNavbar as HTMLElement).style.transform = 'translateY(120%)';
-                (bottomNavbar as HTMLElement).style.transition = 'transform 0.3s ease';
+                (bottomNavbar as HTMLElement).style.transition = 'transform 0.1s ease';
               }
 
               // Also hide any action buttons that might be above the navbar
               const actionButton = document.querySelector('.rounded-full.shadow-md.h-14.w-14.bg-primary.-mt-6');
               if (actionButton) {
                 (actionButton as HTMLElement).style.opacity = '0';
-                (actionButton as HTMLElement).style.transition = 'opacity 0.3s ease';
+                (actionButton as HTMLElement).style.transition = 'opacity 0.1s ease';
               }
             }
-          }, 300);
+          }, 50);
         };
 
         const handleInputBlur = () => {
