@@ -68,7 +68,9 @@ export default function VerifyInviteClient() {
   useEffect(() => {
     if (codeParam && !autoVerified) {
       // Only process if we have a code and haven't auto-verified yet
-      const codeArray = codeParam.split("").slice(0, 6);
+      // Convert to uppercase for consistency
+      const upperCaseCode = codeParam.toUpperCase();
+      const codeArray = upperCaseCode.split("").slice(0, 6);
 
       // Pad with empty strings if code is shorter than 6 characters
       const paddedCode = [
@@ -80,7 +82,7 @@ export default function VerifyInviteClient() {
 
       // Auto-verify the code after a short delay to allow state to update
       setTimeout(() => {
-        handleVerifyInvite(null, codeParam);
+        handleVerifyInvite(null, upperCaseCode);
         setAutoVerified(true);
       }, 300);
     }
@@ -131,9 +133,21 @@ export default function VerifyInviteClient() {
     setIsLoading(true);
     setError(null);
 
-    const code = manualCode || inviteCode.join("").trim();
+    // Get the code and ensure it's uppercase for consistency
+    let code = manualCode || inviteCode.join("").trim();
+
+    // Convert to uppercase if it's not already
+    code = code.toUpperCase();
+
     if (!code) {
       setError("Invite code is required");
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate that the code only contains letters and numbers
+    if (!/^[A-Z0-9]+$/.test(code)) {
+      setError("Invite code can only contain letters and numbers");
       setIsLoading(false);
       return;
     }
@@ -213,13 +227,14 @@ export default function VerifyInviteClient() {
                     key={index}
                     ref={(el) => (inputRefs.current[index] = el)}
                     type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
+                    inputMode="text"
+                    pattern="[A-Za-z0-9]*"
                     maxLength={1}
                     value={digit}
                     onChange={(e) => {
-                      // Only allow numbers
-                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      // Only allow alphanumeric characters (letters and numbers)
+                      // Convert to uppercase if it's a letter
+                      const value = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
 
                       const newCode = [...inviteCode];
                       newCode[index] = value;

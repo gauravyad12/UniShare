@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { useTheme } from "next-themes";
 import { createClient } from "@/utils/supabase/client";
 import {
@@ -81,14 +81,63 @@ export function ThemeContextProvider({
   const [userTheme, setUserTheme] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Refs for debouncing and tracking theme changes
+  const themeChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const routeChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isThemeChangingRef = useRef(false);
+  const isRouteThemeChangingRef = useRef(false);
+  const lastAppliedThemeRef = useRef<string | null>(null);
+  const lastAppliedRouteRef = useRef<string | null>(null);
+  const themeChangeCountRef = useRef(0);
+  const routeChangeCountRef = useRef(0);
+
+  // Debounced function to apply theme changes
+  const debouncedApplyTheme = (theme: string, color: string, size: number, source: string) => {
+    // Clear any pending timeout
+    if (themeChangeTimeoutRef.current) {
+      clearTimeout(themeChangeTimeoutRef.current);
+    }
+
+    // Increment change count for logging
+    themeChangeCountRef.current += 1;
+    const changeId = themeChangeCountRef.current;
+
+    // Skip if this is the same theme we just applied
+    if (lastAppliedThemeRef.current === theme && !isThemeChangingRef.current) {
+      console.log(`Theme change ${changeId} from ${source} skipped - already applied: ${theme}`);
+      return;
+    }
+
+    console.log(`Theme change ${changeId} from ${source} scheduled: ${theme}`);
+
+    // Set flag to indicate theme is changing
+    isThemeChangingRef.current = true;
+
+    // Debounce theme application
+    themeChangeTimeoutRef.current = setTimeout(() => {
+      console.log(`Theme change ${changeId} from ${source} applying: ${theme}`);
+
+      // Apply theme
+      applyThemeToDocument(theme, color, size);
+
+      // Update last applied theme
+      lastAppliedThemeRef.current = theme;
+
+      // Reset flag
+      isThemeChangingRef.current = false;
+
+      console.log(`Theme change ${changeId} from ${source} complete: ${theme}`);
+    }, 50); // Short delay to batch rapid changes
+  };
+
   // Custom setTheme that preserves user preference
   const setTheme = (newTheme: string) => {
     setUserTheme(newTheme);
     setNextTheme(newTheme);
     saveThemeToStorage(newTheme);
 
-    // Always apply theme to document for immediate effect, regardless of route
-    applyThemeToDocument(newTheme, accentColor, fontSize);
+    // Use debounced theme application
+    debouncedApplyTheme(newTheme, accentColor, fontSize, 'setTheme');
   };
 
   // Check if user is authenticated
@@ -117,8 +166,8 @@ export function ThemeContextProvider({
           const newIsPublic = isPublicRoute(newPath);
           setIsPublic(newIsPublic);
 
-          // Apply appropriate styling based on route type
-          applyThemeBasedOnRoute(newIsPublic);
+          // Apply appropriate styling based on route type using debounced function
+          debouncedApplyThemeBasedOnRoute(newIsPublic, 'pathChange');
         }
       };
 
@@ -140,12 +189,60 @@ export function ThemeContextProvider({
       return () => {
         window.removeEventListener("popstate", updatePath);
         observer.disconnect();
+
+        // Clean up any pending route change timeout
+        if (routeChangeTimeoutRef.current) {
+          clearTimeout(routeChangeTimeoutRef.current);
+          routeChangeTimeoutRef.current = null;
+        }
       };
     }
   }, [currentPath]);
 
-  // Apply theme based on route type
-  const applyThemeBasedOnRoute = (isPublicRoute: boolean) => {
+  // Debounced function to apply theme based on route type
+  const debouncedApplyThemeBasedOnRoute = (isPublicRoute: boolean, source: string) => {
+    // Clear any pending route change timeout
+    if (routeChangeTimeoutRef.current) {
+      clearTimeout(routeChangeTimeoutRef.current);
+    }
+
+    // Increment route change count for logging
+    routeChangeCountRef.current += 1;
+    const changeId = routeChangeCountRef.current;
+
+    // Create a unique identifier for this route state
+    const routeStateId = `${isPublicRoute ? 'public' : 'private'}-${userTheme || nextTheme || 'system'}`;
+
+    // Skip if this is the same route state we just applied
+    if (lastAppliedRouteRef.current === routeStateId && !isRouteThemeChangingRef.current) {
+      console.log(`Route theme change ${changeId} from ${source} skipped - already applied: ${routeStateId}`);
+      return;
+    }
+
+    console.log(`Route theme change ${changeId} from ${source} scheduled: ${routeStateId}`);
+
+    // Set flag to indicate route theme is changing
+    isRouteThemeChangingRef.current = true;
+
+    // Debounce route theme application
+    routeChangeTimeoutRef.current = setTimeout(() => {
+      console.log(`Route theme change ${changeId} from ${source} applying: ${routeStateId}`);
+
+      // Apply theme based on route type
+      applyThemeBasedOnRouteInternal(isPublicRoute);
+
+      // Update last applied route state
+      lastAppliedRouteRef.current = routeStateId;
+
+      // Reset flag
+      isRouteThemeChangingRef.current = false;
+
+      console.log(`Route theme change ${changeId} from ${source} complete: ${routeStateId}`);
+    }, 100); // Slightly longer delay for route changes
+  };
+
+  // Internal function to actually apply theme based on route type
+  const applyThemeBasedOnRouteInternal = (isPublicRoute: boolean) => {
     if (isPublicRoute) {
       // Public routes: reset custom styling but keep theme mode
       // Reset to default styles for public routes
@@ -238,12 +335,13 @@ export function ThemeContextProvider({
               setFontSizeState(settings.font_size);
             }
 
-            // Apply settings immediately after fetching
+            // Apply settings immediately after fetching using debounced function
             if (!isPublic) {
-              applyThemeToDocument(
+              debouncedApplyTheme(
                 settings.theme_preference || "system",
                 settings.color_scheme || "default",
                 settings.font_size || 2,
+                'fetchUserSettings'
               );
             }
           }
@@ -263,13 +361,15 @@ export function ThemeContextProvider({
     if (!isLoading) {
       // Only apply custom styling on dashboard pages
       if (!isPublic && isAuthenticated) {
-        applyThemeToDocument(
+        debouncedApplyTheme(
           userTheme || nextTheme || "system",
           accentColor,
           fontSize,
+          'settingsChangeEffect'
         );
       } else {
-        applyThemeBasedOnRoute(isPublic);
+        // For public routes, use the debounced route-based theme application
+        debouncedApplyThemeBasedOnRoute(isPublic, 'settingsChangeEffect');
       }
     }
   }, [
@@ -285,19 +385,15 @@ export function ThemeContextProvider({
   const setAccentColor = (color: string) => {
     setAccentColorState(color);
 
-    // Always apply accent color for immediate effect, regardless of route
-    applyThemeToDocument(userTheme || nextTheme || "system", color, fontSize);
+    // Use debounced theme application
+    debouncedApplyTheme(userTheme || nextTheme || "system", color, fontSize, 'setAccentColor');
   };
 
   const setFontSize = (size: number) => {
     setFontSizeState(size);
 
-    // Always apply font size for immediate effect, regardless of route
-    applyThemeToDocument(
-      userTheme || nextTheme || "system",
-      accentColor,
-      size,
-    );
+    // Use debounced theme application
+    debouncedApplyTheme(userTheme || nextTheme || "system", accentColor, size, 'setFontSize');
   };
 
   const saveSettings = async () => {
@@ -342,20 +438,30 @@ export function ThemeContextProvider({
         setUserTheme(e.newValue);
         setNextTheme(e.newValue);
 
-        // Always apply theme changes immediately
-        applyThemeToDocument(e.newValue, accentColor, fontSize);
+        // Apply theme changes using debounced function
+        debouncedApplyTheme(e.newValue, accentColor, fontSize, 'storageEvent-theme');
       } else if (e.key === "accent-color" && e.newValue) {
         setAccentColorState(e.newValue);
 
-        // Apply accent color immediately
-        applyThemeToDocument(userTheme || nextTheme || "system", e.newValue, fontSize);
+        // Apply accent color using debounced function
+        debouncedApplyTheme(
+          userTheme || nextTheme || "system",
+          e.newValue,
+          fontSize,
+          'storageEvent-accent'
+        );
       } else if (e.key === "font-size" && e.newValue) {
         const size = parseInt(e.newValue, 10);
         if (!isNaN(size)) {
           setFontSizeState(size);
 
-          // Apply font size immediately
-          applyThemeToDocument(userTheme || nextTheme || "system", accentColor, size);
+          // Apply font size using debounced function
+          debouncedApplyTheme(
+            userTheme || nextTheme || "system",
+            accentColor,
+            size,
+            'storageEvent-fontSize'
+          );
         }
       }
     };
@@ -384,7 +490,21 @@ export function ThemeContextProvider({
       }
     }
 
-    return () => window.removeEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+
+      // Clean up any pending theme change timeout
+      if (themeChangeTimeoutRef.current) {
+        clearTimeout(themeChangeTimeoutRef.current);
+        themeChangeTimeoutRef.current = null;
+      }
+
+      // Clean up any pending route change timeout
+      if (routeChangeTimeoutRef.current) {
+        clearTimeout(routeChangeTimeoutRef.current);
+        routeChangeTimeoutRef.current = null;
+      }
+    };
   }, [
     accentColor,
     fontSize,
@@ -394,6 +514,54 @@ export function ThemeContextProvider({
     nextTheme,
     userTheme,
   ]);
+
+  // Listen for system theme changes
+  useEffect(() => {
+    // Only add listener if theme is set to "system"
+    if ((userTheme || nextTheme) !== "system") return;
+
+    try {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+      // Handler for system theme changes
+      const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+        console.log("System theme changed:", e.matches ? "dark" : "light");
+
+        // Apply the new system theme immediately to prevent flash
+        if (e.matches) {
+          document.documentElement.classList.add("dark");
+          document.documentElement.classList.remove("light");
+        } else {
+          document.documentElement.classList.add("light");
+          document.documentElement.classList.remove("dark");
+        }
+
+        // Re-apply all theme settings to ensure consistency using debounced function
+        debouncedApplyTheme("system", accentColor, fontSize, 'systemThemeChange');
+      };
+
+      // Add listener for system theme changes
+      mediaQuery.addEventListener("change", handleSystemThemeChange);
+
+      return () => {
+        mediaQuery.removeEventListener("change", handleSystemThemeChange);
+
+        // Clean up any pending theme change timeout
+        if (themeChangeTimeoutRef.current) {
+          clearTimeout(themeChangeTimeoutRef.current);
+          themeChangeTimeoutRef.current = null;
+        }
+
+        // Clean up any pending route change timeout
+        if (routeChangeTimeoutRef.current) {
+          clearTimeout(routeChangeTimeoutRef.current);
+          routeChangeTimeoutRef.current = null;
+        }
+      };
+    } catch (error) {
+      console.error("Error setting up system theme listener:", error);
+    }
+  }, [userTheme, nextTheme, accentColor, fontSize]);
 
   return (
     <ThemeContext.Provider

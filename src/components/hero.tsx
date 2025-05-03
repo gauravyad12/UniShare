@@ -69,9 +69,8 @@ export default function Hero() {
           inset: 0,
           overflow: "hidden",
           height: "100%",
+          width: "100%",
           zIndex: 0,
-          contain: "strict",
-          clipPath: "inset(0)",
         }}
         className="particles-wrapper"
       >
