@@ -4,6 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { DashboardClientWrapper } from "@/components/dashboard-client-wrapper";
+import AppilixUserIdentity from "@/components/appilix-user-identity";
 
 export const metadata = {
   title: "UniShare | Dashboard",
@@ -53,6 +54,8 @@ export default async function DashboardLayout({
         {...dataAccentAttr}
         style={styleAttr}
       >
+        {/* Appilix user identity script for push notifications */}
+        <AppilixUserIdentity />
         <DashboardNavbar />
         <main className="flex-1 w-full pb-20 md:pb-0">{children}</main>
         <BottomNavbar />

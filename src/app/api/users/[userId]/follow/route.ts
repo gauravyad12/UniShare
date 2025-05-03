@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
+import { sendNotification } from "@/utils/notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -134,16 +135,16 @@ export async function POST(
 
         // Only insert if no existing notification is found
         if (!existingNotifications || existingNotifications.length === 0) {
-          // Insert notification with actor_id field
-          await client.from("notifications").insert({
+          // Send notification (both in-app and push)
+          await sendNotification({
             user_id: targetUserId,
             title: "New Follower",
             message: `User @${followerUsername} started following you`,
             type: "follow",
             link: `/u/${followerUsername}`,
-            created_at: new Date().toISOString(),
+            actor_id: user.id,
             is_read: false,
-            actor_id: user.id, // Add the follower's ID as the actor_id
+            created_at: new Date().toISOString(),
           });
         }
       } catch (notificationError) {

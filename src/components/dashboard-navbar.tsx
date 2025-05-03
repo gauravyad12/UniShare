@@ -8,6 +8,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "./ui/dropdown-menu";
 import { Button } from "./ui/button";
 import {
@@ -18,6 +20,10 @@ import {
   Settings,
   LogOut,
   UserPlus,
+  Bell,
+  Mail,
+  Database,
+  ShieldAlert,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -31,6 +37,7 @@ export default function DashboardNavbar() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [fullName, setFullName] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -48,7 +55,7 @@ export default function DashboardNavbar() {
 
         const { data: profile } = await supabase
           .from("user_profiles")
-          .select("avatar_url, username, full_name")
+          .select("avatar_url, username, full_name, role")
           .eq("id", user.id)
           .single();
 
@@ -56,6 +63,7 @@ export default function DashboardNavbar() {
           setAvatarUrl(profile.avatar_url);
           setUsername(profile.username);
           setFullName(profile.full_name);
+          setIsAdmin(profile.role === "admin");
         }
       } catch (error) {
         console.error("Error fetching user profile:", error);
@@ -81,6 +89,7 @@ export default function DashboardNavbar() {
             setAvatarUrl(payload.new.avatar_url);
             setUsername(payload.new.username);
             setFullName(payload.new.full_name);
+            setIsAdmin(payload.new.role === "admin");
           }
         },
       )
@@ -199,7 +208,36 @@ export default function DashboardNavbar() {
                   </Link>
                 </DropdownMenuItem>
               )}
-              <div className="px-2 py-1.5 border-t border-border mt-1"></div>
+
+              {isAdmin && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="flex items-center text-muted-foreground">
+                    <ShieldAlert className="h-3.5 w-3.5 mr-1.5" />
+                    Admin
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/admin/push-notifications" className="flex items-center">
+                      <Bell className="h-4 w-4 mr-2" />
+                      Push Notifications
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/admin/email-templates" className="flex items-center">
+                      <Mail className="h-4 w-4 mr-2" />
+                      Email Templates
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard/admin/migrations" className="flex items-center">
+                      <Database className="h-4 w-4 mr-2" />
+                      Database Migrations
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
+
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleSignOut}
                 className="text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center"
