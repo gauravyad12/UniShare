@@ -14,7 +14,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import {
   Bell,
   Moon,
@@ -23,11 +22,9 @@ import {
   Check,
   Loader2,
   CheckCircle,
-  AlertCircle,
   LogOut,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
-import { useTheme } from "next-themes";
 import { useThemeContext } from "@/components/theme-context";
 import {
   AlertDialog,
@@ -40,11 +37,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  applyThemeToDocument,
-  broadcastThemeChange,
-  saveThemeToStorage,
-} from "@/lib/theme-utils";
+import { broadcastThemeChange, saveThemeToStorage } from "@/lib/theme-utils";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -190,7 +183,7 @@ export default function SettingsPage() {
       if (e.key === "theme" && e.newValue) {
         setSettings((prev) => ({
           ...prev,
-          theme_preference: e.newValue,
+          theme_preference: e.newValue || "system",
         }));
         setTheme(e.newValue);
       }
@@ -203,7 +196,7 @@ export default function SettingsPage() {
     if (storedTheme && storedTheme !== theme) {
       setSettings((prev) => ({
         ...prev,
-        theme_preference: storedTheme,
+        theme_preference: storedTheme || "system",
       }));
       setTheme(storedTheme);
     }
@@ -258,8 +251,13 @@ export default function SettingsPage() {
     // Broadcast theme change to other tabs/windows
     broadcastThemeChange(newTheme);
 
-    // Don't save to database automatically - user must click Save Changes
-    // handleSaveSettings('appearance');
+    // Auto-save after a short delay
+    setTimeout(() => {
+      const saveButton = document.getElementById('appearance-save-button');
+      if (saveButton) {
+        (saveButton as HTMLButtonElement).click();
+      }
+    }, 1000);
   };
 
   const handleColorChange = (color: string) => {
@@ -287,7 +285,13 @@ export default function SettingsPage() {
       localStorage.setItem("accent-color", color);
     }
 
-    // Don't save to database automatically - user must click Save Changes
+    // Auto-save after a short delay
+    setTimeout(() => {
+      const saveButton = document.getElementById('appearance-save-button');
+      if (saveButton) {
+        (saveButton as HTMLButtonElement).click();
+      }
+    }, 1000);
   };
 
   const handleFontSizeChange = (size: number) => {
@@ -308,7 +312,8 @@ export default function SettingsPage() {
       // Also apply to dashboard container if it exists
       const dashboardContainer = document.querySelector(".dashboard-styles");
       if (dashboardContainer) {
-        dashboardContainer.style.fontSize = `${rootSize}px`;
+        // Use setAttribute for TypeScript compatibility
+        dashboardContainer.setAttribute('style', `font-size: ${rootSize}px`);
       }
     }
 
@@ -317,7 +322,13 @@ export default function SettingsPage() {
       localStorage.setItem("font-size", size.toString());
     }
 
-    // Don't save to database automatically - user must click Save Changes
+    // Auto-save after a short delay
+    setTimeout(() => {
+      const saveButton = document.getElementById('appearance-save-button');
+      if (saveButton) {
+        (saveButton as HTMLButtonElement).click();
+      }
+    }, 1000);
   };
 
   const handleSaveSettings = async (cardType: 'notifications' | 'appearance' | 'privacy') => {
@@ -490,7 +501,7 @@ export default function SettingsPage() {
         throw new Error(data.error || "Failed to delete account");
       }
     } catch (error) {
-      console.error("Error deleting account:", error.message || "Failed to delete your account. Please try again later.");
+      console.error("Error deleting account:", error instanceof Error ? error.message : "Failed to delete your account. Please try again later.");
       setDeletingAccount(false);
     }
   };
@@ -710,26 +721,27 @@ export default function SettingsPage() {
             </div>
           </CardContent>
           <CardFooter className="flex justify-between items-center">
-            {successStates.appearance && (
+            {successStates.appearance ? (
               <div className="flex items-center text-green-500">
                 <CheckCircle className="h-4 w-4 mr-2" />
                 <span className="hidden md:inline">Settings saved successfully</span>
                 <span className="md:hidden">Success</span>
               </div>
+            ) : (
+              savingStates.appearance ? (
+                <div className="flex items-center text-muted-foreground">
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <span>Saving changes...</span>
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  <span>Changes are saved automatically</span>
+                </div>
+              )
             )}
-            <div className="ml-auto">
-              <Button onClick={() => handleSaveSettings('appearance')} disabled={savingStates.appearance}>
-                {savingStates.appearance ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    <span className="md:inline">Saving...</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="hidden md:inline">Save Changes</span>
-                    <span className="md:hidden">Save</span>
-                  </>
-                )}
+            <div className="hidden">
+              <Button id="appearance-save-button" onClick={() => handleSaveSettings('appearance')} disabled={savingStates.appearance}>
+                Save Changes
               </Button>
             </div>
           </CardFooter>

@@ -32,10 +32,13 @@ export const themeColors = {
   },
 };
 
-// Helper function to apply theme class to document
-function applyThemeClass(theme: string) {
-  if (typeof window === "undefined") return;
-
+// Apply theme to document with proper CSS variables
+export function applyThemeToDocument(
+  theme: string,
+  color: string,
+  fontSize: number,
+) {
+  // Apply theme (dark/light) - directly set the class for dark mode
   if (theme === "dark") {
     document.documentElement.classList.add("dark");
     document.documentElement.classList.remove("light");
@@ -43,37 +46,19 @@ function applyThemeClass(theme: string) {
     document.documentElement.classList.add("light");
     document.documentElement.classList.remove("dark");
   } else if (theme === "system") {
-    // Use a try-catch to handle potential errors with matchMedia
-    try {
-      const isDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      if (isDarkMode) {
-        document.documentElement.classList.add("dark");
-        document.documentElement.classList.remove("light");
-      } else {
-        document.documentElement.classList.add("light");
-        document.documentElement.classList.remove("dark");
-      }
-    } catch (error) {
-      console.error("Error detecting system theme:", error);
-      // Fallback to light theme
+    const isDarkMode = window.matchMedia(
+      "(prefers-color-scheme: dark)",
+    ).matches;
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+      document.documentElement.classList.remove("light");
+    } else {
       document.documentElement.classList.add("light");
       document.documentElement.classList.remove("dark");
     }
   }
-}
 
-// Apply theme to document with proper CSS variables
-export function applyThemeToDocument(
-  theme: string,
-  color: string,
-  fontSize: number,
-) {
-  if (typeof window === "undefined") return;
-
-  // Apply theme class
-  applyThemeClass(theme);
-
-  // Apply accent color (only once)
+  // Apply accent color
   if (color === "default") {
     document.documentElement.removeAttribute("data-accent");
   } else {
@@ -83,6 +68,16 @@ export function applyThemeToDocument(
   // Apply font size to document root for all pages
   const rootSize = 16 + (fontSize - 2) * 1; // Base size is 16px, each step changes by 1px
   document.documentElement.style.fontSize = `${rootSize}px`;
+
+  // Apply the color to CSS variables
+  const isDark = document.documentElement.classList.contains("dark");
+
+  // Apply accent color to document root for data-accent attribute
+  if (color === "default") {
+    document.documentElement.removeAttribute("data-accent");
+  } else {
+    document.documentElement.setAttribute("data-accent", color);
+  }
 
   // Find the dashboard container
   const dashboardContainer = document.querySelector(".dashboard-styles");
@@ -106,7 +101,24 @@ export function saveThemeToStorage(theme: string) {
   localStorage.setItem("theme", theme);
 
   // Also update the HTML class immediately for consistency
-  applyThemeClass(theme);
+  if (theme === "dark") {
+    document.documentElement.classList.add("dark");
+    document.documentElement.classList.remove("light");
+  } else if (theme === "light") {
+    document.documentElement.classList.add("light");
+    document.documentElement.classList.remove("dark");
+  } else if (theme === "system") {
+    const isDarkMode = window.matchMedia(
+      "(prefers-color-scheme: dark)",
+    ).matches;
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+      document.documentElement.classList.remove("light");
+    } else {
+      document.documentElement.classList.add("light");
+      document.documentElement.classList.remove("dark");
+    }
+  }
 }
 
 // Broadcast theme change to other tabs/windows

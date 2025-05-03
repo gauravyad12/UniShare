@@ -26,16 +26,6 @@ export async function POST(request: NextRequest) {
       font_size,
     } = formData;
 
-    console.log("Received settings update:", {
-      email_notifications,
-      study_group_notifications,
-      resource_notifications,
-      profile_visibility,
-      theme_preference,
-      color_scheme,
-      font_size,
-    });
-
     // Check if user_settings record exists for this user
     const { data: existingSettings, error: checkError } = await supabase
       .from("user_settings")
@@ -99,8 +89,7 @@ export async function POST(request: NextRequest) {
         .eq("user_id", user.id);
     }
 
-    console.log('Executing update method with profile_visibility:', profile_visibility);
-    const { data, error } = await updateMethod;
+    const { error } = await updateMethod;
 
     if (error) {
       console.error("Error updating settings:", error);
@@ -114,7 +103,6 @@ export async function POST(request: NextRequest) {
     // to avoid rate limiting issues and to only update when the user
     // explicitly clicks the Save Settings button
 
-    console.log('Settings updated successfully:', { profile_visibility, data });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Unexpected error:", error);
