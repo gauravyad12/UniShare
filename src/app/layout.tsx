@@ -4,6 +4,8 @@ import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeContextProvider } from "@/components/theme-context";
+import AppilixRootIdentity from "@/components/appilix-root-identity";
+import AppilixHeadScript from "@/components/appilix-head-script";
 
 import { NavigationEvents } from "@/components/navigation-events";
 import GlobalLoadingSpinner from "@/components/global-loading-spinner";
@@ -99,6 +101,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <AppilixHeadScript />
       </head>
 
       <Script src="/sw-register.js" strategy="afterInteractive" />
@@ -110,6 +113,7 @@ export default function RootLayout({
             <GlobalStylesProvider />
             <GlobalLoadingSpinner />
             <KeyboardAwareLayout />
+            <AppilixRootIdentity />
             {children}
             <NavigationEvents />
             <MobileAwareToaster />

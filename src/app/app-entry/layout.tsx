@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import AppilixEntryIdentity from "@/components/appilix-entry-identity";
 
 export const metadata: Metadata = {
   title: "UniShare App - Get Started",
@@ -24,6 +25,8 @@ export default async function AppEntryLayout({
 
   return (
     <div className="app-entry-layout">
+      {/* Add Appilix identity for push notifications */}
+      {user && <AppilixEntryIdentity />}
       {children}
     </div>
   );
