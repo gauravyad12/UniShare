@@ -838,13 +838,14 @@ export default function ResourceView({
             )}
 
             {resource.external_link && (
-              <div className="flex items-center">
-                <ExternalLink className="h-4 w-4 mr-2" />
+              <div className="flex items-center w-full overflow-hidden">
+                <ExternalLink className="h-4 w-4 mr-2 flex-shrink-0" />
                 <a
                   href={resource.external_link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
+                  className="text-blue-600 hover:underline truncate"
+                  title={resource.external_link}
                 >
                   {resource.external_link}
                 </a>
