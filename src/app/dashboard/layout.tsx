@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { DashboardClientWrapper } from "@/components/dashboard-client-wrapper";
 import AppilixUserIdentity from "@/components/appilix-user-identity";
+import AppilixUrlIdentity from "@/components/appilix-url-identity";
 
 export const metadata = {
   title: "UniShare | Dashboard",
@@ -56,6 +57,8 @@ export default async function DashboardLayout({
       >
         {/* Appilix user identity script for push notifications */}
         <AppilixUserIdentity />
+        {/* Appilix user identity from URL parameters */}
+        <AppilixUrlIdentity />
         <DashboardNavbar />
         <main className="flex-1 w-full pb-20 md:pb-0">{children}</main>
         <BottomNavbar />

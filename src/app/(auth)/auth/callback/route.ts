@@ -121,6 +121,15 @@ export async function GET(request: Request) {
   }
 
   // URL to redirect to after sign in process completes
-  const redirectTo = redirect_to || "/dashboard";
+  let redirectTo = redirect_to || "/dashboard";
+
+  // Add Appilix user identity parameter if redirecting to dashboard
+  if (redirectTo.startsWith("/dashboard") && data?.user?.email) {
+    // Add the parameter to the URL
+    const redirectUrl = new URL(redirectTo, requestUrl.origin);
+    redirectUrl.searchParams.set("appilix_push_notification_user_identity", data.user.email);
+    return NextResponse.redirect(redirectUrl);
+  }
+
   return NextResponse.redirect(new URL(redirectTo, requestUrl.origin));
 }

@@ -402,7 +402,8 @@ export async function signInAction(formData: FormData) {
     return encodedRedirect("error", "/sign-in", error.message);
   }
 
-  return redirect("/dashboard");
+  // Add Appilix user identity parameter to the dashboard URL
+  return redirect(`/dashboard?appilix_push_notification_user_identity=${encodeURIComponent(email)}`);
 }
 
 export async function forgotPasswordAction(formData: FormData) {
