@@ -2,6 +2,7 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
 // Helper function to encode redirect with message
 function encodedRedirect(
@@ -402,8 +403,18 @@ export async function signInAction(formData: FormData) {
     return encodedRedirect("error", "/sign-in", error.message);
   }
 
-  // Add Appilix user identity parameter to the dashboard URL
-  return redirect(`/dashboard?appilix_push_notification_user_identity=${encodeURIComponent(email)}`);
+  // Only add Appilix user identity parameter for mobile devices or Appilix app
+  // We'll detect mobile/app on the server side based on user agent
+  const userAgent = headers().get('user-agent') || '';
+  const isMobileOrApp = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Appilix/i.test(userAgent);
+
+  if (isMobileOrApp) {
+    // Add Appilix user identity parameter to the dashboard URL for mobile devices or Appilix app
+    return redirect(`/dashboard?appilix_push_notification_user_identity=${encodeURIComponent(email)}`);
+  } else {
+    // Regular redirect for desktop devices
+    return redirect('/dashboard');
+  }
 }
 
 export async function forgotPasswordAction(formData: FormData) {
