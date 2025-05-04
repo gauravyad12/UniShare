@@ -2,10 +2,11 @@ import DashboardNavbar from "@/components/dashboard-navbar";
 import BottomNavbar from "@/components/bottom-navbar";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import { DashboardClientWrapper } from "@/components/dashboard-client-wrapper";
 import AppilixUserIdentity from "@/components/appilix-user-identity";
 import AppilixUrlIdentity from "@/components/appilix-url-identity";
+import AppilixCookieIdentity from "@/components/appilix-cookie-identity";
+import AppilixCookieScript from "@/components/appilix-cookie-script";
 
 export const metadata = {
   title: "UniShare | Dashboard",
@@ -59,6 +60,10 @@ export default async function DashboardLayout({
         <AppilixUserIdentity />
         {/* Appilix user identity from URL parameters */}
         <AppilixUrlIdentity />
+        {/* Appilix user identity from cookies */}
+        <AppilixCookieIdentity />
+        {/* Script to read cookie and set Appilix identity */}
+        <AppilixCookieScript />
         <DashboardNavbar />
         <main className="flex-1 w-full pb-20 md:pb-0">{children}</main>
         <BottomNavbar />
