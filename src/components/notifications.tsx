@@ -11,7 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/utils/supabase/client";
 import { formatDistanceToNow } from "date-fns";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  NotificationTabs,
+  NotificationTabsContent,
+  NotificationTabsList,
+  NotificationTabsTrigger
+} from "@/components/ui/notification-tabs";
 
 type Notification = {
   id: string;
@@ -155,15 +160,15 @@ export default function Notifications() {
           </div>
         </div>
 
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="unread">
+        <NotificationTabs defaultValue="all" className="w-full">
+          <NotificationTabsList className="grid w-full grid-cols-2">
+            <NotificationTabsTrigger value="all">All</NotificationTabsTrigger>
+            <NotificationTabsTrigger value="unread">
               Unread {unreadCount > 0 && `(${unreadCount})`}
-            </TabsTrigger>
-          </TabsList>
+            </NotificationTabsTrigger>
+          </NotificationTabsList>
 
-          <TabsContent value="all" className="max-h-[350px] overflow-y-auto">
+          <NotificationTabsContent value="all" className="max-h-[350px] overflow-y-auto">
             {notifications.length > 0 ? (
               <div className="divide-y">
                 {notifications.map((notification) => (
@@ -198,9 +203,9 @@ export default function Notifications() {
                 <p>No notifications</p>
               </div>
             )}
-          </TabsContent>
+          </NotificationTabsContent>
 
-          <TabsContent value="unread" className="max-h-[350px] overflow-y-auto">
+          <NotificationTabsContent value="unread" className="max-h-[350px] overflow-y-auto">
             {notifications.filter((n) => !n.is_read).length > 0 ? (
               <div className="divide-y">
                 {notifications
@@ -236,8 +241,8 @@ export default function Notifications() {
                 <p>No unread notifications</p>
               </div>
             )}
-          </TabsContent>
-        </Tabs>
+          </NotificationTabsContent>
+        </NotificationTabs>
       </PopoverContent>
     </Popover>
   );

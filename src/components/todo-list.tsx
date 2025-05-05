@@ -190,7 +190,7 @@ export default function TodoList() {
             Active ({activeTodosCount})
           </TabsTrigger>
           <TabsTrigger value="completed">
-            Completed ({completedTodosCount})
+            Done ({completedTodosCount})
           </TabsTrigger>
         </TabsList>
 
@@ -257,7 +257,7 @@ export default function TodoList() {
                   className="flex items-center gap-1"
                 >
                   <CheckCheck className="h-4 w-4" />
-                  Clear completed
+                  Clear done
                 </Button>
               </div>
               <div className="space-y-2">
@@ -274,7 +274,7 @@ export default function TodoList() {
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              No completed tasks yet.
+              No done tasks yet.
             </div>
           )}
         </TabsContent>

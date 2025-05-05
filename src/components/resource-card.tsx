@@ -391,7 +391,7 @@ export default function ResourceCard({
         </div>
 
         <div className="flex flex-col h-full">
-          <p className="text-white/60 font-medium line-clamp-2 mt-3">{resource.description}</p>
+          <p className="text-foreground/70 font-medium line-clamp-2 mt-3">{resource.description}</p>
 
           <div className="flex flex-wrap gap-1 mt-3">
             {resource.tags?.map((tag, index) => (

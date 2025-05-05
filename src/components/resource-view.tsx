@@ -828,7 +828,7 @@ export default function ResourceView({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <p className="text-white/60 font-medium">{resource.description}</p>
+            <p className="text-foreground/70 font-medium">{resource.description}</p>
 
             {resource.professor && (
               <div>

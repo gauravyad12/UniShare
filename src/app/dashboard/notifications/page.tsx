@@ -6,7 +6,12 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  NotificationTabs,
+  NotificationTabsContent,
+  NotificationTabsList,
+  NotificationTabsTrigger
+} from "@/components/ui/notification-tabs";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -31,7 +36,7 @@ export default function NotificationsPage() {
   useEffect(() => {
     const fetchNotifications = async () => {
       setIsLoading(true);
-      
+
       // Get the current user
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) {
@@ -51,12 +56,12 @@ export default function NotificationsPage() {
         setNotifications(data);
         setUnreadCount(data.filter((n) => !n.is_read).length);
       }
-      
+
       setIsLoading(false);
     };
 
     fetchNotifications();
-    
+
     // Set up realtime subscription for new notifications
     const channel = supabase
       .channel("notifications-page-channel")
@@ -124,17 +129,17 @@ export default function NotificationsPage() {
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="flex items-center mb-6">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="mr-2" 
+        <Button
+          variant="ghost"
+          size="icon"
+          className="mr-2"
           onClick={() => router.back()}
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="text-2xl font-bold">Notifications</h1>
       </div>
-      
+
       <div className="bg-card rounded-lg border shadow-sm">
         <div className="p-4 border-b">
           <div className="flex justify-between items-center">
@@ -159,15 +164,15 @@ export default function NotificationsPage() {
           </div>
         </div>
 
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="unread">
+        <NotificationTabs defaultValue="all" className="w-full">
+          <NotificationTabsList className="grid w-full grid-cols-2">
+            <NotificationTabsTrigger value="all">All</NotificationTabsTrigger>
+            <NotificationTabsTrigger value="unread">
               Unread {unreadCount > 0 && `(${unreadCount})`}
-            </TabsTrigger>
-          </TabsList>
+            </NotificationTabsTrigger>
+          </NotificationTabsList>
 
-          <TabsContent value="all">
+          <NotificationTabsContent value="all">
             {isLoading ? (
               <div className="p-8 text-center">
                 <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
@@ -207,9 +212,9 @@ export default function NotificationsPage() {
                 <p>No notifications</p>
               </div>
             )}
-          </TabsContent>
+          </NotificationTabsContent>
 
-          <TabsContent value="unread">
+          <NotificationTabsContent value="unread">
             {isLoading ? (
               <div className="p-8 text-center">
                 <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
@@ -250,8 +255,8 @@ export default function NotificationsPage() {
                 <p>No unread notifications</p>
               </div>
             )}
-          </TabsContent>
-        </Tabs>
+          </NotificationTabsContent>
+        </NotificationTabs>
       </div>
     </div>
   );

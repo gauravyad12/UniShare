@@ -615,9 +615,9 @@
       [role="alertdialog"] [data-radix-collection-item]:hover,
       [role="alertdialog"] [data-radix-collection-item]:focus,
       [role="alertdialog"] [data-radix-collection-item]:active,
-      button[data-state]:hover,
-      button[data-state]:focus,
-      button[data-state]:active {
+      button[data-state]:not([role="tab"]):hover,
+      button[data-state]:not([role="tab"]):focus,
+      button[data-state]:not([role="tab"]):active {
         background-color: transparent !important;
         outline: none !important;
         box-shadow: none !important;

@@ -74,11 +74,11 @@ export default function TodoItem({
       "flex items-center gap-2 p-3 rounded-lg border transition-colors",
       todo.is_completed ? "bg-muted/50 border-muted" : "bg-card border-border hover:border-primary/20"
     )}>
-      <div className="flex items-center self-center">
+      <div className="flex items-center pt-0.5">
         <Checkbox
           checked={todo.is_completed}
           onCheckedChange={handleToggleComplete}
-          className="translate-y-[1px]"
+          className="translate-y-[-0.5px]"
         />
       </div>
       <div className="flex-1 min-w-0">
@@ -98,9 +98,9 @@ export default function TodoItem({
             </Button>
           </div>
         ) : (
-          <div className="flex flex-col justify-center">
+          <div className="flex flex-col">
             <p className={cn(
-              "text-sm break-words leading-normal py-0.5",
+              "text-sm break-words leading-normal",
               todo.is_completed && "line-through text-muted-foreground"
             )}>
               {todo.content}
