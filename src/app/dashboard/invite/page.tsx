@@ -51,6 +51,7 @@ export default function InvitePage() {
   const [inviteUsage, setInviteUsage] = useState({ current: 0, max: 5 });
   const [userProfile, setUserProfile] = useState<any>(null);
   const [emailInput, setEmailInput] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [sentInvitations, setSentInvitations] = useState<any[]>([]);
   const [verificationStatus, setVerificationStatus] = useState({
     isVerified: false,
@@ -239,10 +240,39 @@ export default function InvitePage() {
   };
 
   const sendInviteEmail = async () => {
-    if (!emailInput || !inviteCode) return;
+    // Email validation
+    if (!emailInput) {
+      setEmailError("Email is required");
+      return;
+    }
+
+    // Basic email validation regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailInput)) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
+
+    // University email validation (optional)
+    const universityDomains = ['.edu', '.ac.uk', '.edu.au', '.ac.nz', '.edu.sg'];
+    const isUniversityEmail = universityDomains.some(domain => emailInput.toLowerCase().endsWith(domain));
+
+    if (!isUniversityEmail) {
+      // Show warning but allow to proceed
+      const confirmSend = window.confirm(
+        "This doesn't appear to be a university email address. UniShare is designed for university students. Are you sure you want to send an invitation to this email?"
+      );
+
+      if (!confirmSend) {
+        return;
+      }
+    }
+
+    if (!inviteCode) return;
 
     try {
       setSending(true);
+      setEmailError("");
 
       const response = await fetch("/api/invite/send-email", {
         method: "POST",
@@ -259,6 +289,10 @@ export default function InvitePage() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.error === "Email already invited") {
+          setEmailError("This email has already been invited");
+          return;
+        }
         throw new Error(data.error || "Failed to send invitation email");
       }
 
@@ -272,6 +306,7 @@ export default function InvitePage() {
       await fetchSentInvitations();
     } catch (error) {
       console.error("Error sending invitation email:", error.message || "Failed to send invitation email");
+      setEmailError("Failed to send invitation. Please try again.");
     } finally {
       setSending(false);
     }
@@ -495,7 +530,7 @@ export default function InvitePage() {
             </CardContent>
             {inviteCode && (
               <CardFooter className="grid grid-cols-3 gap-2 max-[970px]:grid-cols-1">
-                <div className="col-span-2 grid grid-cols-2 gap-2 max-[970px]:grid-cols-2">
+                <div className="col-span-2 grid grid-cols-2 gap-2 max-[970px]:col-span-1">
                   <Button
                     variant="outline"
                     onClick={generateInviteCode}
@@ -531,7 +566,7 @@ export default function InvitePage() {
                 </div>
                 <Button
                   onClick={shareInvite}
-                  className="w-full"
+                  className="w-full max-[970px]:col-span-1"
                   disabled={maxInviteCodesReached || verificationStatus.hasReachedMaxInvites}
                   title={maxInviteCodesReached
                     ? "Maximum limit of " + MAX_INVITE_CODES + " invite codes reached"
@@ -548,14 +583,21 @@ export default function InvitePage() {
 
           {/* Email Invitation Dialog */}
           <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
-            <DialogContent>
+            <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
               <DialogHeader>
                 <DialogTitle>Send Invitation Email</DialogTitle>
                 <DialogDescription>
                   Send an invitation email to a friend with your invite code.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
+              <form
+                id="invite-email-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  sendInviteEmail();
+                }}
+                className="space-y-4 py-4"
+              >
                 <div className="space-y-2">
                   <Label htmlFor="email">Friend's Email</Label>
                   <Input
@@ -563,8 +605,17 @@ export default function InvitePage() {
                     placeholder="friend@university.edu"
                     type="email"
                     value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
+                    onChange={(e) => {
+                      setEmailInput(e.target.value);
+                      setEmailError("");
+                    }}
+                    autoFocus={false}
+                    className={emailError ? "border-red-500" : ""}
+                    required
                   />
+                  {emailError && (
+                    <p className="text-red-500 text-sm mt-1">{emailError}</p>
+                  )}
                 </div>
                 <div className="bg-muted p-3 rounded-md text-sm">
                   <p>
@@ -572,24 +623,30 @@ export default function InvitePage() {
                     up.
                   </p>
                 </div>
-              </div>
-              <DialogFooter>
+              </form>
+              <DialogFooter className="flex-col space-y-2 sm:space-y-0">
                 <Button
+                  type="button"
                   variant="outline"
                   onClick={() => setIsEmailDialogOpen(false)}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
                 <Button
-                  onClick={sendInviteEmail}
-                  disabled={sending || !emailInput || maxInviteCodesReached || verificationStatus.hasReachedMaxInvites}
-                  title={maxInviteCodesReached
+                  type="submit"
+                  form="invite-email-form"
+                  disabled={!emailInput.trim() || sending || maxInviteCodesReached || verificationStatus.hasReachedMaxInvites}
+                  title={!emailInput.trim()
+                    ? "Please enter an email address"
+                    : maxInviteCodesReached
                     ? "Maximum limit of " + MAX_INVITE_CODES + " invite codes reached"
                     : verificationStatus.hasReachedMaxInvites
                     ? "You have already reached the maximum limit of 5 successful invites"
-                    : sending || !emailInput
-                    ? "Please enter a valid email"
+                    : sending
+                    ? "Sending invitation..."
                     : ""}
+                  className="w-full sm:w-auto"
                 >
                   {sending ? (
                     <>
@@ -679,9 +736,9 @@ export default function InvitePage() {
                         key={invitation.id}
                         className="border rounded-lg p-4"
                       >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium">
+                        <div className="flex justify-between items-start w-full">
+                          <div className="min-w-0 flex-1 pr-2">
+                            <p className="font-medium truncate" title={invitation.sent_to_email}>
                               {invitation.sent_to_email}
                             </p>
                             <p className="text-sm text-muted-foreground">
@@ -691,7 +748,7 @@ export default function InvitePage() {
                               ).toLocaleDateString()}
                             </p>
                           </div>
-                          <div>
+                          <div className="flex-shrink-0">
                             {invitation.status === "used" ? (
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                 <CheckCircle2 className="mr-1 h-3 w-3" />
@@ -755,9 +812,9 @@ export default function InvitePage() {
                           key={invitation.id}
                           className="border rounded-lg p-4"
                         >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-medium">
+                          <div className="flex justify-between items-start w-full">
+                            <div className="min-w-0 flex-1 pr-2">
+                              <p className="font-medium truncate" title={invitation.sent_to_email}>
                                 {invitation.sent_to_email}
                               </p>
                               <p className="text-sm text-muted-foreground">
@@ -767,7 +824,7 @@ export default function InvitePage() {
                                 ).toLocaleDateString()}
                               </p>
                             </div>
-                            <div>
+                            <div className="flex-shrink-0">
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                 <Clock className="mr-1 h-3 w-3" />
                                 Pending

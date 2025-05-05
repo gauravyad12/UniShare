@@ -593,7 +593,7 @@
       display: none !important;
     }
 
-    /* Remove outlines and background highlight from X buttons in mobile view */
+    /* Remove outlines and background highlight from buttons in dialogs */
     @media (max-width: 768px) {
       [role="dialog"] button[aria-label="Close"],
       [role="dialog"] [data-radix-collection-item] {
@@ -601,7 +601,7 @@
         outline: none !important;
         box-shadow: none !important;
         border: none !important;
-      }
+    }
 
       [role="dialog"] button[aria-label="Close"]:hover,
       [role="dialog"] button[aria-label="Close"]:focus,
@@ -615,24 +615,48 @@
       [role="alertdialog"] [data-radix-collection-item]:hover,
       [role="alertdialog"] [data-radix-collection-item]:focus,
       [role="alertdialog"] [data-radix-collection-item]:active,
-      button[data-state]:not([role="tab"]):hover,
-      button[data-state]:not([role="tab"]):focus,
-      button[data-state]:not([role="tab"]):active {
-        background-color: transparent !important;
+      button[data-state]:not([role="tab"]):not([role="switch"]):hover,
+      button[data-state]:not([role="tab"]):not([role="switch"]):focus,
+      button[data-state]:not([role="tab"]):not([role="switch"]):active {
+        /*background-color: transparent !important; */
         outline: none !important;
         box-shadow: none !important;
+      }
+
+      /* Fix for toggle switch hover issue */
+      [role="switch"]:hover,
+      [role="switch"]:focus,
+      [role="switch"]:active {
+        background-color: inherit !important;
+      }
+
+      [role="switch"][data-state="checked"]:hover,
+      [role="switch"][data-state="checked"]:focus,
+      [role="switch"][data-state="checked"]:active {
+        background-color: hsl(var(--primary)) !important;
+      }
+
+      [role="switch"][data-state="unchecked"]:hover,
+      [role="switch"][data-state="unchecked"]:focus,
+      [role="switch"][data-state="unchecked"]:active {
+        background-color: hsl(var(--input)) !important;
       }
     }
 
     /* Custom animations for all types of dialogs (except share resource popover) */
-    [role="dialog"][data-state="open"]:not(.share-resource-popover),
-    [role="alertdialog"][data-state="open"] {
-      animation: mobile-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
-    }
+    @media (max-width: 768px) {
+      [role="dialog"][data-state="open"]:not(.share-resource-popover),
+      [role="alertdialog"][data-state="open"] {
+        animation: mobile-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+      }
 
-    [role="dialog"][data-state="closed"]:not(.share-resource-popover),
-    [role="alertdialog"][data-state="closed"] {
-      animation: mobile-slide-down 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+      [role="dialog"][data-state="closed"]:not(.share-resource-popover),
+      [role="alertdialog"][data-state="closed"] {
+        animation: mobile-slide-down 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+        /* Ensure the element stays visible during the entire animation */
+        opacity: 1 !important;
+        visibility: visible !important;
+      }
     }
 
     /* Preserve desktop animations for share resource popover */
@@ -666,11 +690,16 @@
   }
 
   @keyframes mobile-slide-down {
-    from {
+    0% {
       transform: translateY(0);
+      opacity: 1;
     }
-    to {
+    90% {
+      opacity: 1;
+    }
+    100% {
       transform: translateY(100%);
+      opacity: 0;
     }
   }
 

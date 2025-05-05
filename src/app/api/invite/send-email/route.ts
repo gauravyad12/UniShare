@@ -95,25 +95,58 @@ export async function POST(request: NextRequest) {
       inviteUrl: inviteUrl
     };
 
-    // Render the email template
-    const renderedEmail = await renderEmailTemplate("invite_email", templateVariables);
-
-    if (!renderedEmail) {
-      console.error("Error rendering email template");
-      return NextResponse.json(
-        { error: "Failed to render email template" },
-        { status: 500 }
-      );
-    }
-
-    // Send email using Resend
+    // Render the email template and send it
     try {
+      const renderedEmail = await renderEmailTemplate("invite_email", templateVariables);
+
+      if (!renderedEmail) {
+        console.error("Error rendering email template: Template not found or rendering failed");
+        return NextResponse.json(
+          { error: "Failed to render email template" },
+          { status: 500 }
+        );
+      }
+
+      // Log the rendered email for debugging
+      console.log("Rendered email:", {
+        subject: renderedEmail.subject,
+        htmlLength: renderedEmail.html?.length || 0,
+        textLength: renderedEmail.text?.length || 0,
+        subjectContent: renderedEmail.subject
+      });
+
+      // Process the subject to ensure variables are replaced
+      let emailSubject = renderedEmail.subject;
+      if (emailSubject && emailSubject.includes('{{')) {
+        // If variables weren't replaced in the template, do it manually here
+        emailSubject = emailSubject
+          .replace(/{{senderName}}/g, displayName)
+          .replace(/{{universityName}}/g, universityName)
+          .replace(/{{inviteCode}}/g, inviteCode)
+          .replace(/{{inviteUrl}}/g, inviteUrl);
+      }
+
+      // Ensure we have either html or text content
+      const emailHtml = renderedEmail.html || `<p>${renderedEmail.text || 'You have been invited to join UniShare!'}</p>`;
+      const emailText = renderedEmail.text || renderedEmail.html?.replace(/<[^>]*>/g, '') || 'You have been invited to join UniShare!';
+
+      // Final subject fallback
+      const finalSubject = emailSubject || `${displayName} has invited you to join UniShare!`;
+
+      console.log("Final email details:", {
+        subject: finalSubject,
+        to: email,
+        htmlLength: emailHtml.length,
+        textLength: emailText.length
+      });
+
+      // Send email using Resend
       const { data: emailData, error: resendError } = await resend.emails.send({
         from: "UniShare <invites@unishare.app>", // Update with your verified domain
         to: [email],
-        subject: renderedEmail.subject,
-        html: renderedEmail.html,
-        text: renderedEmail.text
+        subject: finalSubject,
+        html: emailHtml,
+        text: emailText
       });
 
       if (resendError) {

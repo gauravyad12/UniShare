@@ -467,12 +467,14 @@ export default function SimpleStudyGroupView({
                   <MessageSquare className="mr-2 h-4 w-4" />
                   Group Chat
                 </Button>
-                <ShareStudyGroupButton
-                  groupId={group.id}
-                  groupName={group.name}
-                  groupDescription={group.description}
-                  className="relative"
-                />
+                {!group.is_private && (
+                  <ShareStudyGroupButton
+                    groupId={group.id}
+                    groupName={group.name}
+                    groupDescription={group.description}
+                    className="relative"
+                  />
+                )}
                 {isMember && !isCreator && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

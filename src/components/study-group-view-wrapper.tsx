@@ -219,12 +219,14 @@ export default function StudyGroupViewWrapper({
                     )}
                   </Link>
                 </Button>
-                <ShareStudyGroupButton
-                  groupId={group.id}
-                  groupName={group.name}
-                  groupDescription={group.description}
-                  className="relative"
-                />
+                {!group.is_private && (
+                  <ShareStudyGroupButton
+                    groupId={group.id}
+                    groupName={group.name}
+                    groupDescription={group.description}
+                    className="relative"
+                  />
+                )}
               </>
             ) : (
               <Button onClick={handleJoinGroup}>

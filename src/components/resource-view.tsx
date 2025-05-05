@@ -1136,20 +1136,23 @@ export default function ResourceView({
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Delete Resource</DialogTitle>
+        <DialogContent className="sm:max-w-[425px] p-6">
+          <DialogHeader className="space-y-2 text-center sm:text-left">
+            <DialogTitle className="text-lg font-semibold">Delete Resource</DialogTitle>
           </DialogHeader>
-          <div className="py-4">
-            <p>
-              Are you sure you want to delete this resource? This action cannot
-              be undone.
+          <div className="py-4 mb-4">
+            <p className="text-sm text-muted-foreground text-center sm:text-left">
+              This action cannot be undone. This will permanently delete the resource
+              and all of its data.
             </p>
           </div>
-          <div className="flex justify-end space-x-2">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 space-y-1 space-y-reverse sm:space-y-0">
             <Button
               variant="outline"
               onClick={() => setShowDeleteDialog(false)}
+              disabled={isLoading}
+              className="sm:mt-0 mt-1 h-8 sm:h-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
+              tabIndex={-1}
             >
               Cancel
             </Button>
@@ -1157,7 +1160,7 @@ export default function ResourceView({
               variant="destructive"
               onClick={handleDelete}
               disabled={isLoading}
-              className="hover:bg-red-600 dark:hover:bg-red-700"
+              className="hover:bg-red-600 dark:hover:bg-red-700 h-8 sm:h-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
             >
               {isLoading ? "Deleting..." : "Delete"}
             </Button>
