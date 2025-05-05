@@ -133,13 +133,13 @@ export default function MobileDateTimePicker({
 
       {/* Date picker dropdown */}
       {showDatePicker && (
-        <div className="border rounded-md p-2 bg-background shadow-md space-y-1 mt-1 animate-in fade-in-0 zoom-in-95">
+        <div className="border rounded-md p-2 bg-background shadow-md space-y-1 mt-1 animate-in fade-in-0 zoom-in-95 max-h-48 overflow-y-auto">
           {generateDateOptions().map((option, index) => (
             <Button
               key={index}
               type="button"
               variant="ghost"
-              className="w-full justify-start"
+              className="w-full justify-start h-8 text-sm"
               onClick={() => {
                 const newDate = new Date(option.date);
                 newDate.setHours(
@@ -161,14 +161,14 @@ export default function MobileDateTimePicker({
 
       {/* Time picker dropdown */}
       {showTimePicker && (
-        <div className="border rounded-md p-2 bg-background shadow-md mt-1 animate-in fade-in-0 zoom-in-95 max-h-60 overflow-y-auto">
+        <div className="border rounded-md p-2 bg-background shadow-md mt-1 animate-in fade-in-0 zoom-in-95 max-h-48 overflow-y-auto">
           <div className="grid grid-cols-2 gap-1">
             {generateTimeOptions().map((option, index) => (
               <Button
                 key={index}
                 type="button"
                 variant="ghost"
-                className="justify-center"
+                className="justify-center h-8 text-sm"
                 onClick={() => {
                   handleTimeChange(option.hour, option.minute);
                 }}

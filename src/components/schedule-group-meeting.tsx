@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Clock, MapPin, Link as LinkIcon, Plus, Loader2 } from "lucide-react";
+import { Calendar, Clock, MapPin, Link as LinkIcon, Plus, Loader2, X } from "lucide-react";
 import { format } from "date-fns";
 import MobileDateTimePicker from "./mobile-date-time-picker";
 
@@ -250,6 +250,7 @@ export default function ScheduleGroupMeeting({
         }
       }}
       modal={true}
+      className="schedule-meeting-dialog"
     >
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
@@ -258,7 +259,7 @@ export default function ScheduleGroupMeeting({
         </Button>
       </DialogTrigger>
       <DialogContent
-        className={`${isMobile ? 'w-full h-[100dvh] max-h-[100dvh] p-4 rounded-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95' : 'sm:max-w-[500px]'}`}
+        className={`${isMobile ? 'w-full h-[100dvh] max-h-[100dvh] p-0 rounded-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95' : 'sm:max-w-[500px]'}`}
         style={isMobile ? {
           position: 'fixed',
           top: 0,
@@ -266,17 +267,31 @@ export default function ScheduleGroupMeeting({
           right: 0,
           bottom: 0,
           transform: 'none',
-          overflow: 'auto'
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
         } : {}}
         onOpenAutoFocus={(e) => e.preventDefault()} // Prevent auto-focus on open
       >
-        <DialogHeader>
+        {isMobile && (
+          <button
+            className="absolute right-4 top-4 z-20 rounded-full p-2 opacity-70 transition-opacity hover:opacity-100 w-8 h-8 flex items-center justify-center"
+            onClick={() => {
+              setOpen(false);
+              resetForm();
+            }}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+        <div className={`${isMobile ? 'h-14 bg-background' : 'hidden'}`}></div>
+        <DialogHeader className={`${isMobile ? 'sticky top-0 z-10 bg-background border-b px-4 py-4' : ''}`}>
           <DialogTitle>Schedule a Meeting</DialogTitle>
           <DialogDescription>
             Create a new meeting for this study group.
           </DialogDescription>
         </DialogHeader>
-        <div className={`space-y-4 py-4 ${isMobile ? 'pb-32' : ''}`}>
+        <div className={`space-y-4 py-4 ${isMobile ? 'px-4 overflow-y-auto flex-1 pb-4' : ''}`}>
           <div className="grid gap-2">
             <div className="flex justify-between">
               <Label htmlFor="meeting-title">Title</Label>
@@ -451,7 +466,7 @@ export default function ScheduleGroupMeeting({
             </div>
           </div>
         </div>
-        <DialogFooter className={`flex-col sm:flex-row gap-2 sm:gap-0 ${isMobile ? 'fixed bottom-0 left-0 right-0 bg-background py-4 border-t mt-4 px-4 z-50' : ''}`}>
+        <DialogFooter className={`flex-col sm:flex-row gap-2 sm:gap-0 ${isMobile ? 'fixed bottom-0 left-0 right-0 bg-background py-3 border-t px-4 z-50 shadow-md' : ''}`}>
           <Button
             variant="outline"
             onClick={() => {

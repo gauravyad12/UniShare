@@ -496,13 +496,25 @@
 
   /* Fix horizontal scrollbar issues in modals */
   @media (max-width: 768px) {
-    [role="dialog"],
+    /* Exclude share resource popover from mobile dialog styles */
+    .share-resource-popover {
+      width: 320px !important;
+      max-width: 320px !important;
+      transform: none !important;
+      animation: none !important;
+      border-radius: 8px !important;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+      margin-bottom: 16px !important;
+    }
+
+    /* Apply mobile styles to all dialogs except share resource popover */
+    [role="dialog"]:not(.share-resource-popover),
     [role="alertdialog"] {
       max-width: 100vw !important;
       width: 100% !important;
     }
 
-    [role="dialog"] > div,
+    [role="dialog"]:not(.share-resource-popover) > div,
     [role="alertdialog"] > div {
       max-width: 100% !important;
       width: 100% !important;
@@ -512,16 +524,21 @@
     }
 
     /* Fix for nested content that might cause horizontal scroll */
-    [role="dialog"] *,
+    [role="dialog"]:not(.share-resource-popover) *,
     [role="alertdialog"] * {
       max-width: 100%;
       box-sizing: border-box;
     }
 
+    /* Specific positioning for share resource popover */
+    [data-radix-popper-content-wrapper] {
+      z-index: 100 !important;
+    }
+
     /* Ensure form inputs don't overflow */
-    [role="dialog"] input,
-    [role="dialog"] textarea,
-    [role="dialog"] select,
+    [role="dialog"]:not(.share-resource-popover) input,
+    [role="dialog"]:not(.share-resource-popover) textarea,
+    [role="dialog"]:not(.share-resource-popover) select,
     [role="alertdialog"] input,
     [role="alertdialog"] textarea,
     [role="alertdialog"] select {
@@ -546,9 +563,9 @@
       flex-direction: column !important;
     }
 
-    /* Make sure content stretches properly */
+    /* Make sure content stretches properly (except for share resource popover) */
     [role="alertdialog"] > div,
-    [role="dialog"] > div {
+    [role="dialog"]:not(.share-resource-popover) > div {
       flex: 1 !important;
       display: flex !important;
       flex-direction: column !important;
@@ -569,6 +586,11 @@
     [role="dialog"] div[class*="border-b"] + div[class*="border-t"],
     [role="alertdialog"] div[class*="border-b"] + div[class*="border-t"] {
       border-top: none !important;
+    }
+
+    /* Hide default close button in schedule meeting dialog */
+    .schedule-meeting-dialog [role="dialog"] > button[aria-label="Close"] {
+      display: none !important;
     }
 
     /* Remove outlines and background highlight from X buttons in mobile view */
@@ -602,15 +624,34 @@
       }
     }
 
-    /* Custom animations for all types of dialogs */
-    [role="dialog"][data-state="open"],
+    /* Custom animations for all types of dialogs (except share resource popover) */
+    [role="dialog"][data-state="open"]:not(.share-resource-popover),
     [role="alertdialog"][data-state="open"] {
       animation: mobile-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
     }
 
-    [role="dialog"][data-state="closed"],
+    [role="dialog"][data-state="closed"]:not(.share-resource-popover),
     [role="alertdialog"][data-state="closed"] {
       animation: mobile-slide-down 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+    }
+
+    /* Preserve desktop animations for share resource popover */
+    .share-resource-popover[data-state="open"] {
+      animation: popoverFadeIn 0.2s ease-out forwards !important;
+    }
+
+    .share-resource-popover[data-state="closed"] {
+      animation: popoverFadeOut 0.1s ease-in forwards !important;
+    }
+
+    @keyframes popoverFadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes popoverFadeOut {
+      from { opacity: 1; transform: translateY(0); }
+      to { opacity: 0; transform: translateY(4px); }
     }
   }
 
