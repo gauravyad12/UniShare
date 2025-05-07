@@ -856,27 +856,32 @@ export default function ResourceView({
                       src={resource.thumbnail_url}
                       alt={`Thumbnail for ${resource.title}`}
                       className="w-full object-cover"
-                      style={{ maxHeight: '300px' }}
+                      style={{
+                        maxHeight: '300px',
+                        objectPosition: '0 0' // Show the top portion of the image
+                      }}
                     />
                   </div>
                 )}
 
-                {/* External Link URL */}
-                <div className="flex items-center w-full overflow-hidden">
-                  <ExternalLink className="h-4 w-4 mr-2 flex-shrink-0" />
-                  <a
-                    href={resource.external_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline truncate"
-                    title={resource.external_link}
-                  >
-                    {resource.external_link}
-                  </a>
+                {/* External Link URL with Report Button */}
+                <div className="flex items-center justify-between w-full overflow-hidden">
+                  <div className="flex items-center flex-grow overflow-hidden">
+                    <ExternalLink className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <a
+                      href={resource.external_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline truncate"
+                      title={resource.external_link}
+                    >
+                      {resource.external_link}
+                    </a>
+                  </div>
                   <ReportUrlDialog
                     url={resource.external_link}
                     resourceId={resource.id}
-                    triggerClassName="ml-2 text-destructive hover:text-destructive/80"
+                    triggerClassName="ml-2 flex-shrink-0"
                   />
                 </div>
               </div>

@@ -14,7 +14,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Flag, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { createClient } from "@/utils/supabase/client";
 
 interface ReportUrlDialogProps {
   url: string;
@@ -79,14 +78,14 @@ export default function ReportUrlDialog({
         <Button
           variant="ghost"
           size="icon"
-          className={triggerClassName}
+          className={`text-red-700 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 ${triggerClassName}`}
           title="Report malicious URL"
         >
-          <Flag className="h-4 w-4 text-destructive" />
+          <Flag className="h-4 w-4" />
           <span className="sr-only">Report URL</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px]" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Report Malicious URL</DialogTitle>
           <DialogDescription>
