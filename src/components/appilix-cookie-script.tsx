@@ -18,17 +18,16 @@ export default function AppilixCookieScript() {
           }
           return null;
         }
-        
+
         // Get the Appilix identity from the cookie
         const identityCookie = getCookie('appilix_push_notification_user_identity');
-        
+
         // Set the global variable if the cookie exists
         if (identityCookie) {
           window.appilix_push_notification_user_identity = identityCookie;
-          console.log('Appilix identity set from cookie:', identityCookie);
         }
       } catch (error) {
-        console.error('Error setting Appilix identity from cookie:', error);
+        // Silent error handling
       }
     })();
   `;

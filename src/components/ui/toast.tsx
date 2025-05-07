@@ -75,7 +75,7 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      "absolute right-1 top-1 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-1 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600",
+      "absolute right-1 top-1 rounded-md p-1 text-foreground/50 opacity-100 transition-opacity hover:text-foreground focus:outline-none focus:ring-1 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600",
       className,
     )}
     toast-close=""
@@ -110,9 +110,46 @@ const ToastDescription = React.forwardRef<
 ));
 ToastDescription.displayName = ToastPrimitives.Description.displayName;
 
+// Toast Progress Bar Component
+const ToastProgress = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { duration?: number }
+>(({ className, duration = 5000, ...props }, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "absolute bottom-0 left-0 right-0 h-1 bg-primary/30 dark:bg-primary/20",
+        className
+      )}
+      style={{
+        animation: `shrink ${duration}ms linear forwards`,
+        transformOrigin: 'left',
+        width: '100%',
+        marginLeft: '-1px',
+        marginRight: '-1px',
+      }}
+      {...props}
+    />
+  );
+});
+ToastProgress.displayName = "ToastProgress";
+
 type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>;
 
 type ToastActionElement = React.ReactElement<typeof ToastAction>;
+
+// Add keyframes for the progress bar animation
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes shrink {
+      from { transform: scaleX(1); }
+      to { transform: scaleX(0); }
+    }
+  `;
+  document.head.appendChild(style);
+}
 
 export {
   type ToastProps,
@@ -124,4 +161,5 @@ export {
   ToastDescription,
   ToastClose,
   ToastAction,
+  ToastProgress,
 };

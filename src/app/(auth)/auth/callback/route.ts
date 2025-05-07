@@ -123,12 +123,12 @@ export async function GET(request: Request) {
   // URL to redirect to after sign in process completes
   let redirectTo = redirect_to || "/dashboard";
 
-  // Check if the request is from a mobile device or Appilix app
+  // Check if the request is from the Appilix app
   const userAgent = request.headers.get('user-agent') || '';
-  const isMobileOrApp = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Appilix/i.test(userAgent);
+  const isAppilix = /Appilix/i.test(userAgent);
 
   // Get the current user to add their email to the URL if needed
-  if (redirectTo.startsWith("/dashboard") && isMobileOrApp) {
+  if (redirectTo.startsWith("/dashboard") && isAppilix) {
     const supabase = await createClient();
     const { data: userData } = await supabase.auth.getUser();
 

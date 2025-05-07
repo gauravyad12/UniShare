@@ -8,6 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface TodoItemProps {
   todo: {
@@ -108,10 +114,19 @@ export default function TodoItem({
             {(todo.due_date || todo.priority) && (
               <div className="flex flex-wrap gap-2 items-center mt-1">
                 {todo.due_date && (
-                  <div className="flex items-center text-xs text-muted-foreground">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    {format(new Date(todo.due_date), "MMM d, yyyy")}
-                  </div>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center text-xs text-muted-foreground cursor-default">
+                          <Calendar className="h-3 w-3 mr-1" />
+                          {format(new Date(todo.due_date), "MMM d, yyyy")}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{format(new Date(todo.due_date), "EEEE, MMMM d, yyyy 'at' h:mm a")}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
                 {todo.priority && (
                   <Badge variant="outline" className={cn("text-xs", getPriorityColor(todo.priority))}>

@@ -24,13 +24,18 @@ import {
   CheckCircle,
   Share2,
   UserCircle,
+  AlertTriangle,
+  Flag,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import ResourceEditForm from "./resource-edit-form";
 import { Textarea } from "./ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { checkUrlSafety } from "@/utils/urlSafety";
+import ReportUrlDialog from "./report-url-dialog";
+import { useToast } from "./ui/use-toast";
 import { Separator } from "./ui/separator";
 
 interface Resource {
@@ -90,8 +95,9 @@ export default function ResourceView({
   isOwner?: boolean;
   currentUserId?: string;
 }) {
-  // We're not using toast anymore
+  const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
@@ -103,6 +109,8 @@ export default function ResourceView({
   const [commentCount, setCommentCount] = useState<number>(
     resource.comment_count || 0,
   );
+
+  // We're removing URL safety checking on resource load
   const [isLikeAnimating, setIsLikeAnimating] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
@@ -457,6 +465,8 @@ export default function ResourceView({
       }
     };
   }, [resource.id]);
+
+  // URL safety check removed as requested
 
   // Set up a realtime subscription for comments
   useEffect(() => {
@@ -838,17 +848,37 @@ export default function ResourceView({
             )}
 
             {resource.external_link && (
-              <div className="flex items-center w-full overflow-hidden">
-                <ExternalLink className="h-4 w-4 mr-2 flex-shrink-0" />
-                <a
-                  href={resource.external_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline truncate"
-                  title={resource.external_link}
-                >
-                  {resource.external_link}
-                </a>
+              <div className="space-y-4">
+                {/* External Link Thumbnail */}
+                {resource.thumbnail_url && (
+                  <div className="w-full rounded-md overflow-hidden border border-border">
+                    <img
+                      src={resource.thumbnail_url}
+                      alt={`Thumbnail for ${resource.title}`}
+                      className="w-full object-cover"
+                      style={{ maxHeight: '300px' }}
+                    />
+                  </div>
+                )}
+
+                {/* External Link URL */}
+                <div className="flex items-center w-full overflow-hidden">
+                  <ExternalLink className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <a
+                    href={resource.external_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline truncate"
+                    title={resource.external_link}
+                  >
+                    {resource.external_link}
+                  </a>
+                  <ReportUrlDialog
+                    url={resource.external_link}
+                    resourceId={resource.id}
+                    triggerClassName="ml-2 text-destructive hover:text-destructive/80"
+                  />
+                </div>
               </div>
             )}
 

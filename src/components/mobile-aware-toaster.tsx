@@ -8,6 +8,7 @@ import {
   ToastProvider,
   ToastTitle,
   ToastViewport,
+  ToastProgress,
 } from "./ui/toast";
 import { useToast } from "./ui/use-toast";
 
@@ -47,9 +48,9 @@ export function MobileAwareToaster() {
   }
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
+      {toasts.map(function ({ id, title, description, action, duration = 5000, ...props }) {
         return (
-          <Toast key={id} {...props}>
+          <Toast key={id} {...props} className="relative overflow-hidden pb-1">
             <div className="grid gap-1">
               {title && <ToastTitle>{title}</ToastTitle>}
               {description && (
@@ -58,6 +59,7 @@ export function MobileAwareToaster() {
             </div>
             {action}
             <ToastClose />
+            <ToastProgress duration={duration} />
           </Toast>
         );
       })}

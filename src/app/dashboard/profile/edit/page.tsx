@@ -798,7 +798,7 @@ export default function EditProfilePage() {
                 <div>
                   <Label htmlFor="courseInput">My Courses</Label>
                   <p className="text-xs text-muted-foreground mb-2">
-                    Add your courses to receive notifications about new resources matching your courses
+                    Add your courses to receive notifications about new resources matching your courses when resource notifications are enabled.
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -821,25 +821,26 @@ export default function EditProfilePage() {
                   <p className="text-xs text-red-500">{courseError}</p>
                 )}
 
-                {courses.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {courses.map((course) => (
-                      <Badge key={course} variant="secondary" className="flex items-center gap-1 px-3 py-1">
-                        {course}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveCourse(course)}
-                          className="ml-1 text-muted-foreground hover:text-foreground"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  When resource notifications are enabled, you'll receive notifications for new resources matching your courses.
-                </p>
+                <div className="border rounded-md p-3 bg-muted/30 mt-2">
+                  {courses.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {courses.map((course) => (
+                        <Badge key={course} variant="secondary" className="flex items-center gap-1 px-3 py-1">
+                          {course}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCourse(course)}
+                            className="ml-1 text-muted-foreground hover:text-foreground"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-2">No courses added yet</p>
+                  )}
+                </div>
               </div>
             </CardContent>
             <CardFooter className="flex justify-between items-center">

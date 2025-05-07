@@ -116,10 +116,34 @@ export default function ResourceEditForm({ resource }: { resource: Resource }) {
       isValid = false;
     }
 
+    // Validate course code format if provided
+    if (formData.course_code) {
+      const courseCodeRegex = /^[A-Z]{2,4}\d{3,4}$/;
+      if (!courseCodeRegex.test(formData.course_code)) {
+        newErrors.course_code = "Please enter a valid course code (e.g., CS101, MATH200)";
+        isValid = false;
+      }
+    }
+
     // Check resource type specific requirements
-    if (formData.resource_type === "link" && !formData.external_link) {
-      newErrors.external_link = "URL is required for link resources";
-      isValid = false;
+    if (formData.resource_type === "link") {
+      if (!formData.external_link) {
+        newErrors.external_link = "URL is required for link resources";
+        isValid = false;
+      } else {
+        // Validate URL format
+        try {
+          const url = new URL(formData.external_link);
+          // Check if protocol is http or https
+          if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+            newErrors.external_link = "URL must start with http:// or https://";
+            isValid = false;
+          }
+        } catch (e) {
+          newErrors.external_link = "Please enter a valid URL (e.g., https://example.com)";
+          isValid = false;
+        }
+      }
     }
 
     setErrors(newErrors);
@@ -253,8 +277,21 @@ export default function ResourceEditForm({ resource }: { resource: Resource }) {
             id="course_code"
             name="course_code"
             value={formData.course_code}
-            onChange={handleChange}
-            placeholder="e.g. CS101"
+            onChange={(e) => {
+              // Convert to uppercase
+              const value = e.target.value.toUpperCase();
+
+              // Check if the value exceeds the character limit
+              if (value.length <= charLimits.course_code) {
+                setFormData((prev) => ({ ...prev, course_code: value }));
+
+                // Clear error for this field
+                if (errors.course_code) {
+                  setErrors(prev => ({ ...prev, course_code: "" }));
+                }
+              }
+            }}
+            placeholder="e.g., CS101, MATH200"
             maxLength={charLimits.course_code}
             className={errors.course_code ? "border-red-500" : ""}
           />
@@ -278,6 +315,7 @@ export default function ResourceEditForm({ resource }: { resource: Resource }) {
             placeholder="https://example.com"
             required={formData.resource_type === "link"}
             maxLength={charLimits.external_link}
+            type="url"
             className={errors.external_link ? "border-red-500" : ""}
           />
           {errors.external_link && (

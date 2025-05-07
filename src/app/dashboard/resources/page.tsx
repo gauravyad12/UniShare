@@ -153,7 +153,18 @@ export default async function ResourcesPage({
     <div className="container mx-auto px-4 py-8 pb-15 md:pb-8 flex flex-col gap-8">
       <header className="flex flex-col gap-4">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Resources</h1>
+          {searchParams.view ? (
+            <div className="relative group">
+              <h1 className="text-3xl font-bold group-hover:text-primary transition-colors md:group-hover:text-inherit">Resources</h1>
+              <Link
+                href={`/dashboard/resources${searchParams.tab ? `?tab=${searchParams.tab}` : ''}`}
+                className="md:hidden absolute inset-0"
+                aria-label="Back to resources"
+              />
+            </div>
+          ) : (
+            <h1 className="text-3xl font-bold">Resources</h1>
+          )}
           <Button asChild>
             <Link href="/dashboard/resources?upload=true">
               <Upload className="mr-2 h-4 w-4" />

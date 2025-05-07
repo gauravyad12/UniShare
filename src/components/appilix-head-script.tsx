@@ -24,16 +24,12 @@ export default function AppilixHeadScript() {
           const randomId = Math.floor(Math.random() * 500) + 1;
           const testIdentity = `test-user-${randomId}@example.com`;
           setUserEmail(testIdentity);
-          console.log('Appilix test identity set in head script:', testIdentity);
         }
       } catch (error) {
-        console.error('Error getting user email for Appilix head script:', error);
-
         // Fallback on error: Generate a random test identity (1-500)
         const randomId = Math.floor(Math.random() * 500) + 1;
         const testIdentity = `test-user-${randomId}@example.com`;
         setUserEmail(testIdentity);
-        console.log('Appilix test identity set in head script after error:', testIdentity);
       }
     };
 

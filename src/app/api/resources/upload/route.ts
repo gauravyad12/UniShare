@@ -79,11 +79,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (resourceType === "link" && !externalLink) {
-      return NextResponse.json(
-        { error: "URL is required for link resources" },
-        { status: 400 },
-      );
+    if (resourceType === "link") {
+      if (!externalLink) {
+        return NextResponse.json(
+          { error: "URL is required for link resources" },
+          { status: 400 },
+        );
+      }
+
+      // Check URL safety on the server side
+      if (externalLink) {
+        try {
+          const { checkUrlSafety } = await import('@/utils/urlSafety');
+          const safetyResult = await checkUrlSafety(externalLink);
+
+          if (!safetyResult.isSafe) {
+            return NextResponse.json(
+              { error: `This link has been flagged as potentially unsafe (${safetyResult.threatType || 'Unknown threat'}) and cannot be submitted.` },
+              { status: 400 },
+            );
+          }
+        } catch (error) {
+          console.error("Error checking URL safety:", error);
+          // Continue with the submission if the safety check fails
+          // This is a fallback to avoid blocking legitimate content
+        }
+      }
     }
 
     // Check for bad words in text fields

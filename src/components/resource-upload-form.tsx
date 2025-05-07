@@ -12,13 +12,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Upload, X } from "lucide-react";
+import { Upload, X, AlertTriangle, Loader2, CheckCircle } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { checkUrlSafety } from "@/utils/urlSafety";
+import { useToast } from "./ui/use-toast";
 // Import badWords dynamically to use the async version
 
 export default function ResourceUploadForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [errors, setErrors] = useState({
@@ -35,6 +38,8 @@ export default function ResourceUploadForm() {
   const [description, setDescription] = useState<string>("");
   const [title, setTitle] = useState<string>("");
   const [courseCode, setCourseCode] = useState<string>("");
+  const [isCheckingUrl, setIsCheckingUrl] = useState(false);
+  const [urlSafetyStatus, setUrlSafetyStatus] = useState<'unknown' | 'checking' | 'safe' | 'unsafe'>('unknown');
 
   // Character limits for each field
   const charLimits = {
@@ -75,6 +80,13 @@ export default function ResourceUploadForm() {
     if (!courseCode.trim()) {
       newErrors.courseCode = "Course code is required";
       isValid = false;
+    } else {
+      // Validate course code format
+      const courseCodeRegex = /^[A-Z]{2,4}\d{3,4}$/;
+      if (!courseCodeRegex.test(courseCode)) {
+        newErrors.courseCode = "Please enter a valid course code (e.g., CS101, MATH200)";
+        isValid = false;
+      }
     }
 
     // Check for bad words in title and description
@@ -96,9 +108,41 @@ export default function ResourceUploadForm() {
     }
 
     // Check resource type specific requirements
-    if (resourceType === "link" && !externalLink) {
-      newErrors.externalLink = "URL is required for link resources";
-      isValid = false;
+    if (resourceType === "link") {
+      if (!externalLink) {
+        newErrors.externalLink = "URL is required for link resources";
+        isValid = false;
+      } else {
+        // Validate URL format
+        try {
+          const url = new URL(externalLink);
+          // Check if protocol is http or https
+          if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+            newErrors.externalLink = "URL must start with http:// or https://";
+            isValid = false;
+          }
+
+          // Check URL safety if it's a valid URL
+          if (isValid && urlSafetyStatus === 'unknown') {
+            // If we haven't checked the URL safety yet, do it now
+            await checkUrlSafetyStatus(externalLink);
+          }
+
+          // If the URL is unsafe, show an error and prevent submission
+          if (urlSafetyStatus === 'unsafe') {
+            newErrors.externalLink = "This link has been flagged as potentially unsafe and cannot be submitted.";
+            isValid = false;
+            toast({
+              title: "Unsafe Link Detected",
+              description: "This link has been flagged as potentially unsafe and cannot be submitted. Please provide a different URL.",
+              variant: "destructive",
+            });
+          }
+        } catch (e) {
+          newErrors.externalLink = "Please enter a valid URL (e.g., https://example.com)";
+          isValid = false;
+        }
+      }
     }
 
     if (resourceType !== "link" && !selectedFile) {
@@ -114,6 +158,21 @@ export default function ResourceUploadForm() {
     e.preventDefault();
     setIsLoading(true);
     setGlobalError(null);
+
+    // Double-check URL safety for link resources
+    if (resourceType === "link" && urlSafetyStatus === 'unsafe') {
+      setErrors(prev => ({
+        ...prev,
+        externalLink: "This link has been flagged as potentially unsafe and cannot be submitted."
+      }));
+      setIsLoading(false);
+      toast({
+        title: "Unsafe Link Detected",
+        description: "This link has been flagged as potentially unsafe and cannot be submitted. Please provide a different URL.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Validate form
     const isValid = await validateForm();
@@ -227,6 +286,47 @@ export default function ResourceUploadForm() {
       setSelectedFile(null);
     } else {
       setExternalLink("");
+      setUrlSafetyStatus('unknown');
+    }
+  };
+
+  // Check URL safety
+  const checkUrlSafetyStatus = async (url: string) => {
+    if (!url || url.trim() === '') {
+      setUrlSafetyStatus('unknown');
+      return;
+    }
+
+    // Validate URL format first
+    try {
+      new URL(url);
+    } catch (e) {
+      // Not a valid URL yet, don't check
+      setUrlSafetyStatus('unknown');
+      return;
+    }
+
+    setIsCheckingUrl(true);
+    setUrlSafetyStatus('checking');
+
+    try {
+      const result = await checkUrlSafety(url);
+
+      if (!result.isSafe) {
+        setUrlSafetyStatus('unsafe');
+        toast({
+          title: "Warning: Potentially Unsafe Link",
+          description: `This link has been flagged as potentially unsafe (${result.threatType || 'Unknown threat'}).`,
+          variant: "destructive",
+        });
+      } else {
+        setUrlSafetyStatus('safe');
+      }
+    } catch (error) {
+      console.error('Error checking URL safety:', error);
+      setUrlSafetyStatus('unknown');
+    } finally {
+      setIsCheckingUrl(false);
     }
   };
 
@@ -326,11 +426,14 @@ export default function ResourceUploadForm() {
           <Input
             id="course_code"
             name="course_code"
-            placeholder="e.g. CS101"
+            placeholder="e.g., CS101, MATH200"
             value={courseCode}
             onChange={(e) => {
-              if (e.target.value.length <= charLimits.courseCode) {
-                setCourseCode(e.target.value);
+              // Convert to uppercase
+              const value = e.target.value.toUpperCase();
+
+              if (value.length <= charLimits.courseCode) {
+                setCourseCode(value);
                 if (errors.courseCode) {
                   setErrors(prev => ({ ...prev, courseCode: "" }));
                 }
@@ -364,12 +467,46 @@ export default function ResourceUploadForm() {
                 }
               }
             }}
+            onBlur={() => checkUrlSafetyStatus(externalLink)}
+            type="url"
             maxLength={charLimits.externalLink}
             required
             className={errors.externalLink ? "border-red-500" : ""}
           />
           {errors.externalLink && (
             <p className="text-sm text-red-500 mt-1">{errors.externalLink}</p>
+          )}
+
+          {/* URL Safety Status */}
+          {resourceType === "link" && urlSafetyStatus !== 'unknown' && (
+            <div className="mt-2">
+              <span className={`inline-flex items-center text-sm rounded-md px-3 py-1 ${
+                urlSafetyStatus === 'checking'
+                  ? 'bg-muted text-muted-foreground'
+                  : urlSafetyStatus === 'safe'
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                    : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+              }`}>
+                {urlSafetyStatus === 'checking' && (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                    Checking link safety...
+                  </>
+                )}
+                {urlSafetyStatus === 'safe' && (
+                  <>
+                    <CheckCircle className="h-3 w-3 mr-1.5" />
+                    This link appears to be safe
+                  </>
+                )}
+                {urlSafetyStatus === 'unsafe' && (
+                  <>
+                    <AlertTriangle className="h-3 w-3 mr-1.5" />
+                    Warning: This link is unsafe and cannot be submitted
+                  </>
+                )}
+              </span>
+            </div>
           )}
         </div>
       ) : (

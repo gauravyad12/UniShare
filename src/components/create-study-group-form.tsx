@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { createClient } from "@/utils/supabase/client";
+import { useMobileDetection } from "@/hooks/use-mobile-detection";
 
 interface CreateStudyGroupFormProps {
   universityId: string;
@@ -26,6 +27,7 @@ export default function CreateStudyGroupForm({
   universityId,
 }: CreateStudyGroupFormProps) {
   const router = useRouter();
+  const isMobile = useMobileDetection();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -132,6 +134,15 @@ export default function CreateStudyGroupForm({
       hasErrors = true;
     }
 
+    // Validate course code format if provided
+    if (formData.courseCode) {
+      const courseCodeRegex = /^[A-Z]{2,4}\d{3,4}$/;
+      if (!courseCodeRegex.test(formData.courseCode)) {
+        errors.courseCode = "Please enter a valid course code (e.g., CS101, MATH200)";
+        hasErrors = true;
+      }
+    }
+
     if (hasErrors) {
       setFormErrors(errors);
       setIsSubmitting(false);
@@ -236,9 +247,26 @@ export default function CreateStudyGroupForm({
         <Input
           id="courseCode"
           name="courseCode"
-          placeholder="e.g., MATH101"
+          placeholder="e.g., CS101, MATH200"
           value={formData.courseCode}
-          onChange={handleChange}
+          onChange={(e) => {
+            // Convert to uppercase
+            const value = e.target.value.toUpperCase();
+
+            // Check if the value exceeds the character limit
+            if (value.length <= charLimits.courseCode) {
+              setFormData((prev) => ({ ...prev, courseCode: value }));
+
+              // Clear any existing error for this field
+              if (formErrors.courseCode) {
+                setFormErrors(prev => {
+                  const newErrors = { ...prev };
+                  delete newErrors.courseCode;
+                  return newErrors;
+                });
+              }
+            }
+          }}
           maxLength={charLimits.courseCode}
           className={formErrors.courseCode ? "border-red-500" : ""}
         />
@@ -293,7 +321,7 @@ export default function CreateStudyGroupForm({
 
       <div className="flex justify-between items-center">
         <div className="flex-1">
-          {Object.keys(formErrors).length > 0 && (
+          {Object.keys(formErrors).length > 0 && !isMobile && (
             <div className="text-red-500 text-sm">
               Please fix the errors above before submitting.
             </div>

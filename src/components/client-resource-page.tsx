@@ -7,6 +7,7 @@ import ResourceClientWrapper from "./resource-client-wrapper";
 import StyledSearchBarWrapper from "./styled-search-bar-wrapper";
 import { useState, useEffect } from "react";
 import LoadingSpinner from "./loading-spinner";
+import Link from "next/link";
 
 export default function ClientResourcePage({
   children,
@@ -76,7 +77,18 @@ export default function ClientResourcePage({
     <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
       <header className="flex flex-col gap-4">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Resources</h1>
+          {searchParams.has("view") ? (
+            <div className="relative group">
+              <h1 className="text-3xl font-bold group-hover:text-primary transition-colors md:group-hover:text-inherit">Resources</h1>
+              <Link
+                href={`/dashboard/resources${searchParams.has("tab") ? `?tab=${searchParams.get("tab")}` : ''}`}
+                className="md:hidden absolute inset-0"
+                aria-label="Back to resources"
+              />
+            </div>
+          ) : (
+            <h1 className="text-3xl font-bold">Resources</h1>
+          )}
           <ResourceUploadDialog />
         </div>
         <div className="w-full">

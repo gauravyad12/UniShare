@@ -22,8 +22,6 @@ export default function AppilixRootIdentity() {
           // Set the global variable directly
           // @ts-ignore - We're intentionally setting a global variable
           window.appilix_push_notification_user_identity = data.user.email;
-
-          console.log('Appilix identity set on root layout for:', data.user.email);
         } else {
           // Fallback: Generate a random test identity (1-500)
           const randomId = Math.floor(Math.random() * 500) + 1;
@@ -35,12 +33,8 @@ export default function AppilixRootIdentity() {
           // Set the global variable directly
           // @ts-ignore - We're intentionally setting a global variable
           window.appilix_push_notification_user_identity = testIdentity;
-
-          console.log('Appilix test identity set on root layout:', testIdentity);
         }
       } catch (error) {
-        console.error('Error setting Appilix identity on root layout:', error);
-
         // Fallback on error: Generate a random test identity (1-500)
         const randomId = Math.floor(Math.random() * 500) + 1;
         const testIdentity = `test-user-${randomId}@example.com`;
@@ -51,8 +45,6 @@ export default function AppilixRootIdentity() {
         // Set the global variable directly
         // @ts-ignore - We're intentionally setting a global variable
         window.appilix_push_notification_user_identity = testIdentity;
-
-        console.log('Appilix test identity set on root layout after error:', testIdentity);
       }
     };
 

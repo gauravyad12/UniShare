@@ -11,10 +11,8 @@ export function setAppilixIdentityCookie(userEmail: string): void {
     // Set cookie with user identity that expires in 365 days
     // The cookie name must be exactly 'appilix_push_notification_user_identity'
     document.cookie = `appilix_push_notification_user_identity=${encodeURIComponent(userEmail)};path=/;max-age=${60 * 60 * 24 * 365};SameSite=Lax`;
-    
-    console.log('Appilix identity cookie set for:', userEmail);
   } catch (error) {
-    console.error('Error setting Appilix identity cookie:', error);
+    // Silent error handling
   }
 }
 
@@ -33,7 +31,7 @@ export function getAppilixIdentityCookie(): string | null {
     }
     return null;
   } catch (error) {
-    console.error('Error getting Appilix identity cookie:', error);
+    // Silent error handling
     return null;
   }
 }

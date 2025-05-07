@@ -403,16 +403,16 @@ export async function signInAction(formData: FormData) {
     return encodedRedirect("error", "/sign-in", error.message);
   }
 
-  // Only add Appilix user identity parameter for mobile devices or Appilix app
-  // We'll detect mobile/app on the server side based on user agent
+  // Only add Appilix user identity parameter for the Appilix app
+  // We'll detect the Appilix app on the server side based on user agent
   const userAgent = headers().get('user-agent') || '';
-  const isMobileOrApp = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Appilix/i.test(userAgent);
+  const isAppilix = /Appilix/i.test(userAgent);
 
-  if (isMobileOrApp) {
-    // Add Appilix user identity parameter to the dashboard URL for mobile devices or Appilix app
+  if (isAppilix) {
+    // Add Appilix user identity parameter to the dashboard URL for the Appilix app
     return redirect(`/dashboard?appilix_push_notification_user_identity=${encodeURIComponent(email)}`);
   } else {
-    // Regular redirect for desktop devices
+    // Regular redirect for desktop and mobile devices
     return redirect('/dashboard');
   }
 }

@@ -947,7 +947,7 @@ export default function CanvasIntegrationCard() {
                   <HelpCircle className="h-4 w-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[550px]">
+              <DialogContent className="sm:max-w-[550px] pb-6">
                 <DialogHeader>
                   <DialogTitle>How to Get a Canvas Access Token</DialogTitle>
                   <DialogDescription>
@@ -983,7 +983,7 @@ export default function CanvasIntegrationCard() {
                     </li>
                   </ol>
 
-                  <div className="flex justify-between items-center pt-2 border-t">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pt-3 pb-2 border-t">
                     <p className="text-xs text-muted-foreground">For more detailed instructions, visit Canvas documentation</p>
                     <a
                       href="https://community.canvaslms.com/t5/Canvas-Basics-Guide/How-do-I-manage-API-access-tokens-in-my-user-account/ta-p/615312"

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckSquare, Plus, ChevronRight } from "lucide-react";
+import { CheckSquare, Plus, ChevronRight, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { format } from "date-fns";
 
 interface Todo {
   id: string;
@@ -150,6 +151,12 @@ export default function MobileTodoSection() {
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm break-words">{todo.content}</p>
+                  {todo.due_date && (
+                    <div className="flex items-center text-xs text-muted-foreground mt-1">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      {format(new Date(todo.due_date), "MMM d, yyyy")}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

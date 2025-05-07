@@ -249,8 +249,6 @@ export default function ScheduleGroupMeeting({
           setDefaultTimes();
         }
       }}
-      modal={true}
-      className="schedule-meeting-dialog"
     >
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
@@ -466,7 +464,7 @@ export default function ScheduleGroupMeeting({
             </div>
           </div>
         </div>
-        <DialogFooter className={`flex-col sm:flex-row gap-2 sm:gap-0 ${isMobile ? 'fixed bottom-0 left-0 right-0 bg-background py-3 border-t px-4 z-50 shadow-md' : ''}`}>
+        <DialogFooter className={`flex-col sm:flex-row gap-2 sm:gap-0 ${isMobile ? 'fixed bottom-0 left-0 right-0 bg-background py-4 pb-8 border-t px-4 z-50 shadow-md' : ''}`}>
           <Button
             variant="outline"
             onClick={() => {
@@ -479,6 +477,7 @@ export default function ScheduleGroupMeeting({
           <Button
             onClick={handleScheduleMeeting}
             disabled={scheduling}
+            className={isMobile ? 'mb-4' : ''}
           >
             {scheduling ? (
               <>

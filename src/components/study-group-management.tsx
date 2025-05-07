@@ -193,7 +193,10 @@ export default function StudyGroupManagement({
             <span>Manage Members</span>
           </DropdownMenuItem>
           {isCreator && (
-            <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive focus:text-destructive">
+            <DropdownMenuItem
+              onClick={() => setIsDeleteDialogOpen(true)}
+              className="text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center"
+            >
               <Trash2 className="mr-2 h-4 w-4" />
               <span>Delete Group</span>
             </DropdownMenuItem>
@@ -297,7 +300,7 @@ export default function StudyGroupManagement({
                         size="icon"
                         onClick={() => handleRemoveMember(member.user_id)}
                         disabled={isUpdatingMember}
-                        className="text-destructive hover:text-destructive"
+                        className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30"
                         title="Remove from Group"
                       >
                         <UserMinus className="h-4 w-4" />

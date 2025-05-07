@@ -23,8 +23,6 @@ export default function AppilixEntryIdentity() {
 
           // Set the cookie
           setAppilixIdentityCookie(data.user.email);
-
-          console.log('Appilix identity set on app-entry page for:', data.user.email);
         } else {
           // Fallback: Generate a random test identity (1-500)
           const randomId = Math.floor(Math.random() * 500) + 1;
@@ -35,12 +33,8 @@ export default function AppilixEntryIdentity() {
 
           // Set the cookie with test identity
           setAppilixIdentityCookie(testIdentity);
-
-          console.log('Appilix test identity set on app-entry page:', testIdentity);
         }
       } catch (error) {
-        console.error('Error setting Appilix identity on app-entry page:', error);
-
         // Fallback on error: Generate a random test identity (1-500)
         const randomId = Math.floor(Math.random() * 500) + 1;
         const testIdentity = `test-user-${randomId}@example.com`;
@@ -50,8 +44,6 @@ export default function AppilixEntryIdentity() {
 
         // Set the cookie with test identity
         setAppilixIdentityCookie(testIdentity);
-
-        console.log('Appilix test identity set on app-entry page after error:', testIdentity);
       }
     };
 

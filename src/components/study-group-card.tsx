@@ -131,6 +131,7 @@ export default function StudyGroupCard({
             <Button
               variant="outline"
               size="sm"
+              className="h-9"
               asChild
             >
               <Link href={`/sign-in?redirect=/dashboard/study-groups?view=${group.id}`}>
@@ -139,6 +140,7 @@ export default function StudyGroupCard({
             </Button>
             <Button
               size="sm"
+              className="h-9"
               asChild
             >
               <Link href={`/sign-in?redirect=/dashboard/study-groups?view=${group.id}`}>
@@ -152,6 +154,7 @@ export default function StudyGroupCard({
             <Button
               variant="outline"
               size="sm"
+              className="h-9"
               asChild
             >
               <Link href={`/dashboard/study-groups?view=${group.id}`}>
@@ -160,6 +163,7 @@ export default function StudyGroupCard({
             </Button>
             <Button
               size="sm"
+              className="h-9"
               asChild
             >
               <Link href={`/dashboard/study-groups?view=${group.id}&chat=true`}>
@@ -174,6 +178,7 @@ export default function StudyGroupCard({
             <Button
               variant="outline"
               size="sm"
+              className="h-9"
               asChild
             >
               <Link href={`/dashboard/study-groups?view=${group.id}`}>
@@ -182,6 +187,7 @@ export default function StudyGroupCard({
             </Button>
             <Button
               size="sm"
+              className="h-9"
               onClick={() => onJoin && onJoin(group.id)}
             >
               Join Group
