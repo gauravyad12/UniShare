@@ -20,6 +20,10 @@ export async function POST(request: NextRequest) {
       email_notifications,
       study_group_notifications,
       resource_notifications,
+      group_message_notifications,
+      resource_comment_notifications,
+      resource_like_notifications,
+      group_join_notifications,
       profile_visibility,
       theme_preference,
       color_scheme,
@@ -59,6 +63,14 @@ export async function POST(request: NextRequest) {
             : true,
         resource_notifications:
           resource_notifications !== undefined ? resource_notifications : true,
+        group_message_notifications:
+          group_message_notifications !== undefined ? group_message_notifications : true,
+        resource_comment_notifications:
+          resource_comment_notifications !== undefined ? resource_comment_notifications : true,
+        resource_like_notifications:
+          resource_like_notifications !== undefined ? resource_like_notifications : true,
+        group_join_notifications:
+          group_join_notifications !== undefined ? group_join_notifications : true,
         profile_visibility:
           profile_visibility !== undefined ? profile_visibility : true,
         theme_preference: theme_preference || "system",
@@ -78,6 +90,10 @@ export async function POST(request: NextRequest) {
       if (email_notifications !== undefined) updateObj.email_notifications = email_notifications;
       if (study_group_notifications !== undefined) updateObj.study_group_notifications = study_group_notifications;
       if (resource_notifications !== undefined) updateObj.resource_notifications = resource_notifications;
+      if (group_message_notifications !== undefined) updateObj.group_message_notifications = group_message_notifications;
+      if (resource_comment_notifications !== undefined) updateObj.resource_comment_notifications = resource_comment_notifications;
+      if (resource_like_notifications !== undefined) updateObj.resource_like_notifications = resource_like_notifications;
+      if (group_join_notifications !== undefined) updateObj.group_join_notifications = group_join_notifications;
       if (profile_visibility !== undefined) updateObj.profile_visibility = profile_visibility;
       if (theme_preference !== undefined) updateObj.theme_preference = theme_preference;
       if (color_scheme !== undefined) updateObj.color_scheme = color_scheme;

@@ -72,6 +72,10 @@ export default function SettingsPage() {
     email_notifications: true,
     study_group_notifications: true,
     resource_notifications: true,
+    group_message_notifications: true,
+    resource_comment_notifications: true,
+    resource_like_notifications: true,
+    group_join_notifications: true,
     profile_visibility: true,
     theme_preference: "system",
     color_scheme: "default",
@@ -108,6 +112,10 @@ export default function SettingsPage() {
             study_group_notifications:
               userSettings.study_group_notifications ?? true,
             resource_notifications: userSettings.resource_notifications ?? true,
+            group_message_notifications: userSettings.group_message_notifications ?? true,
+            resource_comment_notifications: userSettings.resource_comment_notifications ?? true,
+            resource_like_notifications: userSettings.resource_like_notifications ?? true,
+            group_join_notifications: userSettings.group_join_notifications ?? true,
             profile_visibility: userSettings.profile_visibility ?? true,
             theme_preference: userSettings.theme_preference || "system",
             color_scheme: userSettings.color_scheme || "default",
@@ -374,6 +382,10 @@ export default function SettingsPage() {
           email_notifications: currentSettings.email_notifications,
           study_group_notifications: currentSettings.study_group_notifications,
           resource_notifications: currentSettings.resource_notifications,
+          group_message_notifications: currentSettings.group_message_notifications,
+          resource_comment_notifications: currentSettings.resource_comment_notifications,
+          resource_like_notifications: currentSettings.resource_like_notifications,
+          group_join_notifications: currentSettings.group_join_notifications,
           profile_visibility: currentSettings.profile_visibility,
           theme_preference: currentSettings.theme_preference,
           color_scheme: currentSettings.color_scheme,
@@ -385,6 +397,10 @@ export default function SettingsPage() {
           settingsToUpdate.email_notifications = settings.email_notifications;
           settingsToUpdate.study_group_notifications = settings.study_group_notifications;
           settingsToUpdate.resource_notifications = settings.resource_notifications;
+          settingsToUpdate.group_message_notifications = settings.group_message_notifications;
+          settingsToUpdate.resource_comment_notifications = settings.resource_comment_notifications;
+          settingsToUpdate.resource_like_notifications = settings.resource_like_notifications;
+          settingsToUpdate.group_join_notifications = settings.group_join_notifications;
         } else if (cardType === 'appearance') {
           settingsToUpdate.theme_preference = settings.theme_preference;
           settingsToUpdate.color_scheme = settings.color_scheme;
@@ -565,7 +581,7 @@ export default function SettingsPage() {
                 <div className="pr-4">
                   <h4 className="font-medium">Study Group Updates</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Get notified about new messages and meetings
+                    Get notified about study group activities
                   </p>
                 </div>
                 <Switch
@@ -573,6 +589,38 @@ export default function SettingsPage() {
                   checked={settings.study_group_notifications}
                   onCheckedChange={() =>
                     handleSwitchChange("study_group_notifications")
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="pr-4">
+                  <h4 className="font-medium">Group Chat Messages</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Get notified when you receive new messages in group chats
+                  </p>
+                </div>
+                <Switch
+                  id="group_message_notifications"
+                  checked={settings.group_message_notifications}
+                  onCheckedChange={() =>
+                    handleSwitchChange("group_message_notifications")
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="pr-4">
+                  <h4 className="font-medium">Group Member Joins</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Get notified when someone joins your study group
+                  </p>
+                </div>
+                <Switch
+                  id="group_join_notifications"
+                  checked={settings.group_join_notifications}
+                  onCheckedChange={() =>
+                    handleSwitchChange("group_join_notifications")
                   }
                 />
               </div>
@@ -589,6 +637,38 @@ export default function SettingsPage() {
                   checked={settings.resource_notifications}
                   onCheckedChange={() =>
                     handleSwitchChange("resource_notifications")
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="pr-4">
+                  <h4 className="font-medium">Resource Comments</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Get notified when someone comments on your resources
+                  </p>
+                </div>
+                <Switch
+                  id="resource_comment_notifications"
+                  checked={settings.resource_comment_notifications}
+                  onCheckedChange={() =>
+                    handleSwitchChange("resource_comment_notifications")
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="pr-4">
+                  <h4 className="font-medium">Resource Likes</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Get notified when someone likes your resources
+                  </p>
+                </div>
+                <Switch
+                  id="resource_like_notifications"
+                  checked={settings.resource_like_notifications}
+                  onCheckedChange={() =>
+                    handleSwitchChange("resource_like_notifications")
                   }
                 />
               </div>
