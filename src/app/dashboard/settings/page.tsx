@@ -24,6 +24,12 @@ import {
   CheckCircle,
   LogOut,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { createClient } from "@/utils/supabase/client";
 import { useThemeContext } from "@/components/theme-context";
 import {
@@ -467,6 +473,7 @@ export default function SettingsPage() {
 
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -503,6 +510,7 @@ export default function SettingsPage() {
     } catch (error) {
       console.error("Error deleting account:", error instanceof Error ? error.message : "Failed to delete your account. Please try again later.");
       setDeletingAccount(false);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -869,38 +877,54 @@ export default function SettingsPage() {
             </div>
           </CardContent>
           <CardFooter>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">Delete Account</Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete
-                    your account and remove all your data from our servers.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDeleteAccount}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    disabled={deletingAccount}
-                  >
-                    {deletingAccount ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Deleting...
-                      </>
-                    ) : (
-                      "Delete Account"
-                    )}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <Button
+              variant="destructive"
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              Delete Account
+            </Button>
           </CardFooter>
+
+          {/* Delete Confirmation Dialog */}
+          <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+            <DialogContent className="sm:max-w-[425px] p-6">
+              <DialogHeader className="space-y-2 text-center sm:text-left">
+                <DialogTitle className="text-lg font-semibold">Delete Account</DialogTitle>
+              </DialogHeader>
+              <div className="py-4 mb-4">
+                <p className="text-sm text-muted-foreground text-center sm:text-left">
+                  This action cannot be undone. This will permanently delete your account
+                  and all of your data, including resources, study groups, and profile information.
+                </p>
+              </div>
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 space-y-1 space-y-reverse sm:space-y-0">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteDialog(false)}
+                  disabled={deletingAccount}
+                  className="sm:mt-0 mt-1 h-8 sm:h-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
+                  tabIndex={-1}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteAccount}
+                  disabled={deletingAccount}
+                  className="hover:bg-red-600 dark:hover:bg-red-700 h-8 sm:h-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
+                >
+                  {deletingAccount ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete Account"
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </Card>
       </div>
     </div>

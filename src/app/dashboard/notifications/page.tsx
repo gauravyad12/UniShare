@@ -153,7 +153,7 @@ export default function NotificationsPage() {
             </div>
             {unreadCount > 0 && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 className="text-xs h-8"
                 onClick={() => markAsRead()}

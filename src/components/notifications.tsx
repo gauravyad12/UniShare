@@ -149,7 +149,7 @@ export default function Notifications() {
             <h3 className="font-medium">Notifications</h3>
             {unreadCount > 0 && (
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 className="text-xs h-8"
                 onClick={() => markAsRead()}
