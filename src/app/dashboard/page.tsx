@@ -369,12 +369,12 @@ export default async function Dashboard() {
 
       {/* User Profile and To-Do List Section */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="md:col-span-1">
+        <Card className="md:col-span-1 flex flex-col">
           <CardHeader>
             <CardTitle>User Profile</CardTitle>
             <CardDescription>Your account information</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col items-center text-center">
+          <CardContent className="flex flex-col items-center text-center flex-1 justify-center">
             <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-4">
               {userProfile?.avatar_url ? (
                 <img
@@ -405,13 +405,8 @@ export default async function Dashboard() {
             <CardDescription>Manage your tasks</CardDescription>
           </CardHeader>
           <CardContent>
-            <TodoList />
+            <TodoList limit={3} />
           </CardContent>
-          <CardFooter>
-            <Button asChild variant="outline" size="sm" className="w-full">
-              <Link href="/dashboard/todos">View All Tasks</Link>
-            </Button>
-          </CardFooter>
         </Card>
 
         {/* Study Group Meetings - Full Width */}

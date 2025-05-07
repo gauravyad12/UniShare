@@ -6,6 +6,7 @@ import TodoForm from "@/components/todo-form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCheck } from "lucide-react";
+import Link from "next/link";
 
 interface Todo {
   id: string;
@@ -17,7 +18,11 @@ interface Todo {
   priority?: "low" | "medium" | "high" | null;
 }
 
-export default function TodoList() {
+interface TodoListProps {
+  limit?: number;
+}
+
+export default function TodoList({ limit }: TodoListProps) {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("all");
@@ -169,6 +174,10 @@ export default function TodoList() {
     return true; // "all" tab
   });
 
+  // Apply limit if specified
+  const limitedTodos = limit ? filteredTodos.slice(0, limit) : filteredTodos;
+  const hasMoreTodos = limit && filteredTodos.length > limit;
+
   const activeTodosCount = todos.filter((todo) => !todo.is_completed).length;
   const completedTodosCount = todos.filter((todo) => todo.is_completed).length;
 
@@ -201,7 +210,7 @@ export default function TodoList() {
             </div>
           ) : filteredTodos.length > 0 ? (
             <div className="space-y-2">
-              {filteredTodos.map((todo) => (
+              {limitedTodos.map((todo) => (
                 <TodoItem
                   key={todo.id}
                   todo={todo}
@@ -210,6 +219,13 @@ export default function TodoList() {
                   onUpdate={updateTodo}
                 />
               ))}
+              {hasMoreTodos && (
+                <div className="text-center pt-4">
+                  <Button variant="outline" size="sm" className="w-full" asChild>
+                    <Link href="/dashboard/todos">View All Tasks</Link>
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
@@ -225,7 +241,7 @@ export default function TodoList() {
             </div>
           ) : filteredTodos.length > 0 ? (
             <div className="space-y-2">
-              {filteredTodos.map((todo) => (
+              {limitedTodos.map((todo) => (
                 <TodoItem
                   key={todo.id}
                   todo={todo}
@@ -234,6 +250,13 @@ export default function TodoList() {
                   onUpdate={updateTodo}
                 />
               ))}
+              {hasMoreTodos && (
+                <div className="text-center pt-4">
+                  <Button variant="outline" size="sm" className="w-full" asChild>
+                    <Link href="/dashboard/todos">View All Tasks</Link>
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
@@ -261,7 +284,7 @@ export default function TodoList() {
                 </Button>
               </div>
               <div className="space-y-2">
-                {filteredTodos.map((todo) => (
+                {limitedTodos.map((todo) => (
                   <TodoItem
                     key={todo.id}
                     todo={todo}
@@ -270,6 +293,13 @@ export default function TodoList() {
                     onUpdate={updateTodo}
                   />
                 ))}
+                {hasMoreTodos && (
+                  <div className="text-center pt-4">
+                    <Button variant="outline" size="sm" className="w-full" asChild>
+                      <Link href="/dashboard/todos">View All Tasks</Link>
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
