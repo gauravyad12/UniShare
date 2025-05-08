@@ -215,9 +215,24 @@
     margin-top: auto;
   }
 
-  /* Fix spacing in Canvas integration card */
+  /* Canvas integration card improvements */
   .canvas-integration-responsive .flex-col {
     gap: 0.75rem;
+  }
+
+  /* Make the refresh button perfectly square */
+  .canvas-integration-responsive .h-8.w-8 {
+    aspect-ratio: 1/1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Improve mobile layout for Canvas card */
+  @media (max-width: 640px) {
+    .canvas-integration-responsive .card-content > div {
+      gap: 1rem;
+    }
   }
 }
 

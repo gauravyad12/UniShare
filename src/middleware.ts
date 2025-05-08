@@ -179,7 +179,7 @@ export async function middleware(req: NextRequest) {
       // Content Security Policy to prevent XSS attacks
       response.headers.set(
         "Content-Security-Policy",
-        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://js.stripe.com https://appilix.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://*.supabase.co https://ncvinrzllkqlypnyluco.supabase.co https://screenshotmachine.com; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://appilix.com; frame-src 'self' https://js.stripe.com;"
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://js.stripe.com https://appilix.com https://va.vercel-scripts.com https://*.vercel-insights.com https://*.vercel-analytics.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://*.supabase.co https://ncvinrzllkqlypnyluco.supabase.co https://screenshotmachine.com; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://appilix.com https://va.vercel-scripts.com https://*.vercel-insights.com https://*.vercel-analytics.com; frame-src 'self' https://js.stripe.com;"
       );
 
       // Referrer Policy

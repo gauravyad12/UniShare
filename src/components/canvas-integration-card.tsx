@@ -509,6 +509,39 @@ export default function CanvasIntegrationCard() {
     return "text-red-500";
   };
 
+  // Custom formatter for time ago that shortens "less than a minute ago" to "just now"
+  const formatTimeAgo = (date: Date): string => {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) {
+      return "just now";
+    }
+
+    const minutes = Math.floor(diffInSeconds / 60);
+    if (minutes < 60) {
+      return `${minutes}m ago`;
+    }
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) {
+      return `${hours}h ago`;
+    }
+
+    const days = Math.floor(hours / 24);
+    if (days < 30) {
+      return `${days}d ago`;
+    }
+
+    const months = Math.floor(days / 30);
+    if (months < 12) {
+      return `${months}mo ago`;
+    }
+
+    const years = Math.floor(months / 12);
+    return `${years}y ago`;
+  };
+
   // Helper function to get user-friendly error messages
   const getUserFriendlyErrorMessage = (error: string): string => {
     // Domain not found errors
@@ -665,9 +698,11 @@ export default function CanvasIntegrationCard() {
                 </Badge>
               )}
             </CardTitle>
-            <CardDescription>
-              Connect to Canvas to display your estimated GPA
-            </CardDescription>
+            {!isConnected && (
+              <CardDescription>
+                Connect to Canvas to display your estimated GPA
+              </CardDescription>
+            )}
           </div>
           {isConnected && (
             <Button
@@ -676,6 +711,7 @@ export default function CanvasIntegrationCard() {
               onClick={syncGpa}
               disabled={syncing}
               title="Sync GPA"
+              className="h-8 w-8 p-0 flex items-center justify-center"
             >
               {syncing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -693,27 +729,8 @@ export default function CanvasIntegrationCard() {
           </div>
         ) : isConnected ? (
           <div className="space-y-4 flex-1 flex flex-col">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium">Domain</p>
-                <p className="text-sm text-muted-foreground flex items-center">
-                  <LinkIcon className="h-3 w-3 mr-1 flex-shrink-0" />
-                  <span className="truncate">{integration?.domain}</span>
-                </p>
-              </div>
-              <div className="md:text-right">
-                <p className="text-sm font-medium">Last Synced</p>
-                <p className="text-sm text-muted-foreground">
-                  {integration?.last_synced
-                    ? formatDistanceToNow(new Date(integration.last_synced), {
-                        addSuffix: true,
-                      })
-                    : "Never"}
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-muted/50 rounded-lg p-4 text-center mx-auto max-w-xs md:max-w-sm">
+            {/* GPA Display - Moved to top for better mobile visibility */}
+            <div className="bg-muted/50 rounded-lg p-4 text-center mx-auto w-full max-w-xs md:max-w-sm">
               <p className="text-sm font-medium mb-1">Estimated GPA</p>
               {integration?.gpa ? (
                 <p className={`text-3xl font-bold ${getGpaColor(integration.gpa)}`}>
@@ -724,19 +741,45 @@ export default function CanvasIntegrationCard() {
               )}
             </div>
 
-            <div className="text-xs text-muted-foreground mb-4 text-center">
-              <p>Last updated: {integration?.last_synced ? formatDistanceToNow(new Date(integration.last_synced), { addSuffix: true }) : "Never"}</p>
+            {/* Domain and Last Synced Info */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="bg-muted/30 p-1.5 rounded-md">
+                  <LinkIcon className="h-4 w-4 text-primary/70" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium">Domain</p>
+                  <p className="text-xs text-muted-foreground truncate max-w-[180px]">
+                    {integration?.domain}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="bg-muted/30 p-1.5 rounded-md">
+                  <RefreshCw className="h-4 w-4 text-primary/70" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium">Last Synced</p>
+                  <p className="text-xs text-muted-foreground whitespace-nowrap">
+                    {integration?.last_synced
+                      ? formatTimeAgo(new Date(integration.last_synced))
+                      : "Never"}
+                  </p>
+                </div>
+              </div>
             </div>
 
             <Collapsible
               open={showCourses}
               onOpenChange={setShowCourses}
-              className="border rounded-md flex-1"
+              className="border rounded-md flex-1 mt-2"
             >
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" className="flex w-full justify-between p-4">
                   <div className="flex items-center gap-2 overflow-hidden">
-                    <BookOpen className="h-4 w-4 flex-shrink-0" />
+                    <div className="bg-muted/30 p-1.5 rounded-md">
+                      <BookOpen className="h-4 w-4 text-primary/70" />
+                    </div>
                     <span className="truncate">Courses Affecting GPA</span>
                     {courses.length > 0 && (
                       <Badge variant="secondary" className="ml-2 flex-shrink-0">{courses.length}</Badge>
@@ -762,59 +805,59 @@ export default function CanvasIntegrationCard() {
                     <div className="space-y-3 max-h-[200px] overflow-y-auto pr-1">
                       {courses.map((course) => (
                         <div key={course.id} className="flex flex-col sm:flex-row items-start gap-3 p-3 border rounded-md hover:bg-muted/30 transition-colors">
-                        <div className="pt-0.5 flex-shrink-0">
-                          <Checkbox
-                            id={`course-${course.id}`}
-                            checked={!course.excluded}
-                            onCheckedChange={(checked) => {
-                              handleToggleCourseExclusion(course.id, !checked);
-                            }}
-                            disabled={updatingCourse === course.id}
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0 w-full sm:w-auto">
-                          <div className="flex flex-col">
-                            <label
-                              htmlFor={`course-${course.id}`}
-                              className={`text-sm font-medium truncate ${course.excluded ? 'text-muted-foreground line-through' : ''}`}
-                              title={course.name}
-                            >
-                              {course.name}
-                            </label>
-                            <div className="flex flex-col gap-1 text-xs text-muted-foreground">
-                              {course.code && (
-                                <span className="font-medium">{course.code}</span>
-                              )}
-                              <div className="flex flex-wrap items-center gap-2 mt-1 sm:mt-0">
-                                <span className="flex items-center gap-1 flex-shrink-0">
-                                  <GraduationCap className="h-3 w-3" />
-                                  {course.credits} {course.credits === 1 ? 'credit' : 'credits'}
-                                </span>
-                                {course.grade && (
-                                  <span className="px-1.5 py-0.5 rounded-sm bg-muted-foreground/10 flex-shrink-0">
-                                    Grade: {course.grade}
+                          <div className="flex items-center gap-2 w-full">
+                            <div className="flex-shrink-0">
+                              <Checkbox
+                                id={`course-${course.id}`}
+                                checked={!course.excluded}
+                                onCheckedChange={(checked) => {
+                                  handleToggleCourseExclusion(course.id, !checked);
+                                }}
+                                disabled={updatingCourse === course.id}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-col">
+                                <div className="flex items-center justify-between w-full">
+                                  <label
+                                    htmlFor={`course-${course.id}`}
+                                    className={`text-sm font-medium truncate ${course.excluded ? 'text-muted-foreground line-through' : ''}`}
+                                    title={course.name}
+                                  >
+                                    {course.name}
+                                  </label>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div className="px-2 py-1 rounded bg-muted text-xs font-medium flex-shrink-0 ml-2">
+                                          {course.score}%
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Grade Points: {course.gradePoints.toFixed(1)}</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-muted-foreground">
+                                  {course.code && (
+                                    <span className="font-medium">{course.code}</span>
+                                  )}
+                                  <span className="flex items-center gap-1 flex-shrink-0">
+                                    <GraduationCap className="h-3 w-3" />
+                                    {course.credits} {course.credits === 1 ? 'credit' : 'credits'}
                                   </span>
-                                )}
+                                  {course.grade && (
+                                    <span className="px-1.5 py-0.5 rounded-sm bg-muted-foreground/10 flex-shrink-0">
+                                      Grade: {course.grade}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                        <div className="self-start sm:self-center mt-2 sm:mt-0">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="px-2 py-1 rounded bg-muted text-xs font-medium flex-shrink-0">
-                                {course.score}%
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Grade Points: {course.gradePoints.toFixed(1)}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
                     </div>
                   </div>
                 ) : (
