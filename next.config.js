@@ -4,6 +4,8 @@ const nextConfig = {
   // Disable static generation for all routes
   output: 'standalone',
   distDir: '.next',
+  // Force dynamic rendering for all pages
+  staticPageGenerationTimeout: 1,
   // Disable static generation completely
   experimental: {
     // Existing experimental settings

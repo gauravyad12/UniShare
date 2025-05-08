@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   try {
     // Parse JSON body instead of form data
     const body = await request.json();
-    const { email, password, full_name, username } = body;
+    let { email, password, full_name, username } = body;
 
     // Basic validation
     if (!email || !password) {
