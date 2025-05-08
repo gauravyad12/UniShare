@@ -11,10 +11,9 @@ export function createClientOnlyClient() {
   if (usedMockClient) return createMockClient();
 
   try {
-    // Hardcoded API keys for testing
-    const supabaseUrl = "https://ncvinrzllkqlypnyluco.supabase.co";
-    const supabaseKey =
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jdmlucnpsbGtxbHlwbnlsdWNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIxNzIxMDMsImV4cCI6MjA1Nzc0ODEwM30.ZFTtxcCa4www7icBhNKaJBnLjqepNVIqRxamEEFarsI";
+    // Use environment variables instead of hardcoded values
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     // Always use mock client if env vars are missing
     if (!supabaseUrl || !supabaseKey) {

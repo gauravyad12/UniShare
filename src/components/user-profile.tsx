@@ -23,6 +23,9 @@ export default function UserProfile() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Store the authenticated user ID to validate profile data
+    let currentUserId: string | null = null;
+
     const fetchUserProfile = async () => {
       try {
         setIsLoading(true);
@@ -35,18 +38,33 @@ export default function UserProfile() {
           return;
         }
 
+        // Store the authenticated user ID for validation
+        currentUserId = user.id;
         setUserEmail(user.email);
 
-        const { data: profile } = await supabase
+        const { data: profile, error } = await supabase
           .from("user_profiles")
-          .select("avatar_url, username, full_name")
+          .select("id, avatar_url, username, full_name")
           .eq("id", user.id)
           .single();
 
-        if (profile) {
+        if (error) {
+          console.error("Error fetching profile:", error);
+          setIsLoading(false);
+          return;
+        }
+
+        // Security check: Verify the profile belongs to the authenticated user
+        if (profile && profile.id === currentUserId) {
           setAvatarUrl(profile.avatar_url);
           setUsername(profile.username);
           setFullName(profile.full_name);
+        } else {
+          console.error("Profile ID mismatch - security issue detected");
+          // Clear any potentially incorrect data
+          setAvatarUrl(null);
+          setUsername(null);
+          setFullName(null);
         }
       } catch (error) {
         console.error("Error fetching user profile:", error);
@@ -57,7 +75,7 @@ export default function UserProfile() {
 
     fetchUserProfile();
 
-    // Set up a subscription to profile changes
+    // Set up a subscription to profile changes with security filtering
     const channel = supabase
       .channel("profile-changes")
       .on(
@@ -66,12 +84,16 @@ export default function UserProfile() {
           event: "UPDATE",
           schema: "public",
           table: "user_profiles",
+          filter: currentUserId ? `id=eq.${currentUserId}` : undefined, // Only listen to changes for the current user
         },
         (payload) => {
-          if (payload.new) {
+          // Additional security check: Only update if the payload belongs to the current user
+          if (payload.new && payload.new.id === currentUserId) {
             setAvatarUrl(payload.new.avatar_url);
             setUsername(payload.new.username);
             setFullName(payload.new.full_name);
+          } else {
+            console.warn("Received profile update for different user - ignoring");
           }
         },
       )

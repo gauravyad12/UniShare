@@ -1,4 +1,4 @@
-import DashboardNavbar from "@/components/dashboard-navbar";
+import { DashboardNavbarServer } from "@/components/server/dashboard-navbar-server";
 import BottomNavbar from "@/components/bottom-navbar";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
@@ -64,7 +64,7 @@ export default async function DashboardLayout({
         <AppilixCookieIdentity />
         {/* Script to read cookie and set Appilix identity */}
         <AppilixCookieScript />
-        <DashboardNavbar />
+        <DashboardNavbarServer />
         <main className="flex-1 w-full pb-20 md:pb-0">{children}</main>
         <BottomNavbar />
       </div>

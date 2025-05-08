@@ -109,11 +109,35 @@ export async function middleware(req: NextRequest) {
       (route) => pathname.startsWith(route),
     );
 
-    // Get user session
+    // Get user session with enhanced validation
     let session;
     try {
       const { data } = await supabase.auth.getSession();
       session = data.session;
+
+      // Enhanced session validation
+      if (session) {
+        // Check if session is expired
+        const currentTime = Math.floor(Date.now() / 1000);
+        if (session.expires_at && session.expires_at < currentTime) {
+          console.warn("Session expired, redirecting to sign-in");
+          if (isProtectedRoute) {
+            url.pathname = "/sign-in";
+            url.searchParams.set("error", "Your session has expired. Please sign in again.");
+            return NextResponse.redirect(url);
+          }
+        }
+
+        // Check for suspicious activity (IP mismatch)
+        const clientIP = req.ip || req.headers.get("x-forwarded-for")?.split(",")[0].trim();
+        const sessionIP = session.user?.last_sign_in_ip;
+
+        if (sessionIP && clientIP && sessionIP !== clientIP) {
+          console.warn(`IP mismatch detected: session IP ${sessionIP} vs current IP ${clientIP}`);
+          // Log suspicious activity but don't block (could be legitimate IP change)
+          // You could implement additional checks here if needed
+        }
+      }
     } catch (sessionError) {
       console.error("Failed to get session data:", sessionError);
       if (isProtectedRoute) {
@@ -141,10 +165,25 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // Add cache control headers to prevent caching issues
+    // Add security headers to prevent common attacks
     if (response) {
+      // Cache control headers
       response.headers.set("x-middleware-cache", "no-cache");
       response.headers.set("Cache-Control", "no-store, max-age=0");
+
+      // CSRF protection headers
+      response.headers.set("X-Content-Type-Options", "nosniff");
+      response.headers.set("X-Frame-Options", "DENY");
+      response.headers.set("X-XSS-Protection", "1; mode=block");
+
+      // Content Security Policy to prevent XSS attacks
+      response.headers.set(
+        "Content-Security-Policy",
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://js.stripe.com https://appilix.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://*.supabase.co https://ncvinrzllkqlypnyluco.supabase.co https://screenshotmachine.com; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://appilix.com; frame-src 'self' https://js.stripe.com;"
+      );
+
+      // Referrer Policy
+      response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
     }
 
     return response || NextResponse.next();
