@@ -27,6 +27,7 @@ import {
   XCircle,
   Plus,
   X,
+  AlertCircle,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -40,6 +41,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { createClient } from "@/utils/supabase/client";
+import { validateImageFile, ALLOWED_IMAGE_TYPES, formatFileSize, MAX_AVATAR_SIZE } from "@/utils/imageValidation";
+import { toast } from "@/components/ui/use-toast";
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -509,6 +512,28 @@ export default function EditProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Check if the file is an allowed image type
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Only image files are accepted",
+        variant: "destructive",
+      });
+      e.target.value = ''; // Clear the file input
+      return;
+    }
+
+    // Check file size
+    if (file.size > MAX_AVATAR_SIZE) {
+      toast({
+        title: "File too large",
+        description: `Maximum file size is ${formatFileSize(MAX_AVATAR_SIZE)}`,
+        variant: "destructive",
+      });
+      e.target.value = ''; // Clear the file input
+      return;
+    }
+
     try {
       setSavingStates(prev => ({
         ...prev,
@@ -535,13 +560,25 @@ export default function EditProfilePage() {
         ...profile,
         avatar_url: data.avatarUrl,
       });
+
+      toast({
+        title: "Success",
+        description: "Profile picture updated successfully",
+      });
     } catch (error: unknown) {
-      console.error("Error uploading image:", error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("Error uploading image:", errorMessage);
+      toast({
+        title: "Error uploading image",
+        description: errorMessage,
+        variant: "destructive",
+      });
     } finally {
       setSavingStates(prev => ({
         ...prev,
         profile: false
       }));
+      e.target.value = ''; // Clear the file input after upload (success or failure)
     }
   };
 
@@ -585,12 +622,12 @@ export default function EditProfilePage() {
                     <UserCircle className="w-20 h-20 text-primary" />
                   )}
                 </div>
-                <div className="relative">
+                <div className="relative flex flex-col items-center">
                   <input
                     type="file"
                     id="avatar-upload"
                     className="hidden"
-                    accept="image/*"
+                    accept={ALLOWED_IMAGE_TYPES.join(',')}
                     onChange={handleImageUpload}
                   />
                   <Button
@@ -598,10 +635,19 @@ export default function EditProfilePage() {
                     onClick={() =>
                       document.getElementById("avatar-upload")?.click()
                     }
+                    disabled={savingStates.profile}
                   >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Image
+                    {savingStates.profile ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="mr-2 h-4 w-4" />
+                    )}
+                    {savingStates.profile ? "Uploading..." : "Upload Image"}
                   </Button>
+                  <p className="text-xs text-muted-foreground mt-4 text-center">
+                    Accepted formats: JPEG, PNG, GIF, WebP, SVG<br />
+                    Max size: {formatFileSize(MAX_AVATAR_SIZE)}
+                  </p>
                 </div>
               </CardContent>
             </Card>

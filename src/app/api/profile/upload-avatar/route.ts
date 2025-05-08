@@ -1,5 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { ALLOWED_IMAGE_TYPES, MAX_AVATAR_SIZE, validateImageFile } from "@/utils/imageValidation";
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,6 +19,12 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    }
+
+    // Validate the image file
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
     // Skip bucket creation - assume the bucket already exists
