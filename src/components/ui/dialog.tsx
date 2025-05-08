@@ -51,7 +51,7 @@ const DialogContent = React.forwardRef<
       <div className="max-md:w-full max-md:overflow-x-hidden">
         {children}
       </div>
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-full p-2 opacity-70 transition-opacity hover:opacity-100 sm:hover:bg-muted sm:focus:outline-none sm:focus:ring-2 sm:focus:ring-ring sm:focus:ring-offset-2 disabled:pointer-events-none sm:data-[state=open]:bg-accent sm:data-[state=open]:text-muted-foreground w-8 h-8 flex items-center justify-center">
+      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-full p-2 opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 disabled:pointer-events-none w-8 h-8 flex items-center justify-center">
         <Cross2Icon className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
