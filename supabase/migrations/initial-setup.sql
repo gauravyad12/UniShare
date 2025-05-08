@@ -116,15 +116,7 @@ CREATE TABLE IF NOT EXISTS public.group_chat_typing_status (
     UNIQUE(study_group_id, user_id)
 );
 
--- Message Read Status table
-CREATE TABLE IF NOT EXISTS public.message_read_status (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    message_id uuid REFERENCES public.group_chat_messages(id) ON DELETE CASCADE,
-    user_id uuid REFERENCES public.user_profiles(id) ON DELETE CASCADE,
-    read_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
-    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
-    UNIQUE(message_id, user_id)
-);
+
 
 -- Resources table
 CREATE TABLE IF NOT EXISTS public.resources (
@@ -365,7 +357,6 @@ ALTER TABLE public.study_group_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.study_group_invitations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.group_chat_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.group_chat_typing_status ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.message_read_status ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.resources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.resource_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.resource_likes ENABLE ROW LEVEL SECURITY;

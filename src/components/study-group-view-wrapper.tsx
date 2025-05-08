@@ -26,7 +26,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import RealtimeUnreadBadgeWrapper from "@/components/realtime-unread-badge-wrapper";
 import ShareStudyGroupButton from "@/components/share-study-group-button";
 
 interface StudyGroupViewWrapperProps {
@@ -210,13 +209,6 @@ export default function StudyGroupViewWrapper({
                   <Link href={`/dashboard/study-groups?view=${group.id}&chat=true`}>
                     <MessageSquare className="mr-2 h-4 w-4" />
                     Group Chat
-                    {userId && (
-                      <RealtimeUnreadBadgeWrapper
-                        groupId={group.id}
-                        userId={userId}
-                        className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center text-xs"
-                      />
-                    )}
                   </Link>
                 </Button>
                 {!group.is_private && (

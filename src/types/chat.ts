@@ -11,12 +11,6 @@ export interface ChatMessage {
   avatar_url?: string;
 }
 
-export interface UnreadCounts {
-  [groupId: string]: {
-    total: number;
-    unread: number;
-  };
-}
 
 export interface TypingStatus {
   id: string;
