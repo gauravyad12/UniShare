@@ -75,11 +75,35 @@ export async function POST(request: NextRequest) {
     // Handle email validation
     let domainToCheck = domain;
 
-    // If email is provided, extract domain from it
-    if (email && !domainToCheck) {
-      const emailParts = email.split("@");
-      if (emailParts.length >= 2) {
-        domainToCheck = emailParts[1].toLowerCase();
+    // If email is provided, check for email variations
+    if (email) {
+      // Import the email normalization utility
+      const { normalizeEmail, hasGmailDotVariations, hasTagVariations } = await import('@/utils/emailNormalization');
+
+      // Check for Gmail dot variations
+      if (hasGmailDotVariations(email)) {
+        return NextResponse.json(
+          { valid: false, error: "Gmail addresses with dots (.) are not allowed. Please use the version without dots." },
+          { status: 400 }
+        );
+      }
+
+      // Check for tag/label variations (plus, hyphen, underscore)
+      if (hasTagVariations(email)) {
+        return NextResponse.json(
+          { valid: false, error: "Email addresses with tags (+, -, _) are not allowed" },
+          { status: 400 }
+        );
+      }
+
+      // Extract domain from email if not provided separately
+      if (!domainToCheck) {
+        // Use the normalized email to extract the domain
+        const normalizedEmail = normalizeEmail(email);
+        const emailParts = normalizedEmail.split("@");
+        if (emailParts.length >= 2) {
+          domainToCheck = emailParts[1].toLowerCase();
+        }
       }
     }
 

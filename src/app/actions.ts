@@ -16,7 +16,7 @@ function encodedRedirect(
 }
 
 export async function signUpAction(formData: FormData) {
-  const email = formData.get("email")?.toString();
+  let email = formData.get("email")?.toString();
   const password = formData.get("password")?.toString();
   const confirmPassword = formData.get("confirm_password")?.toString();
   const fullName = formData.get("full_name")?.toString() || "";
@@ -127,6 +127,40 @@ export async function signUpAction(formData: FormData) {
       "/verify-invite",
       "Invite code is required",
     );
+  }
+
+  // Check for email variations
+  try {
+    const { normalizeEmail, hasGmailDotVariations, hasTagVariations } = await import('@/utils/emailNormalization');
+
+    // Check for Gmail dot variations
+    if (hasGmailDotVariations(email)) {
+      return encodedRedirect(
+        "error",
+        "/sign-up",
+        "Gmail addresses with dots (.) are not allowed. Please use the version without dots."
+      );
+    }
+
+    // Check for tag/label variations (plus, hyphen, underscore)
+    if (hasTagVariations(email)) {
+      return encodedRedirect(
+        "error",
+        "/sign-up",
+        "Email addresses with tags (+, -, _) are not allowed"
+      );
+    }
+
+    // Normalize the email for sign-up
+    const normalizedEmail = normalizeEmail(email);
+    if (normalizedEmail !== email.toLowerCase()) {
+      console.log(`Email normalized from ${email} to ${normalizedEmail}`);
+      // Use the normalized email for sign-up
+      email = normalizedEmail;
+    }
+  } catch (error) {
+    console.error("Error checking email variations:", error);
+    // Continue with sign-up if the import fails
   }
 
   // Check if email domain is from a supported university
@@ -382,7 +416,7 @@ export async function signUpAction(formData: FormData) {
 }
 
 export async function signInAction(formData: FormData) {
-  const email = formData.get("email") as string;
+  let email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const supabase = createClient();
 
@@ -392,6 +426,40 @@ export async function signInAction(formData: FormData) {
       "/sign-in",
       "Email and password are required",
     );
+  }
+
+  // Check for email variations
+  try {
+    const { normalizeEmail, hasGmailDotVariations, hasTagVariations } = await import('@/utils/emailNormalization');
+
+    // Check for Gmail dot variations
+    if (hasGmailDotVariations(email)) {
+      return encodedRedirect(
+        "error",
+        "/sign-in",
+        "Gmail addresses with dots (.) are not allowed. Please use the version without dots."
+      );
+    }
+
+    // Check for tag/label variations (plus, hyphen, underscore)
+    if (hasTagVariations(email)) {
+      return encodedRedirect(
+        "error",
+        "/sign-in",
+        "Email addresses with tags (+, -, _) are not allowed"
+      );
+    }
+
+    // Normalize the email for sign-in
+    const normalizedEmail = normalizeEmail(email);
+    if (normalizedEmail !== email.toLowerCase()) {
+      console.log(`Email normalized from ${email} to ${normalizedEmail}`);
+      // Use the normalized email for sign-in
+      email = normalizedEmail;
+    }
+  } catch (error) {
+    console.error("Error checking email variations:", error);
+    // Continue with sign-in if the import fails
   }
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -418,11 +486,45 @@ export async function signInAction(formData: FormData) {
 }
 
 export async function forgotPasswordAction(formData: FormData) {
-  const email = formData.get("email")?.toString();
+  let email = formData.get("email")?.toString();
   const supabase = createClient();
 
   if (!email) {
     return encodedRedirect("error", "/forgot-password", "Email is required");
+  }
+
+  // Check for email variations
+  try {
+    const { normalizeEmail, hasGmailDotVariations, hasTagVariations } = await import('@/utils/emailNormalization');
+
+    // Check for Gmail dot variations
+    if (hasGmailDotVariations(email)) {
+      return encodedRedirect(
+        "error",
+        "/forgot-password",
+        "Gmail addresses with dots (.) are not allowed. Please use the version without dots."
+      );
+    }
+
+    // Check for tag/label variations (plus, hyphen, underscore)
+    if (hasTagVariations(email)) {
+      return encodedRedirect(
+        "error",
+        "/forgot-password",
+        "Email addresses with tags (+, -, _) are not allowed"
+      );
+    }
+
+    // Normalize the email for password reset
+    const normalizedEmail = normalizeEmail(email);
+    if (normalizedEmail !== email.toLowerCase()) {
+      console.log(`Email normalized from ${email} to ${normalizedEmail}`);
+      // Use the normalized email for password reset
+      email = normalizedEmail;
+    }
+  } catch (error) {
+    console.error("Error checking email variations:", error);
+    // Continue with password reset if the import fails
   }
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {});

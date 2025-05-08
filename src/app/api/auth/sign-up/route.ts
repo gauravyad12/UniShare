@@ -20,6 +20,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check for email variations
+    try {
+      const { hasGmailDotVariations, hasTagVariations, normalizeEmail } = await import('@/utils/emailNormalization');
+
+      // Check for Gmail dot variations
+      if (hasGmailDotVariations(email)) {
+        return NextResponse.json(
+          { error: "Gmail addresses with dots (.) are not allowed. Please use the version without dots." },
+          { status: 400 },
+        );
+      }
+
+      // Check for tag/label variations (plus, hyphen, underscore)
+      if (hasTagVariations(email)) {
+        return NextResponse.json(
+          { error: "Email addresses with tags (+, -, _) are not allowed" },
+          { status: 400 },
+        );
+      }
+
+      // Normalize the email for further processing
+      const normalizedEmail = normalizeEmail(email);
+      if (normalizedEmail !== email.toLowerCase()) {
+        console.log(`Email normalized from ${email} to ${normalizedEmail}`);
+        // Continue with the normalized email
+        email = normalizedEmail;
+      }
+    } catch (error) {
+      console.error("Error checking email variations:", error);
+      // Continue with validation if the import fails
+    }
+
     const supabase = createClient();
 
     // Check username availability

@@ -331,7 +331,30 @@ export default function SignUpForm({ message }: SignUpFormProps) {
       return;
     }
 
-    // 4. Check email domain
+    // 4. Check for email variations (plus, dots, tags, etc.)
+    try {
+      // Dynamically import the email normalization utility
+      const { detectEmailVariations, hasGmailDotVariations, hasTagVariations } = await import('@/utils/emailNormalization');
+
+      // Check for Gmail dot variations
+      if (hasGmailDotVariations(email)) {
+        setEmailError("Gmail addresses with dots (.) are not allowed. Please use the version without dots.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Check for tag/label variations (plus, hyphen, underscore)
+      if (hasTagVariations(email)) {
+        setEmailError("Email addresses with tags (+, -, _) are not allowed");
+        setIsSubmitting(false);
+        return;
+      }
+    } catch (error) {
+      console.error("Error checking email variations:", error);
+      // Continue with validation if the import fails
+    }
+
+    // 5. Check email domain
     const emailDomain = email.split("@")[1];
     if (!emailDomain) {
       setEmailError("Invalid email format");
