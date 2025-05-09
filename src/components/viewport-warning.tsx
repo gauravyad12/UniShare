@@ -11,7 +11,7 @@ interface ViewportWarningProps {
 
 export default function ViewportWarning({
   minWidth = 365, // Default minimum width
-  minHeight = 600, // Default minimum height
+  minHeight = 400, // Default minimum height
 }: ViewportWarningProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isTooNarrow, setIsTooNarrow] = useState(false);

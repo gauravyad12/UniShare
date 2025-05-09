@@ -115,7 +115,7 @@ export default function RootLayout({
             <GlobalLoadingSpinner />
             <KeyboardAwareLayout />
             <AppilixRootIdentity />
-            <ViewportWarningWrapper minWidth={365} minHeight={600}>
+            <ViewportWarningWrapper minWidth={365} minHeight={400}>
               {children}
             </ViewportWarningWrapper>
             <NavigationEvents />

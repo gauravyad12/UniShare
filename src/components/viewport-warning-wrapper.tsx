@@ -12,7 +12,7 @@ interface ViewportWarningWrapperProps {
 export default function ViewportWarningWrapper({
   children,
   minWidth = 365, // Default minimum width
-  minHeight = 600, // Default minimum height
+  minHeight = 400, // Default minimum height
 }: ViewportWarningWrapperProps) {
   return (
     <>
