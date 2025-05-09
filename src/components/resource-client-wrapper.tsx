@@ -45,7 +45,9 @@ export default function ResourceClientWrapper() {
               Share study materials with your university peers
             </DialogDescription>
           </DialogHeader>
-          <ResourceUploadForm />
+          <div className="mt-2">
+            <ResourceUploadForm />
+          </div>
         </DialogContent>
       </Dialog>
     </>

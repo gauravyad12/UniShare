@@ -112,8 +112,8 @@ export default function ResourceCard({
   useEffect(() => {
     const checkAuth = async () => {
       const supabase = createClient();
-      const { data } = await supabase.auth.getSession();
-      setIsAuthenticated(!!data.session);
+      const { data } = await supabase.auth.getUser();
+      setIsAuthenticated(!!data.user);
     };
 
     checkAuth();

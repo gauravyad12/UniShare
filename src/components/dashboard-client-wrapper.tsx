@@ -100,9 +100,9 @@ export function DashboardClientWrapper({
     const checkAuth = async () => {
       try {
         const supabase = createClient();
-        const { data } = await supabase.auth.getSession();
+        const { data } = await supabase.auth.getUser();
 
-        if (data.session) {
+        if (data.user) {
           setIsAuthenticated(true);
         } else {
           setIsAuthenticated(false);

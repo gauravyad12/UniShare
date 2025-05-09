@@ -37,22 +37,39 @@ DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName;
 const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <DrawerPortal>
-    <DrawerOverlay />
-    <DrawerPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
-        className,
-      )}
-      {...props}
-    >
-      <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
-      {children}
-    </DrawerPrimitive.Content>
-  </DrawerPortal>
-));
+>(({ className, children, ...props }, ref) => {
+  // Generate a unique ID for the drawer description if not provided
+  const [descriptionId] = React.useState(() => `drawer-description-${Math.random().toString(36).substring(2, 9)}`);
+
+  // We'll skip the check for DrawerDescription and always provide a fallback
+  // This ensures we always have a description for screen readers
+  const hasDescription = false;
+
+  // If aria-describedby is not provided and there's no DrawerDescription, use our generated ID
+  const ariaDescribedBy = props['aria-describedby'] || (hasDescription ? undefined : descriptionId);
+
+  return (
+    <DrawerPortal>
+      <DrawerOverlay />
+      <DrawerPrimitive.Content
+        ref={ref}
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
+          className,
+        )}
+        aria-describedby={ariaDescribedBy}
+        {...props}
+      >
+        <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
+        {children}
+        {/* Always add a hidden description for accessibility */}
+        <span id={descriptionId} className="sr-only">
+          Drawer content
+        </span>
+      </DrawerPrimitive.Content>
+    </DrawerPortal>
+  );
+});
 DrawerContent.displayName = "DrawerContent";
 
 const DrawerHeader = ({

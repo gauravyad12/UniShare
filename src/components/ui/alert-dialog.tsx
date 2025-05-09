@@ -35,36 +35,46 @@ AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName;
 const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <AlertDialogPortal>
-    <AlertDialogOverlay />
-    <AlertDialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        // Desktop styles
-        "fixed z-50 grid w-full max-w-lg gap-4 border bg-background p-6 shadow-lg duration-300 sm:rounded-lg md:w-full",
-        // Desktop animations
-        "md:left-[50%] md:top-[50%] md:translate-x-[-50%] md:translate-y-[-50%]",
-        "md:data-[state=open]:animate-in md:data-[state=closed]:animate-out md:data-[state=closed]:fade-out-0 md:data-[state=open]:fade-in-0",
-        "md:data-[state=closed]:zoom-out-95 md:data-[state=open]:zoom-in-95",
-        "md:data-[state=closed]:slide-out-to-left-1/2 md:data-[state=closed]:slide-out-to-top-[48%]",
-        "md:data-[state=open]:slide-in-from-left-1/2 md:data-[state=open]:slide-in-from-top-[48%]",
-        // Mobile-specific styles
-        "max-h-[calc(100vh-2rem)] overflow-y-auto overflow-x-hidden",
-        "max-md:rounded-t-lg max-md:rounded-b-none max-md:top-auto max-md:bottom-0 max-md:left-0 max-md:right-0 max-md:m-0 max-md:w-full",
-        // Use the mobile-slide-up animation for mobile
-        "max-md:data-[state=open]:animate-in max-md:data-[state=closed]:animate-out",
-        "max-md:data-[state=open]:fade-in-0 max-md:data-[state=closed]:fade-out-0",
-        className,
-      )}
-      {...props}
-    >
-      <div className="max-md:w-full max-md:overflow-x-hidden">
-        {children}
-      </div>
-    </AlertDialogPrimitive.Content>
-  </AlertDialogPortal>
-));
+>(({ className, children, ...props }, ref) => {
+  // Create a fixed ID for the alert dialog description
+  const descriptionId = "alert-dialog-description-fixed";
+
+  return (
+    <AlertDialogPortal>
+      <AlertDialogOverlay />
+      <AlertDialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          // Desktop styles
+          "fixed z-50 grid w-full max-w-lg gap-4 border bg-background p-6 shadow-lg duration-300 sm:rounded-lg md:w-full",
+          // Desktop animations
+          "md:left-[50%] md:top-[50%] md:translate-x-[-50%] md:translate-y-[-50%]",
+          "md:data-[state=open]:animate-in md:data-[state=closed]:animate-out md:data-[state=closed]:fade-out-0 md:data-[state=open]:fade-in-0",
+          "md:data-[state=closed]:zoom-out-95 md:data-[state=open]:zoom-in-95",
+          "md:data-[state=closed]:slide-out-to-left-1/2 md:data-[state=closed]:slide-out-to-top-[48%]",
+          "md:data-[state=open]:slide-in-from-left-1/2 md:data-[state=open]:slide-in-from-top-[48%]",
+          // Mobile-specific styles
+          "max-h-[calc(100vh-2rem)] overflow-y-auto overflow-x-hidden",
+          "max-md:rounded-t-lg max-md:rounded-b-none max-md:top-auto max-md:bottom-0 max-md:left-0 max-md:right-0 max-md:m-0 max-md:w-full",
+          // Use the mobile-slide-up animation for mobile
+          "max-md:data-[state=open]:animate-in max-md:data-[state=closed]:animate-out",
+          "max-md:data-[state=open]:fade-in-0 max-md:data-[state=closed]:fade-out-0",
+          className,
+        )}
+        aria-describedby={descriptionId}
+        {...props}
+      >
+        {/* Hidden description element that's always present (screen reader only) */}
+        <div id={descriptionId} className="sr-only">
+          Alert dialog content description
+        </div>
+        <div className="max-md:w-full max-md:overflow-x-hidden">
+          {children}
+        </div>
+      </AlertDialogPrimitive.Content>
+    </AlertDialogPortal>
+  );
+});
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName;
 
 const AlertDialogHeader = ({
@@ -73,8 +83,8 @@ const AlertDialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col space-y-2 text-center sm:text-left",
-      "max-md:pb-2 max-md:mb-2 max-md:pt-1 max-md:w-full",
+      "flex flex-col space-y-2 text-center sm:text-left mb-4",
+      "max-md:pb-3 max-md:mb-4 max-md:pt-1 max-md:w-full",
       className,
     )}
     {...props}

@@ -109,14 +109,18 @@ export async function middleware(req: NextRequest) {
       (route) => pathname.startsWith(route),
     );
 
-    // Get user session with enhanced validation
-    let session;
+    // Get user with enhanced validation
+    let user;
     try {
-      const { data } = await supabase.auth.getSession();
-      session = data.session;
+      const { data } = await supabase.auth.getUser();
+      user = data.user;
 
-      // Enhanced session validation
-      if (session) {
+      // Get session for additional validation
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData.session;
+
+      // Enhanced user validation
+      if (user && session) {
         // Check if session is expired
         const currentTime = Math.floor(Date.now() / 1000);
         if (session.expires_at && session.expires_at < currentTime) {
@@ -130,7 +134,8 @@ export async function middleware(req: NextRequest) {
 
         // Check for suspicious activity (IP mismatch)
         const clientIP = req.ip || req.headers.get("x-forwarded-for")?.split(",")[0].trim();
-        const sessionIP = session.user?.last_sign_in_ip;
+        // Use user_metadata for IP info as it's not in the standard User type
+        const sessionIP = user.user_metadata?.last_sign_in_ip;
 
         if (sessionIP && clientIP && sessionIP !== clientIP) {
           console.warn(`IP mismatch detected: session IP ${sessionIP} vs current IP ${clientIP}`);
@@ -153,14 +158,14 @@ export async function middleware(req: NextRequest) {
     }
 
     // Handle protected routes
-    if (isProtectedRoute && !session) {
+    if (isProtectedRoute && !user) {
       url.pathname = "/sign-in";
       url.searchParams.set("error", "Please sign in to access the dashboard");
       return NextResponse.redirect(url);
     }
 
     // Handle auth routes when user is already logged in
-    if (isAuthRoute && session) {
+    if (isAuthRoute && user) {
       url.pathname = "/dashboard";
       return NextResponse.redirect(url);
     }
@@ -173,13 +178,13 @@ export async function middleware(req: NextRequest) {
 
       // CSRF protection headers
       response.headers.set("X-Content-Type-Options", "nosniff");
-      response.headers.set("X-Frame-Options", "DENY");
+      response.headers.set("X-Frame-Options", "SAMEORIGIN"); // Allow framing from same origin
       response.headers.set("X-XSS-Protection", "1; mode=block");
 
       // Content Security Policy to prevent XSS attacks
       response.headers.set(
         "Content-Security-Policy",
-        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://js.stripe.com https://appilix.com https://va.vercel-scripts.com https://*.vercel-insights.com https://*.vercel-analytics.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://*.supabase.co https://ncvinrzllkqlypnyluco.supabase.co https://screenshotmachine.com; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://appilix.com https://va.vercel-scripts.com https://*.vercel-insights.com https://*.vercel-analytics.com; frame-src 'self' https://js.stripe.com;"
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://js.stripe.com https://appilix.com https://va.vercel-scripts.com https://*.vercel-insights.com https://*.vercel-analytics.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https://*.supabase.co https://ncvinrzllkqlypnyluco.supabase.co https://screenshotmachine.com https://*.wikimedia.org https://*.wikipedia.org https://*.unsplash.com https://*.cloudinary.com https://*.githubusercontent.com https://*.googleusercontent.com https://*.ggpht.com https://*.ytimg.com https://*.twimg.com https://*.pexels.com https://*.pixabay.com https://*.imgur.com https://*.giphy.com https://*.dicebear.com; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://appilix.com https://va.vercel-scripts.com https://*.vercel-insights.com https://*.vercel-analytics.com; frame-src 'self' https://js.stripe.com https://*.supabase.co https://ncvinrzllkqlypnyluco.supabase.co; object-src 'self' https://*.supabase.co https://ncvinrzllkqlypnyluco.supabase.co; media-src 'self' https://*.supabase.co https://ncvinrzllkqlypnyluco.supabase.co;"
       );
 
       // Referrer Policy

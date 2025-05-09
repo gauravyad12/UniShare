@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import ResourceEditForm from "./resource-edit-form";
 import { Textarea } from "./ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
@@ -37,6 +37,13 @@ import { checkUrlSafety } from "@/utils/urlSafety";
 import ReportUrlDialog from "./report-url-dialog";
 import { useToast } from "./ui/use-toast";
 import { Separator } from "./ui/separator";
+import dynamic from "next/dynamic";
+
+// Import PDF viewer dynamically to avoid SSR issues
+const PDFViewer = dynamic(() => import("./pdf-viewer"), {
+  ssr: false,
+  loading: () => <div className="w-full h-[600px] bg-muted/30 animate-pulse rounded-md"></div>,
+});
 
 interface Resource {
   id: string;
@@ -324,36 +331,8 @@ export default function ResourceView({
     // Fetch comments when the component mounts
     fetchComments();
 
-    // Store the original body styles
-    const originalBodyStyle = document.body.style.cssText;
-    const originalBodyClassName = document.body.className;
-
-    // Add a global style to use theme background on PDF viewers
-    const styleElement = document.createElement("style");
-    styleElement.id = "pdf-viewer-styles";
-    styleElement.textContent = `
-      .bg-background {
-        background-color: hsl(var(--background)) !important;
-      }
-      iframe[title*="PDF viewer"] {
-        background-color: hsl(var(--background)) !important;
-      }
-      iframe[title*="PDF viewer"]::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: hsl(var(--background)) !important;
-        z-index: 0;
-      }
-    `;
-
-    // Check if the style element already exists before appending
-    if (!document.getElementById("pdf-viewer-styles")) {
-      document.head.appendChild(styleElement);
-    }
+    // Scroll to the top of the page when the component mounts
+    window.scrollTo(0, 0);
 
     // Listen for the custom event to close the edit dialog
     const handleEditComplete = () => setShowEditDialog(false);
@@ -432,28 +411,6 @@ export default function ResourceView({
     });
 
     return () => {
-      // Restore the original body styles when component unmounts
-      document.body.style.cssText = originalBodyStyle;
-      document.body.className = originalBodyClassName;
-
-      // Force a reset of any background-color that might have been applied
-      document.body.style.removeProperty("background-color");
-
-      // Remove the added style element
-      const styleToRemove = document.getElementById("pdf-viewer-styles");
-      if (styleToRemove && document.head.contains(styleToRemove)) {
-        document.head.removeChild(styleToRemove);
-      }
-
-      // Remove any other PDF viewer styles that might have been added
-      const allStyles = document.head.getElementsByTagName("style");
-      for (let i = allStyles.length - 1; i >= 0; i--) {
-        const style = allStyles[i];
-        if (style.textContent && style.textContent.includes("PDF viewer")) {
-          document.head.removeChild(style);
-        }
-      }
-
       document.removeEventListener(
         "resource-edit-complete",
         handleEditComplete,
@@ -899,48 +856,14 @@ export default function ResourceView({
             resource.file_url &&
             resource.file_url.toLowerCase().endsWith(".pdf") && (
               <div
-                className="mt-4 border rounded-md overflow-hidden bg-background"
-                style={{ height: "600px", position: "relative" }}
+                className="mt-4 border rounded-md bg-background w-full"
+                style={{ position: "relative", minHeight: "400px" }}
               >
-                <iframe
-                  src={`${resource.file_url}#toolbar=0&navpanes=0`}
-                  width="100%"
-                  height="100%"
-                  style={{
-                    border: "none",
-                    position: "relative",
-                    zIndex: 1,
-                    backgroundColor: "hsl(var(--background))",
-                  }}
-                  title={`PDF viewer for ${resource.title}`}
-                  onLoad={(e) => {
-                    // Force theme background on the iframe and its contents
-                    const iframe = e.currentTarget;
-                    try {
-                      // Try to access the iframe content document if same-origin
-                      if (iframe.contentDocument) {
-                        const iframeDoc = iframe.contentDocument;
-                        const existingStyle =
-                          iframeDoc.getElementById("pdf-iframe-styles");
-                        if (existingStyle) {
-                          iframeDoc.head.removeChild(existingStyle);
-                        }
-
-                        const style = iframeDoc.createElement("style");
-                        style.id = "pdf-iframe-styles";
-                        style.textContent = `
-                          body, .pdfViewer, .page, .canvasWrapper, canvas {
-                            background-color: hsl(var(--background)) !important;
-                          }
-                        `;
-                        iframeDoc.head.appendChild(style);
-                      }
-                    } catch (err) {
-                      console.log(
-                        "Cannot access iframe content - cross-origin restriction",
-                      );
-                    }
-                  }}
+                {/* Use our custom PDF viewer component */}
+                <PDFViewer
+                  fileUrl={resource.file_url}
+                  title={resource.title}
+                  onDownload={handleDownload}
                 />
               </div>
             )}
@@ -1162,25 +1085,30 @@ export default function ResourceView({
           className="sm:max-w-[600px]"
           onOpenAutoFocus={(e) => e.preventDefault()} // Prevent auto-focus on open
         >
+          <div id="edit-resource-description" className="sr-only">Edit resource dialog</div>
           <DialogHeader>
             <DialogTitle>Edit Resource</DialogTitle>
+            <DialogDescription>
+              Update the details of your resource
+            </DialogDescription>
           </DialogHeader>
-          <ResourceEditForm resource={resource} />
+          <div className="mt-2">
+            <ResourceEditForm resource={resource} />
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent className="sm:max-w-[425px] p-6">
+          <div id="delete-resource-description" className="sr-only">Delete resource confirmation dialog</div>
           <DialogHeader className="space-y-2 text-center sm:text-left">
             <DialogTitle className="text-lg font-semibold">Delete Resource</DialogTitle>
-          </DialogHeader>
-          <div className="py-4 mb-4">
-            <p className="text-sm text-muted-foreground text-center sm:text-left">
+            <DialogDescription>
               This action cannot be undone. This will permanently delete the resource
               and all of its data.
-            </p>
-          </div>
+            </DialogDescription>
+          </DialogHeader>
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 space-y-1 space-y-reverse sm:space-y-0">
             <Button
               variant="outline"

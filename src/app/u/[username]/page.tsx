@@ -40,11 +40,11 @@ export default function UserProfilePage({
     const checkAuth = async () => {
       try {
         const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data } = await supabase.auth.getUser();
 
-        if (session) {
+        if (data.user) {
           // Store the current user ID
-          setCurrentUserId(session.user.id);
+          setCurrentUserId(data.user.id);
           // Set redirecting state to true
           setIsRedirecting(true);
           // Redirect to dashboard profile

@@ -14,30 +14,22 @@ export default function Hero() {
 
     // Check if user is logged in without using async/await directly in the effect
     const checkUser = () => {
-      // Get the session first instead of trying to refresh it
+      // Get the user directly using getUser() which is more secure
       supabase.auth
-        .getSession()
-        .then(({ data: sessionData }) => {
-          // Only try to refresh if we have a session
-          if (sessionData.session) {
-            supabase.auth.refreshSession().catch(() => {
-              // Silent error handling
-            });
-          }
+        .getUser()
+        .then(({ data, error }) => {
+          if (error) {
+            setUser(null);
+          } else {
+            setUser(data.user);
 
-          // Get the user regardless of refresh result
-          supabase.auth
-            .getUser()
-            .then(({ data, error }) => {
-              if (error) {
-                setUser(null);
-              } else {
-                setUser(data.user);
-              }
-            })
-            .catch(() => {
-              setUser(null);
-            });
+            // Refresh session if we have a user
+            if (data.user) {
+              supabase.auth.refreshSession().catch(() => {
+                // Silent error handling
+              });
+            }
+          }
         })
         .catch(() => {
           setUser(null);

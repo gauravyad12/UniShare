@@ -20,11 +20,9 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const supabase = createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const { data } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (!data.user) {
     redirect("/sign-in?error=Please sign in to access the dashboard");
   }
 
@@ -32,7 +30,7 @@ export default async function DashboardLayout({
   const { data: userSettings } = await supabase
     .from("user_settings")
     .select("color_scheme, font_size")
-    .eq("user_id", session.user.id)
+    .eq("user_id", data.user.id)
     .single();
 
   const colorScheme = userSettings?.color_scheme || "default";

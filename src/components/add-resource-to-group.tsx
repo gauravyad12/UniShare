@@ -356,7 +356,7 @@ export default function AddResourceToGroup({
             Search for resources to add to this study group.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 mt-2">
           <div className="flex flex-col space-y-3">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
               <Label htmlFor="resource-search" className="text-sm font-medium">Search Resources</Label>

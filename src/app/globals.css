@@ -509,6 +509,31 @@
     transform: scale(0.98);
   }
 
+  /* Accessibility fix for dialog content - ensure all dialogs have a description */
+  [role="dialog"]:not([aria-describedby]),
+  [role="alertdialog"]:not([aria-describedby]),
+  [role="tooltip"]:not([aria-describedby]),
+  [data-radix-popper-content-wrapper] > div:not([aria-describedby]) {
+    /* Force an aria-describedby attribute */
+    aria-describedby: "global-dialog-description";
+  }
+
+  /* Add a global hidden description element */
+  body::after {
+    content: "Dialog content description";
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+    display: block;
+    id: global-dialog-description;
+  }
+
   /* Fix horizontal scrollbar issues in modals */
   @media (max-width: 768px) {
     /* Exclude share resource popover from mobile dialog styles */

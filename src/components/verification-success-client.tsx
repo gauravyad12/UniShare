@@ -17,8 +17,8 @@ export default function VerificationSuccessClient() {
     // Check if the user is authenticated
     const checkAuth = async () => {
       const supabase = createClient();
-      const { data } = await supabase.auth.getSession();
-      setIsAuthenticated(!!data.session);
+      const { data } = await supabase.auth.getUser();
+      setIsAuthenticated(!!data.user);
     };
 
     checkAuth();

@@ -120,6 +120,11 @@ export default function RootLayout({
 
             <SpeedInsights />
             <Analytics />
+
+            {/* Hidden element for accessibility */}
+            <div id="global-dialog-description" className="sr-only">
+              Dialog content for accessibility
+            </div>
           </ThemeContextProvider>
         </ThemeProvider>
       </body>

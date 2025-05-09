@@ -25,8 +25,8 @@ export function ThemeToggle() {
     const checkAuth = async () => {
       try {
         const supabase = createClient();
-        const { data } = await supabase.auth.getSession();
-        setIsAuthenticated(!!data.session);
+        const { data } = await supabase.auth.getUser();
+        setIsAuthenticated(!!data.user);
       } catch (error) {
         console.error("Error checking auth:", error);
         setIsAuthenticated(false);
