@@ -492,7 +492,7 @@ export default function AddResourceToGroup({
             )}
           </div>
         </div>
-        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 sm:mt-6">
           <Button
             variant="outline"
             onClick={() => {

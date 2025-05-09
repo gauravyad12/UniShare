@@ -606,7 +606,7 @@ export default function EditProfilePage() {
             <Card>
               <CardHeader>
                 <CardTitle>Profile Picture</CardTitle>
-                <CardDescription>
+                <CardDescription className="mt-2">
                   Upload a profile picture to personalize your account
                 </CardDescription>
               </CardHeader>
@@ -660,7 +660,7 @@ export default function EditProfilePage() {
           <Card>
             <CardHeader>
               <CardTitle>Personal Information</CardTitle>
-              <CardDescription>
+              <CardDescription className="mt-2">
                 Update your personal details and public profile
               </CardDescription>
             </CardHeader>

@@ -16,7 +16,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
-export default function ResponsiveJoinButton() {
+interface ResponsiveJoinButtonProps {
+  variant?: "default" | "outline" | "secondary" | "destructive" | "ghost" | "link";
+}
+
+export default function ResponsiveJoinButton({ variant = "outline" }: ResponsiveJoinButtonProps) {
   const [isDesktop, setIsDesktop] = useState(true);
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
@@ -86,7 +90,7 @@ export default function ResponsiveJoinButton() {
     return (
       <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" className="flex-1 sm:flex-auto">
+          <Button variant={variant} className="flex-1 sm:flex-auto">
             <LinkIcon className="mr-2 h-4 w-4" /> Join with Code
           </Button>
         </DialogTrigger>
@@ -133,7 +137,7 @@ export default function ResponsiveJoinButton() {
 
   // For mobile: link to full page
   return (
-    <Button variant="outline" asChild className="flex-1 sm:flex-auto">
+    <Button variant={variant} asChild className="flex-1 sm:flex-auto">
       <Link href="/dashboard/study-groups/join">
         <LinkIcon className="mr-2 h-4 w-4" /> Join with Code
       </Link>

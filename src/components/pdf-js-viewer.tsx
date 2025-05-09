@@ -64,8 +64,11 @@ export default function PDFJSViewer({
           renderTask.cancel();
         }
 
-        // Load the PDF document
-        const loadingTask = pdfjsLib.getDocument({ data: pdfData });
+        // Load the PDF document with isEvalSupported set to false for security
+        const loadingTask = pdfjsLib.getDocument({
+          data: pdfData,
+          isEvalSupported: false // Prevent execution of JavaScript in PDFs
+        });
         const pdf = await loadingTask.promise;
 
         setPdfDocument(pdf);
@@ -97,21 +100,23 @@ export default function PDFJSViewer({
 
     // Get the container width (accounting for padding)
     // Use the parent element's width or fallback to window width
-    const containerElement = canvasRef.current.parentElement;
-    const containerWidth = containerElement ? containerElement.clientWidth : window.innerWidth - 32;
+    const containerElement = canvasRef.current.parentElement?.parentElement;
+    const containerWidth = containerElement ? containerElement.clientWidth - 16 : window.innerWidth - 32; // Subtract padding
 
     // Get the page dimensions at scale 1.0
     const viewport = page.getViewport({ scale: 1.0 });
     const pageWidth = viewport.width;
 
     // Calculate the scale that makes the page fit the container width with some margin
-    // Use a slightly smaller value (0.95) to ensure there's a small margin
-    const optimalScale = (containerWidth * 0.95) / pageWidth;
+    // Use a slightly smaller value (0.98) to ensure there's a small margin but maximize space usage
+    const optimalScale = (containerWidth * 0.98) / pageWidth;
 
-    // For very small screens, ensure the scale is not too small
-    const minScale = window.innerWidth < 400 ? 0.6 : 0.5;
+    // For very small screens, we need to allow the scale to be as small as needed to fit
+    // No minimum scale for mobile to ensure it always fits horizontally
+    const isMobile = window.innerWidth < 768;
+    const minScale = isMobile ? 0.1 : 0.5; // Allow very small scale on mobile if needed
 
-    // Return the optimal scale, but not smaller than minScale and not larger than 2.0
+    // Return the optimal scale, but not larger than 2.0
     return Math.min(Math.max(optimalScale, minScale), 2.0);
   }, [scale]);
 
@@ -260,13 +265,13 @@ export default function PDFJSViewer({
   return (
     <div className="flex flex-col w-full">
       <div
-        className={`w-full overflow-auto ${isMobileView ? 'h-auto' : 'h-[600px]'}`}
+        className={`w-full overflow-x-hidden overflow-y-auto ${isMobileView ? 'h-auto' : 'h-[600px]'}`}
         data-testid="pdf-container"
       >
-        <div className="flex justify-center min-w-fit p-2">
+        <div className="flex justify-center p-2 w-full">
           <canvas
             ref={canvasRef}
-            className="shadow-md"
+            className="shadow-md max-w-full"
             data-viewport-width={viewportWidth}
           />
         </div>

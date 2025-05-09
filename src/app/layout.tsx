@@ -14,6 +14,7 @@ import { MobileAwareToaster } from "@/components/mobile-aware-toaster";
 import KeyboardAwareLayout from "@/components/keyboard-aware-layout";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
+import ViewportWarningWrapper from "@/components/viewport-warning-wrapper";
 // Force dynamic rendering for all pages
 import "./force-dynamic";
 
@@ -114,7 +115,9 @@ export default function RootLayout({
             <GlobalLoadingSpinner />
             <KeyboardAwareLayout />
             <AppilixRootIdentity />
-            {children}
+            <ViewportWarningWrapper minWidth={365} minHeight={600}>
+              {children}
+            </ViewportWarningWrapper>
             <NavigationEvents />
             <MobileAwareToaster />
 

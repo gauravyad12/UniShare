@@ -9,6 +9,7 @@ import { Users, Plus, LinkIcon } from "lucide-react";
 import StudyGroupCard from "@/components/study-group-card";
 import UserMeetingsCarousel from "@/components/user-meetings-carousel";
 import { useRouter } from "next/navigation";
+import ResponsiveJoinButton from "@/components/responsive-join-button";
 
 interface StudyGroupsTabsProps {
   initialTab: string;
@@ -174,10 +175,7 @@ export default function StudyGroupsTabs({
               >
                 Clear Search
               </Button>
-              <Button className="mt-2" onClick={() => router.push('/dashboard/study-groups?join=true')}>
-                <LinkIcon className="mr-2 h-4 w-4" />
-                Join with Code
-              </Button>
+              <ResponsiveJoinButton />
             </CardContent>
           </Card>
         ) : (
@@ -186,10 +184,7 @@ export default function StudyGroupsTabs({
               <Users className="h-12 w-12 text-muted-foreground" />
               <CardTitle>No Study Groups Yet</CardTitle>
               <CardDescription>You haven't joined any study groups yet.</CardDescription>
-              <Button className="mt-2" onClick={() => router.push('/dashboard/study-groups?join=true')}>
-                <LinkIcon className="mr-2 h-4 w-4" />
-                Join with Code
-              </Button>
+              <ResponsiveJoinButton variant="default" />
             </CardContent>
           </Card>
         )}

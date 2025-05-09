@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
-import { Download, ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
+import { Download, ZoomIn, ZoomOut, Loader2, Maximize } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { useTheme } from 'next-themes';
 
@@ -86,7 +86,15 @@ export default function PDFViewer({ fileUrl, title, onDownload }: PDFViewerProps
   };
 
   const handleZoomOut = () => {
-    setScale(prevScale => Math.max(prevScale - 0.2, 0.5));
+    // Allow smaller scale on mobile devices
+    const minScale = window.innerWidth < 768 ? 0.1 : 0.5;
+    setScale(prevScale => Math.max(prevScale - 0.2, minScale));
+  };
+
+  // Handle full screen button click
+  const handleFullScreen = () => {
+    // Use window.location for direct navigation to ensure it works on all devices
+    window.location.href = fileUrl;
   };
 
   // Page navigation is now handled directly in the PDF.js viewer component
@@ -104,6 +112,15 @@ export default function PDFViewer({ fileUrl, title, onDownload }: PDFViewerProps
             onClick={handleDownload}
           >
             <Download className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            title="View Full Screen"
+            onClick={handleFullScreen}
+          >
+            <Maximize className="h-4 w-4" />
           </Button>
         </div>
 
@@ -125,7 +142,7 @@ export default function PDFViewer({ fileUrl, title, onDownload }: PDFViewerProps
             className="h-8 w-8 p-0"
             title="Zoom Out"
             onClick={handleZoomOut}
-            disabled={loading || scale <= 0.5}
+            disabled={loading || scale <= (window.innerWidth < 768 ? 0.1 : 0.5)}
           >
             <ZoomOut className="h-4 w-4" />
           </Button>

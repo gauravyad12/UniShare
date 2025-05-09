@@ -699,7 +699,7 @@ export default function CanvasIntegrationCard() {
               )}
             </CardTitle>
             {!isConnected && (
-              <CardDescription>
+              <CardDescription className="mt-2">
                 Connect to Canvas to display your estimated GPA
               </CardDescription>
             )}
