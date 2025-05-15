@@ -109,7 +109,12 @@ export default function ReportUrlDialog({
           </div>
         </div>
         <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-4 gap-2">
-          <Button onClick={handleSubmit} disabled={isSubmitting} variant="destructive">
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            variant="outline"
+            className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30"
+          >
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

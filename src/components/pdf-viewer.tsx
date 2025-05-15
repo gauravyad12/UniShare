@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
-import { Download, ZoomIn, ZoomOut, Loader2, Maximize } from 'lucide-react';
-import { Skeleton } from './ui/skeleton';
+import { Download, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { useTheme } from 'next-themes';
 
 // Import PDF.js dynamically to avoid SSR issues
@@ -19,12 +18,6 @@ interface PDFViewerProps {
 // Create a dynamic import for PDF.js
 const PDFJSViewer = dynamic(() => import('./pdf-js-viewer'), {
   ssr: false,
-  loading: () => (
-    <div className="flex flex-col items-center justify-center h-full w-full">
-      <Skeleton className="h-[80%] w-[80%] rounded-md" />
-      <div className="mt-4 text-sm text-muted-foreground">Loading PDF viewer...</div>
-    </div>
-  ),
 });
 
 export default function PDFViewer({ fileUrl, title, onDownload }: PDFViewerProps) {
@@ -162,14 +155,8 @@ export default function PDFViewer({ fileUrl, title, onDownload }: PDFViewerProps
       {/* PDF Viewer Content */}
       <div className="relative flex-1 bg-background min-h-[400px] md:min-h-[600px]">
         {loading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-background z-10 min-h-[400px] md:min-h-[600px]">
-            <div className="flex flex-col items-center justify-center">
-              <Skeleton className="h-[300px] w-[300px] md:h-[400px] md:w-[400px] rounded-md" />
-              <div className="mt-4 text-sm text-center text-muted-foreground flex items-center justify-center">
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Loading PDF...
-              </div>
-            </div>
+          <div className="absolute inset-0 flex items-center justify-center bg-background z-10 min-h-[400px] md:min-h-[600px]">
+            <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
           </div>
         )}
 
@@ -186,7 +173,7 @@ export default function PDFViewer({ fileUrl, title, onDownload }: PDFViewerProps
         )}
 
         {/* Render PDF using PDF.js */}
-        {pdfData && (
+        {pdfData && !loading && !error && (
           <PDFJSViewer
             pdfData={pdfData}
             currentPage={currentPage}

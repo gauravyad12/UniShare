@@ -200,7 +200,7 @@ export default function GroupMeetingsList({
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleDeleteMeeting(meeting.id)}
-                        className="text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center"
+                        className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 flex items-center"
                       >
                         {deletingMeetingId === meeting.id ? (
                           <>

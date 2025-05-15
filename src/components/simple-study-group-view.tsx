@@ -484,7 +484,7 @@ export default function SimpleStudyGroupView({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
-                        className="text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center"
+                        className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 flex items-center"
                         onClick={handleLeaveGroup}
                         disabled={leavingGroup}
                       >
@@ -654,11 +654,11 @@ export default function SimpleStudyGroupView({
                         <div className="flex gap-2 self-start sm:self-center mt-2 sm:mt-0">
                           {isMember && (
                             <Button
-                              variant="destructive"
+                              variant="outline"
                               size="sm"
                               onClick={() => handleRemoveResource(item.resource_id)}
                               disabled={removingResourceId === item.resource_id}
-                              className="hover:bg-destructive/90"
+                              className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30"
                             >
                               {removingResourceId === item.resource_id ? (
                                 <>

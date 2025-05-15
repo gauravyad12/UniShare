@@ -350,6 +350,7 @@ export default function AddResourceToGroup({
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
+        <div id="add-resources-description" className="sr-only">Add resources to this study group</div>
         <DialogHeader>
           <DialogTitle>Add Resources to Group</DialogTitle>
           <DialogDescription>

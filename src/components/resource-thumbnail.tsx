@@ -17,6 +17,17 @@ export default function ResourceThumbnail({ resourceId, title, link }: ResourceT
   const [resourceType, setResourceType] = useState<string>('file');
   const [loading, setLoading] = useState(true);
   const [hasThumbnail, setHasThumbnail] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 0);
+
+  // Update viewport width on resize
+  useEffect(() => {
+    const updateViewportWidth = () => {
+      setViewportWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', updateViewportWidth);
+    return () => window.removeEventListener('resize', updateViewportWidth);
+  }, []);
 
   useEffect(() => {
     const fetchResourceDetails = async () => {
@@ -92,8 +103,10 @@ export default function ResourceThumbnail({ resourceId, title, link }: ResourceT
                 className="w-full object-cover"
                 style={{
                   height: '100%', // Ensure the image fills the container
-                  // Apply top offset only for non-link resources
-                  objectPosition: resourceType === 'link' ? '0 0' : '0 -40px'
+                  // Apply top offset only for non-link resources with different values for mobile/desktop
+                  objectPosition: resourceType === 'link'
+                    ? '0 0'
+                    : (viewportWidth < 768 ? '0 -40px' : '0 -40px')
                 }}
               />
             ) : (

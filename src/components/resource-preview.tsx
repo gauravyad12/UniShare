@@ -25,6 +25,17 @@ export default function ResourcePreview({
   const [error, setError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const [fetchAttempted, setFetchAttempted] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 0);
+
+  // Update viewport width on resize
+  useEffect(() => {
+    const updateViewportWidth = () => {
+      setViewportWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', updateViewportWidth);
+    return () => window.removeEventListener('resize', updateViewportWidth);
+  }, []);
 
   // Reset image loading state when preview URL changes
   useEffect(() => {
@@ -167,7 +178,9 @@ export default function ResourcePreview({
           className={`w-full h-full ${fileUrl && fileUrl.toLowerCase().endsWith(".pdf") ? "object-cover scale-100" : "object-cover"}`}
           loading="lazy"
           style={{
-            objectPosition: fileUrl && fileUrl.toLowerCase().endsWith(".pdf") ? 'center 15%' : 'center top',
+            objectPosition: fileUrl && fileUrl.toLowerCase().endsWith(".pdf")
+              ? (viewportWidth < 768 ? 'center 15%' : 'center 12%')
+              : 'center top',
           }}
           onLoad={() => {
             setImageLoading(false);

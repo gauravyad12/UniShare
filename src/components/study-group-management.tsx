@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, UserPlus, UserMinus, Shield, Trash2, Settings } from "lucide-react";
+import { MoreHorizontal, UserPlus, UserMinus, Shield, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -58,7 +57,6 @@ export default function StudyGroupManagement({
   const handleDeleteGroup = async () => {
     try {
       setIsDeleting(true);
-      const supabase = createClient();
 
       const response = await fetch(`/api/study-groups/${groupId}/delete`, {
         method: "DELETE",
@@ -195,7 +193,7 @@ export default function StudyGroupManagement({
           {isCreator && (
             <DropdownMenuItem
               onClick={() => setIsDeleteDialogOpen(true)}
-              className="text-red-500 hover:bg-red-50 hover:text-red-600 flex items-center"
+              className="text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/30 flex items-center"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               <span>Delete Group</span>
@@ -207,16 +205,14 @@ export default function StudyGroupManagement({
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[425px] p-6">
+          <div id="delete-study-group-description" className="sr-only">Delete study group confirmation dialog</div>
           <DialogHeader className="space-y-2 text-center sm:text-left">
             <DialogTitle className="text-lg font-semibold">Delete Study Group</DialogTitle>
-          </DialogHeader>
-          <div className="py-4 mb-4">
-            <p className="text-sm text-muted-foreground text-center sm:text-left">
-              This action cannot
-              be undone. This will permanently delete the study group
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete the study group
               and all of its data, including messages, resources, and member information.
-            </p>
-          </div>
+            </DialogDescription>
+          </DialogHeader>
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 space-y-1 space-y-reverse sm:space-y-0">
             <Button
               variant="outline"
@@ -228,10 +224,10 @@ export default function StudyGroupManagement({
               Cancel
             </Button>
             <Button
-              variant="destructive"
+              variant="outline"
               onClick={handleDeleteGroup}
               disabled={isDeleting}
-              className="hover:bg-red-600 dark:hover:bg-red-700 h-8 sm:h-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
+              className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30 h-8 sm:h-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
             >
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>
@@ -242,6 +238,7 @@ export default function StudyGroupManagement({
       {/* Members Management Dialog */}
       <Dialog open={isMembersDialogOpen} onOpenChange={setIsMembersDialogOpen}>
         <DialogContent className="sm:max-w-md">
+          <div id="manage-members-description" className="sr-only">Manage study group members dialog</div>
           <DialogHeader>
             <DialogTitle>Manage Members</DialogTitle>
             <DialogDescription>

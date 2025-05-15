@@ -42,7 +42,6 @@ import dynamic from "next/dynamic";
 // Import PDF viewer dynamically to avoid SSR issues
 const PDFViewer = dynamic(() => import("./pdf-viewer"), {
   ssr: false,
-  loading: () => <div className="w-full h-[600px] bg-muted/30 animate-pulse rounded-md"></div>,
 });
 
 interface Resource {
@@ -1120,10 +1119,10 @@ export default function ResourceView({
               Cancel
             </Button>
             <Button
-              variant="destructive"
+              variant="outline"
               onClick={handleDelete}
               disabled={isLoading}
-              className="hover:bg-red-600 dark:hover:bg-red-700 h-8 sm:h-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
+              className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30 h-8 sm:h-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
             >
               {isLoading ? "Deleting..." : "Delete"}
             </Button>

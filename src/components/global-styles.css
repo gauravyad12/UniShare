@@ -85,3 +85,23 @@
     opacity: 1;
   }
 }
+
+/* Custom button styles for destructive actions */
+.btn-destructive-custom {
+  background-color: transparent !important;
+  color: hsl(0, 84.2%, 60.2%) !important;
+  border: 1px solid rgba(239, 68, 68, 0.2) !important;
+}
+
+.btn-destructive-custom:hover {
+  background-color: rgba(239, 68, 68, 0.05) !important;
+  color: hsl(0, 84.2%, 65%) !important;
+}
+
+.dark .btn-destructive-custom {
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.dark .btn-destructive-custom:hover {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+}

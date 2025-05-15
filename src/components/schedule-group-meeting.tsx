@@ -60,30 +60,76 @@ export default function ScheduleGroupMeeting({
     meetingLink: 0
   });
 
+  // Form errors
+  const [formErrors, setFormErrors] = useState<{
+    title?: string;
+    description?: string;
+    location?: string;
+    meetingLink?: string;
+    dateTime?: string;
+  }>({});
+
   const handleScheduleMeeting = async () => {
+    // Clear previous errors
+    setFormErrors({});
+    let hasErrors = false;
+    const errors: { [key: string]: string } = {};
+
     // Validate inputs
     if (!title) {
-      console.error("Missing title: Please enter a title for the meeting");
-      return;
+      errors.title = "Title is required";
+      hasErrors = true;
     }
 
     if (title.length > charLimits.title) {
-      console.error(`Title too long: Title must be ${charLimits.title} characters or less`);
-      return;
+      errors.title = `Title must be ${charLimits.title} characters or less`;
+      hasErrors = true;
     }
 
     if (description && description.length > charLimits.description) {
-      console.error(`Description too long: Description must be ${charLimits.description} characters or less`);
-      return;
+      errors.description = `Description must be ${charLimits.description} characters or less`;
+      hasErrors = true;
     }
 
     if (!startDate || !startTime) {
-      console.error("Missing start time: Please enter a start date and time");
-      return;
+      errors.dateTime = "Start date and time are required";
+      hasErrors = true;
     }
 
     if (!endDate || !endTime) {
-      console.error("Missing end time: Please enter an end date and time");
+      errors.dateTime = "End date and time are required";
+      hasErrors = true;
+    }
+
+    // Check for bad words
+    const { containsBadWords } = await import('@/utils/badWords');
+
+    // Check title for bad words
+    if (title && await containsBadWords(title)) {
+      errors.title = "Title contains inappropriate language";
+      hasErrors = true;
+    }
+
+    // Check description for bad words
+    if (description && await containsBadWords(description)) {
+      errors.description = "Description contains inappropriate language";
+      hasErrors = true;
+    }
+
+    // Check location for bad words
+    if (location && await containsBadWords(location)) {
+      errors.location = "Location contains inappropriate language";
+      hasErrors = true;
+    }
+
+    // Check meeting link for bad words
+    if (meetingLink && await containsBadWords(meetingLink)) {
+      errors.meetingLink = "Meeting link contains inappropriate language";
+      hasErrors = true;
+    }
+
+    if (hasErrors) {
+      setFormErrors(errors);
       return;
     }
 
@@ -271,6 +317,7 @@ export default function ScheduleGroupMeeting({
         } : {}}
         onOpenAutoFocus={(e) => e.preventDefault()} // Prevent auto-focus on open
       >
+        <div id="schedule-meeting-description" className="sr-only">Schedule a new meeting for this study group</div>
         {isMobile && (
           <button
             className="absolute right-4 top-4 z-20 rounded-full p-2 opacity-70 transition-opacity hover:opacity-100 w-8 h-8 flex items-center justify-center"
@@ -301,15 +348,46 @@ export default function ScheduleGroupMeeting({
               id="meeting-title"
               placeholder="Brief meeting title"
               value={title}
-              onChange={(e) => {
+              onChange={async (e) => {
                 const newValue = e.target.value;
                 if (newValue.length <= charLimits.title) {
                   setTitle(newValue);
                   setCharCounts(prev => ({ ...prev, title: newValue.length }));
+
+                  // Check for bad words when value changes
+                  if (newValue.trim()) {
+                    const { containsBadWords } = await import('@/utils/badWords');
+                    const hasBadWords = await containsBadWords(newValue);
+
+                    if (hasBadWords) {
+                      setFormErrors(prev => ({
+                        ...prev,
+                        title: "Title contains inappropriate language"
+                      }));
+                    } else {
+                      // Clear error if no bad words
+                      setFormErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.title;
+                        return newErrors;
+                      });
+                    }
+                  } else {
+                    // Clear error if field is empty
+                    setFormErrors(prev => {
+                      const newErrors = { ...prev };
+                      delete newErrors.title;
+                      return newErrors;
+                    });
+                  }
                 }
               }}
               maxLength={charLimits.title}
+              className={formErrors.title ? "border-red-500" : ""}
             />
+            {formErrors.title && (
+              <p className="text-xs text-red-500 mt-1">{formErrors.title}</p>
+            )}
           </div>
 
           <div className="grid gap-2">
@@ -323,34 +401,88 @@ export default function ScheduleGroupMeeting({
               id="meeting-description"
               placeholder="Brief description of the meeting (100 chars max)"
               value={description}
-              onChange={(e) => {
+              onChange={async (e) => {
                 const newValue = e.target.value;
                 if (newValue.length <= charLimits.description) {
                   setDescription(newValue);
                   setCharCounts(prev => ({ ...prev, description: newValue.length }));
+
+                  // Check for bad words when value changes
+                  if (newValue.trim()) {
+                    const { containsBadWords } = await import('@/utils/badWords');
+                    const hasBadWords = await containsBadWords(newValue);
+
+                    if (hasBadWords) {
+                      setFormErrors(prev => ({
+                        ...prev,
+                        description: "Description contains inappropriate language"
+                      }));
+                    } else {
+                      // Clear error if no bad words
+                      setFormErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.description;
+                        return newErrors;
+                      });
+                    }
+                  } else {
+                    // Clear error if field is empty
+                    setFormErrors(prev => {
+                      const newErrors = { ...prev };
+                      delete newErrors.description;
+                      return newErrors;
+                    });
+                  }
                 }
               }}
               maxLength={charLimits.description}
               rows={2}
+              className={formErrors.description ? "border-red-500" : ""}
             />
+            {formErrors.description && (
+              <p className="text-xs text-red-500 mt-1">{formErrors.description}</p>
+            )}
           </div>
 
           {/* Date/time selector - different for mobile and desktop */}
           <div className="space-y-4">
+            {formErrors.dateTime && (
+              <p className="text-xs text-red-500">{formErrors.dateTime}</p>
+            )}
             {isMobile ? (
               // Mobile custom date/time picker
               <>
                 <MobileDateTimePicker
                   label="Start Date & Time"
                   value={startDateTime}
-                  onChange={(date) => setStartDateTime(date)}
+                  onChange={(date) => {
+                    setStartDateTime(date);
+                    // Clear date/time error when user selects a date
+                    if (formErrors.dateTime) {
+                      setFormErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.dateTime;
+                        return newErrors;
+                      });
+                    }
+                  }}
                   icon="calendar"
                 />
 
                 <MobileDateTimePicker
                   label="End Date & Time"
                   value={endDateTime}
-                  onChange={(date) => setEndDateTime(date)}
+                  onChange={(date) => {
+                    setEndDateTime(date);
+                    // Clear date/time error when user selects a date
+                    if (formErrors.dateTime) {
+                      setFormErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.dateTime;
+                        return newErrors;
+                      });
+                    }
+                  }}
                   icon="clock"
                 />
               </>
@@ -367,7 +499,17 @@ export default function ScheduleGroupMeeting({
                         type="date"
                         className="pl-8 w-full"
                         value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
+                        onChange={(e) => {
+                          setStartDate(e.target.value);
+                          // Clear date/time error when user selects a date
+                          if (formErrors.dateTime) {
+                            setFormErrors(prev => {
+                              const newErrors = { ...prev };
+                              delete newErrors.dateTime;
+                              return newErrors;
+                            });
+                          }
+                        }}
                       />
                     </div>
                     <div className="relative flex-1">
@@ -377,7 +519,17 @@ export default function ScheduleGroupMeeting({
                         type="time"
                         className="pl-8 w-full"
                         value={startTime}
-                        onChange={(e) => setStartTime(e.target.value)}
+                        onChange={(e) => {
+                          setStartTime(e.target.value);
+                          // Clear date/time error when user selects a time
+                          if (formErrors.dateTime) {
+                            setFormErrors(prev => {
+                              const newErrors = { ...prev };
+                              delete newErrors.dateTime;
+                              return newErrors;
+                            });
+                          }
+                        }}
                       />
                     </div>
                   </div>
@@ -393,7 +545,17 @@ export default function ScheduleGroupMeeting({
                         type="date"
                         className="pl-8 w-full"
                         value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
+                        onChange={(e) => {
+                          setEndDate(e.target.value);
+                          // Clear date/time error when user selects a date
+                          if (formErrors.dateTime) {
+                            setFormErrors(prev => {
+                              const newErrors = { ...prev };
+                              delete newErrors.dateTime;
+                              return newErrors;
+                            });
+                          }
+                        }}
                       />
                     </div>
                     <div className="relative flex-1">
@@ -403,7 +565,17 @@ export default function ScheduleGroupMeeting({
                         type="time"
                         className="pl-8 w-full"
                         value={endTime}
-                        onChange={(e) => setEndTime(e.target.value)}
+                        onChange={(e) => {
+                          setEndTime(e.target.value);
+                          // Clear date/time error when user selects a time
+                          if (formErrors.dateTime) {
+                            setFormErrors(prev => {
+                              const newErrors = { ...prev };
+                              delete newErrors.dateTime;
+                              return newErrors;
+                            });
+                          }
+                        }}
                       />
                     </div>
                   </div>
@@ -424,17 +596,47 @@ export default function ScheduleGroupMeeting({
               <Input
                 id="location"
                 placeholder="e.g. Library, Room 101"
-                className="pl-8"
+                className={`pl-8 ${formErrors.location ? "border-red-500" : ""}`}
                 value={location}
-                onChange={(e) => {
+                onChange={async (e) => {
                   const newValue = e.target.value;
                   if (newValue.length <= charLimits.location) {
                     setLocation(newValue);
                     setCharCounts(prev => ({ ...prev, location: newValue.length }));
+
+                    // Check for bad words when value changes
+                    if (newValue.trim()) {
+                      const { containsBadWords } = await import('@/utils/badWords');
+                      const hasBadWords = await containsBadWords(newValue);
+
+                      if (hasBadWords) {
+                        setFormErrors(prev => ({
+                          ...prev,
+                          location: "Location contains inappropriate language"
+                        }));
+                      } else {
+                        // Clear error if no bad words
+                        setFormErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.location;
+                          return newErrors;
+                        });
+                      }
+                    } else {
+                      // Clear error if field is empty
+                      setFormErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.location;
+                        return newErrors;
+                      });
+                    }
                   }
                 }}
                 maxLength={charLimits.location}
               />
+              {formErrors.location && (
+                <p className="text-xs text-red-500 mt-1">{formErrors.location}</p>
+              )}
             </div>
           </div>
 
@@ -450,17 +652,47 @@ export default function ScheduleGroupMeeting({
               <Input
                 id="meeting-link"
                 placeholder="e.g. Zoom or Google Meet link"
-                className="pl-8"
+                className={`pl-8 ${formErrors.meetingLink ? "border-red-500" : ""}`}
                 value={meetingLink}
-                onChange={(e) => {
+                onChange={async (e) => {
                   const newValue = e.target.value;
                   if (newValue.length <= charLimits.meetingLink) {
                     setMeetingLink(newValue);
                     setCharCounts(prev => ({ ...prev, meetingLink: newValue.length }));
+
+                    // Check for bad words when value changes
+                    if (newValue.trim()) {
+                      const { containsBadWords } = await import('@/utils/badWords');
+                      const hasBadWords = await containsBadWords(newValue);
+
+                      if (hasBadWords) {
+                        setFormErrors(prev => ({
+                          ...prev,
+                          meetingLink: "Meeting link contains inappropriate language"
+                        }));
+                      } else {
+                        // Clear error if no bad words
+                        setFormErrors(prev => {
+                          const newErrors = { ...prev };
+                          delete newErrors.meetingLink;
+                          return newErrors;
+                        });
+                      }
+                    } else {
+                      // Clear error if field is empty
+                      setFormErrors(prev => {
+                        const newErrors = { ...prev };
+                        delete newErrors.meetingLink;
+                        return newErrors;
+                      });
+                    }
                   }
                 }}
                 maxLength={charLimits.meetingLink}
               />
+              {formErrors.meetingLink && (
+                <p className="text-xs text-red-500 mt-1">{formErrors.meetingLink}</p>
+              )}
             </div>
           </div>
         </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Skeleton } from './ui/skeleton';
 
 // Import PDF.js library
 // We're using dynamic imports to avoid SSR issues
@@ -238,16 +237,7 @@ export default function PDFJSViewer({
     };
   }, [pdfjsLib, pdfDocument, currentPage, scale, isDarkMode, calculateOptimalScale, viewportWidth]);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full w-full min-h-[400px] md:min-h-[600px]">
-        <div className="flex flex-col items-center justify-center">
-          <Skeleton className="h-[300px] w-[300px] md:h-[400px] md:w-[400px] rounded-md" />
-          <div className="mt-4 text-sm text-center text-muted-foreground">Loading PDF.js...</div>
-        </div>
-      </div>
-    );
-  }
+  // Loading state removed
 
   if (error) {
     return (

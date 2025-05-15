@@ -23,7 +23,18 @@ interface MobileResourcesSectionProps {
 export default function MobileResourcesSection({
   resources,
 }: MobileResourcesSectionProps) {
-  // No loading state needed
+  // Track viewport width for responsive rendering
+  const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 0);
+
+  // Update viewport width on resize
+  useEffect(() => {
+    const updateViewportWidth = () => {
+      setViewportWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', updateViewportWidth);
+    return () => window.removeEventListener('resize', updateViewportWidth);
+  }, []);
 
   const hasResources = resources.length > 0;
 
@@ -58,6 +69,11 @@ export default function MobileResourcesSection({
                         src={resource.thumbnail_url}
                         alt={resource.title}
                         className="w-full h-full object-cover"
+                        style={{
+                          objectPosition: resource.is_external_link
+                            ? 'center top'
+                            : (viewportWidth < 768 ? 'center 18%' : 'center 10%')
+                        }}
                       />
                     ) : (
                       resource.is_external_link ? (
