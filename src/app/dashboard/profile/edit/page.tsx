@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,6 +29,7 @@ import {
   Plus,
   X,
   AlertCircle,
+  Settings,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -593,8 +595,17 @@ export default function EditProfilePage() {
 
   return (
     <div className="container mx-auto px-4 py-8 flex flex-col gap-8">
-      <header className="flex flex-col gap-4">
-        <h1 className="text-3xl font-bold">Your Profile</h1>
+      <header className="flex flex-col gap-4 relative">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold">Your Profile</h1>
+          <Link
+            href="/dashboard/settings"
+            className="md:hidden p-2 rounded-full hover:bg-muted transition-colors"
+            aria-label="Settings"
+          >
+            <Settings className="h-5 w-5" />
+          </Link>
+        </div>
         <p className="text-muted-foreground">
           Manage your personal information and profile settings
         </p>

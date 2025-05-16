@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,10 +24,14 @@ import {
   Loader2,
   CheckCircle,
   LogOut,
+  CreditCard,
+  Sparkles,
 } from "lucide-react";
+import SubscriptionManagement from "@/components/subscription-management";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -61,12 +66,20 @@ export default function SettingsPage() {
   const [savingStates, setSavingStates] = useState({
     notifications: false,
     appearance: false,
-    privacy: false
+    privacy: false,
+    billing: false
   });
   const [successStates, setSuccessStates] = useState({
     notifications: false,
     appearance: false,
-    privacy: false
+    privacy: false,
+    billing: false
+  });
+  const [subscription, setSubscription] = useState({
+    status: "inactive",
+    plan: "free",
+    nextBillingDate: null,
+    cancelAtPeriodEnd: false
   });
   const [settings, setSettings] = useState({
     email_notifications: true,
@@ -838,6 +851,34 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Billing & Subscription
+            </CardTitle>
+            <CardDescription>
+              Manage your subscription and payment methods
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pb-0">
+            <SubscriptionManagement
+              onSubscriptionUpdate={(subscriptionData) => {
+                if (subscriptionData) {
+                  console.log("Settings page received subscription update:", subscriptionData);
+                  setSubscription(subscriptionData);
+                }
+              }}
+            />
+          </CardContent>
+          <CardFooter className="pt-0">
+            {/* Debug subscription state */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="hidden">Current subscription plan: {subscription.plan}</div>
+            )}
+          </CardFooter>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
               Privacy & Security
             </CardTitle>
@@ -873,7 +914,7 @@ export default function SettingsPage() {
               <p className="text-sm text-muted-foreground mb-4">
                 Change your password to keep your account secure
               </p>
-              <Button variant="outline" asChild>
+              <Button variant="outline" asChild className="w-full md:w-auto">
                 <a href="/dashboard/reset-password">Change Password</a>
               </Button>
             </div>
@@ -968,15 +1009,14 @@ export default function SettingsPage() {
           {/* Delete Confirmation Dialog */}
           <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
             <DialogContent className="sm:max-w-[425px] p-6">
+              <div id="delete-account-description" className="sr-only">Delete account confirmation dialog</div>
               <DialogHeader className="space-y-2 text-center sm:text-left">
                 <DialogTitle className="text-lg font-semibold">Delete Account</DialogTitle>
-              </DialogHeader>
-              <div className="py-4 mb-4">
-                <p className="text-sm text-muted-foreground text-center sm:text-left">
+                <DialogDescription>
                   This action cannot be undone. This will permanently delete your account
                   and all of your data, including resources, study groups, and profile information.
-                </p>
-              </div>
+                </DialogDescription>
+              </DialogHeader>
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 space-y-1 space-y-reverse sm:space-y-0">
                 <Button
                   variant="outline"

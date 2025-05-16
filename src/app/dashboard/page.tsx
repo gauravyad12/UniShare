@@ -27,6 +27,7 @@ import MobileDashboardHeader from "@/components/mobile-dashboard-header";
 import MobileMeetingsSection from "@/components/mobile-meetings-section";
 import MobileResourcesSection from "@/components/mobile-resources-section";
 import MobileTodoSection from "@/components/mobile-todo-section";
+import MobileScholarPlusSection from "@/components/mobile-scholar-plus-section";
 import MobileActionPopup from "@/components/mobile-action-popup";
 import TodoList from "@/components/todo-list";
 
@@ -221,6 +222,8 @@ export default async function Dashboard() {
         <div className="px-4 -mt-4">
           <MobileTodoSection />
 
+          <MobileScholarPlusSection />
+
           <MobileMeetingsSection
             upcomingMeetings={limitedUpcomingMeetings}
             pastMeetings={limitedPastMeetings}
@@ -258,9 +261,9 @@ export default async function Dashboard() {
             variant="outline"
             className="h-auto py-4 flex flex-col items-center justify-center gap-2"
           >
-            <Link href="/dashboard/resources">
+            <Link href="/dashboard/resources" className="w-full flex flex-col items-center">
               <BookOpen className="h-6 w-6" />
-              <span>Browse Resources</span>
+              <span className="text-center w-full">Browse Resources</span>
             </Link>
           </Button>
           <Button
@@ -268,9 +271,9 @@ export default async function Dashboard() {
             variant="outline"
             className="h-auto py-4 flex flex-col items-center justify-center gap-2"
           >
-            <Link href="/dashboard/resources?upload=true">
+            <Link href="/dashboard/resources?upload=true" className="w-full flex flex-col items-center">
               <BookOpen className="h-6 w-6" />
-              <span>Upload Resource</span>
+              <span className="text-center w-full">Upload Resource</span>
             </Link>
           </Button>
           <Button
@@ -278,9 +281,9 @@ export default async function Dashboard() {
             variant="outline"
             className="h-auto py-4 flex flex-col items-center justify-center gap-2"
           >
-            <Link href="/dashboard/study-groups">
+            <Link href="/dashboard/study-groups" className="w-full flex flex-col items-center">
               <Users className="h-6 w-6" />
-              <span>Find Study Groups</span>
+              <span className="text-center w-full">Find Study Groups</span>
             </Link>
           </Button>
           <Button
@@ -288,9 +291,9 @@ export default async function Dashboard() {
             variant="outline"
             className="h-auto py-4 flex flex-col items-center justify-center gap-2"
           >
-            <Link href="/dashboard/study-groups/create">
+            <Link href="/dashboard/study-groups/create" className="w-full flex flex-col items-center">
               <Users className="h-6 w-6" />
-              <span>Create Study Group</span>
+              <span className="text-center w-full">Create Study Group</span>
             </Link>
           </Button>
           <Button
@@ -298,9 +301,9 @@ export default async function Dashboard() {
             variant="outline"
             className="h-auto py-4 flex flex-col items-center justify-center gap-2 bg-primary/5 border-primary/20 hover:bg-primary/10"
           >
-            <Link href="/dashboard/invite">
+            <Link href="/dashboard/invite" className="w-full flex flex-col items-center">
               <UserPlus className="h-6 w-6 text-primary" />
-              <span>Invite Friends</span>
+              <span className="text-center w-full">Invite Friends</span>
             </Link>
           </Button>
         </div>

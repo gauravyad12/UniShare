@@ -1,0 +1,2 @@
+[functions.supabase-functions-cancel-subscription]
+verify_jwt = true

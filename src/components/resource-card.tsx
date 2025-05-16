@@ -75,6 +75,8 @@ export default function ResourceCard({
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [creatorInfo, setCreatorInfo] = useState<{ username?: string; fullName?: string } | null>(null);
+  const [isCompact, setIsCompact] = useState(false);
+  const cardFooterRef = React.useRef<HTMLDivElement>(null);
 
   // Function to copy to clipboard
   const copyToClipboard = (text: string) => {
@@ -152,6 +154,60 @@ export default function ResourceCard({
 
     fetchCreatorInfo();
   }, [resource]);
+
+  // Set initial compact state based on screen size
+  useEffect(() => {
+    // For mobile devices, start with compact mode by default
+    if (typeof window !== 'undefined') {
+      // Check if we're on a mobile device (screen width < 640px)
+      const isMobile = window.innerWidth < 640;
+      setIsCompact(isMobile);
+    }
+  }, []);
+
+  // Add resize observer to check available space for buttons
+  useEffect(() => {
+    if (!cardFooterRef.current) return;
+
+    const checkSpace = () => {
+      if (!cardFooterRef.current) return;
+
+      const footerWidth = cardFooterRef.current.offsetWidth;
+      const countersElement = cardFooterRef.current.querySelector('.counters-container');
+      const buttonsContainer = cardFooterRef.current.querySelector('.buttons-container');
+
+      if (!countersElement || !buttonsContainer) return;
+
+      const countersWidth = countersElement.getBoundingClientRect().width;
+      // Add margin to ensure we have enough space, but not too much
+      const availableWidth = footerWidth - countersWidth - 48; // 48px for padding and margins
+
+      // Calculate minimum width needed for buttons with text
+      // Approx 95px per button with text plus a small buffer
+      const minWidthNeeded = 295; // 95px * 3 buttons + 10px buffer
+
+      const shouldBeCompact = availableWidth < minWidthNeeded;
+      setIsCompact(shouldBeCompact);
+    };
+
+    // Initial check immediately
+    checkSpace();
+
+    // Create resize observer
+    const resizeObserver = new ResizeObserver(checkSpace);
+
+    resizeObserver.observe(cardFooterRef.current);
+
+    // Also observe the parent card for size changes
+    const parentCard = cardFooterRef.current.closest('.card');
+    if (parentCard) {
+      resizeObserver.observe(parentCard);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [resource.id]);
 
   // Calculate average rating if available
   const averageRating =
@@ -333,7 +389,7 @@ export default function ResourceCard({
   };
 
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow flex flex-col">
+    <Card className="card overflow-hidden hover:shadow-md transition-shadow flex flex-col">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
@@ -402,8 +458,11 @@ export default function ResourceCard({
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between pt-2 border-t px-2 md:px-6 mt-auto h-[60px]">
-        <div className="flex items-center text-sm text-gray-500">
+      <CardFooter
+        ref={cardFooterRef}
+        className="flex justify-between pt-2 border-t px-2 md:px-6 mt-auto h-[60px]"
+      >
+        <div className="counters-container flex items-center text-sm text-gray-500 mr-4">
           {/* Only show download count for non-link resources */}
           {resource.resource_type !== "link" && (
             <div className="flex items-center mr-3">
@@ -419,31 +478,37 @@ export default function ResourceCard({
           </div>
         </div>
 
-        <div className="flex gap-1 md:gap-2">
+        <div className={`buttons-container flex ${isCompact ? 'gap-2' : 'gap-1 md:gap-2'} ml-auto`}>
+          {/* Share Button */}
           <Button
             variant="outline"
             size="sm"
+            className={`flex items-center justify-center ${isCompact ? 'w-10 min-w-10' : ''}`}
             onClick={(e) => {
-              // Completely stop event propagation
               e.preventDefault();
               e.stopPropagation();
-
-              // Share the resource
               shareResource();
             }}
           >
-            <Share2 className="h-4 w-4 max-lg:mr-0 lg:mr-2" />
-            <span className="hidden lg:inline">Share</span>
+            <Share2 className="h-4 w-4" style={{ marginRight: isCompact ? 0 : '0.5rem' }} />
+            {isCompact ? null : <span>Share</span>}
           </Button>
-          <Button variant="outline" size="sm" onClick={handleViewClick}>
-            <span className="flex items-center justify-center w-full">
-              <Eye className="h-4 w-4 max-lg:mr-0 lg:mr-2" />
-              <span className="hidden lg:inline">View</span>
-            </span>
+
+          {/* View Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            className={`flex items-center justify-center ${isCompact ? 'w-10 min-w-10' : ''}`}
+            onClick={handleViewClick}
+          >
+            <Eye className="h-4 w-4" style={{ marginRight: isCompact ? 0 : '0.5rem' }} />
+            {isCompact ? null : <span>View</span>}
           </Button>
-          {/* Show download button on all devices */}
+
+          {/* Download/Link Button */}
           <Button
             size="sm"
+            className={`flex items-center justify-center ${isCompact ? 'w-10 min-w-10' : ''}`}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -451,27 +516,27 @@ export default function ResourceCard({
             }}
             disabled={isDownloading}
           >
-              {isDownloading ? (
-                <span className="flex items-center justify-center w-full">
-                  <Download className="animate-bounce h-4 w-4 max-lg:mr-0 lg:mr-2" />
-                  <span className="hidden lg:inline">Downloading...</span>
-                </span>
-              ) : downloadSuccess ? (
-                <span className="flex items-center justify-center w-full">
-                  <CheckCircle className="text-green-500 h-4 w-4 max-lg:mr-0 lg:mr-2" />
-                  <span className="hidden lg:inline">Downloaded</span>
-                </span>
-              ) : resource.resource_type === "link" ? (
-                <span className="flex items-center justify-center w-full">
-                  <ExternalLink className="h-4 w-4 max-lg:mr-0 lg:mr-2" />
-                  <span className="hidden lg:inline">View Link</span>
-                </span>
-              ) : (
-                <span className="flex items-center justify-center w-full">
-                  <Download className="h-4 w-4 max-lg:mr-0 lg:mr-2" />
-                  <span className="hidden lg:inline">Download</span>
-                </span>
-              )}
+            {isDownloading ? (
+              <>
+                <Download className="animate-bounce h-4 w-4" style={{ marginRight: isCompact ? 0 : '0.5rem' }} />
+                {isCompact ? null : <span>Downloading...</span>}
+              </>
+            ) : downloadSuccess ? (
+              <>
+                <CheckCircle className="text-green-500 h-4 w-4" style={{ marginRight: isCompact ? 0 : '0.5rem' }} />
+                {isCompact ? null : <span>Downloaded</span>}
+              </>
+            ) : resource.resource_type === "link" ? (
+              <>
+                <ExternalLink className="h-4 w-4" style={{ marginRight: isCompact ? 0 : '0.5rem' }} />
+                {isCompact ? null : <span>View Link</span>}
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4" style={{ marginRight: isCompact ? 0 : '0.5rem' }} />
+                {isCompact ? null : <span>Download</span>}
+              </>
+            )}
           </Button>
         </div>
       </CardFooter>

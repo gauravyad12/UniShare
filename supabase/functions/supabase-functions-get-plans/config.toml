@@ -1,0 +1,2 @@
+[functions.supabase-functions-get-plans]
+verify_jwt = false

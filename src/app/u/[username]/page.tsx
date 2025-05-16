@@ -19,6 +19,8 @@ export default function UserProfilePage({
 }: {
   params: { username: string };
 }) {
+
+
   const router = useRouter();
   // Start with loading state true by default
   const [loading, setLoading] = useState(true);
@@ -45,12 +47,23 @@ export default function UserProfilePage({
         if (data.user) {
           // Store the current user ID
           setCurrentUserId(data.user.id);
-          // Set redirecting state to true
-          setIsRedirecting(true);
-          // Redirect to dashboard profile
-          router.push(`/dashboard/profile/${params.username}`);
-          // Don't continue with profile data fetching
-          return true;
+
+          // Check if this is the user's own profile
+          const { data: userProfile } = await supabase
+            .from("user_profiles")
+            .select("username")
+            .eq("id", data.user.id)
+            .single();
+
+          // Only redirect if the user is viewing their own profile
+          if (userProfile && userProfile.username.toLowerCase() === params.username.toLowerCase()) {
+            // Set redirecting state to true
+            setIsRedirecting(true);
+            // Redirect to dashboard profile
+            router.push(`/dashboard/profile/${params.username}`);
+            // Don't continue with profile data fetching
+            return true;
+          }
         }
         return false;
       } catch (error) {
@@ -65,7 +78,9 @@ export default function UserProfilePage({
   // Second useEffect: Fetch profile data only if not redirecting
   useEffect(() => {
     // If we're redirecting, don't fetch profile data
-    if (isRedirecting) return;
+    if (isRedirecting) {
+      return;
+    }
 
     // Set loading to true
     setLoading(true);
@@ -73,8 +88,6 @@ export default function UserProfilePage({
     const fetchData = async () => {
       try {
         const supabase = createClient();
-
-        // Continue with the public profile view for non-authenticated users
 
         // Clean the username parameter (remove @ if present and trim whitespace)
         const cleanUsername = params.username.startsWith("@")
@@ -99,6 +112,18 @@ export default function UserProfilePage({
             .maybeSingle();
 
           finalProfileData = caseInsensitiveData;
+        }
+
+        // If still not found, try the SQL function
+        if (!finalProfileData) {
+          const { data: sqlData } = await supabase
+            .rpc('find_username_case_insensitive', {
+              search_username: cleanUsername
+            });
+
+          if (sqlData && sqlData.length > 0) {
+            finalProfileData = sqlData[0];
+          }
         }
 
         if (!finalProfileData) {
@@ -221,7 +246,7 @@ export default function UserProfilePage({
     };
 
     fetchData();
-  }, [params.username, router, isRedirecting]);
+  }, [params.username, router, isRedirecting, currentUserId]);
 
   // Always show skeleton when redirecting or loading
   if (isRedirecting || loading) {
@@ -372,7 +397,7 @@ export default function UserProfilePage({
           <TabsContent value="resources" className="mt-6">
             <h2 className="text-xl font-semibold mb-4">Public Resources</h2>
             {resources && resources.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-3 md:gap-y-4 md:gap-x-3">
                 {resources.map((resource) => (
                   <ResourceCard
                     key={resource.id}
@@ -400,7 +425,7 @@ export default function UserProfilePage({
           <TabsContent value="studyGroups" className="mt-6">
             <h2 className="text-xl font-semibold mb-4">Public Study Groups</h2>
             {studyGroups && studyGroups.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 wide:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-3 md:gap-y-4 md:gap-x-3">
                 {studyGroups.map((group) => (
                   <StudyGroupCard key={group.id} group={group} isPublicView={true} />
                 ))}

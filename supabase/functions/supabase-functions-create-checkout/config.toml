@@ -1,0 +1,2 @@
+[functions.supabase-functions-create-checkout]
+verify_jwt = true

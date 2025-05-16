@@ -28,6 +28,7 @@ export async function middleware(req: NextRequest) {
       pathname.startsWith("/_next") ||
       pathname.startsWith("/api/") ||
       pathname.startsWith("/og-assets/") || // Skip for OG image assets
+      pathname.startsWith("/u/") || // Skip for public profile pages
       pathname.includes(".") || // Files with extensions like .jpg, .css, etc.
       pathname === "/error" || // Skip middleware for error page to prevent redirect loops
       pathname === "/fallback-error" || // Skip for fallback error page

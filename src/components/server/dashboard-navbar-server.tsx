@@ -4,6 +4,13 @@ import { createClient } from "@/utils/supabase/server";
 import Messages from "../messages";
 import Notifications from "../notifications";
 import { DashboardNavbarClient } from "./dashboard-navbar-client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 /**
  * Server component that securely fetches user profile data for the navbar
@@ -12,28 +19,28 @@ import { DashboardNavbarClient } from "./dashboard-navbar-client";
  */
 export async function DashboardNavbarServer() {
   const supabase = createClient();
-  
+
   try {
     // Get the authenticated user
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       // Return a placeholder component if no user is authenticated
       return <DashboardNavbarClient isLoading={false} userData={null} />;
     }
-    
+
     // Fetch the user profile with a secure server-side query
     const { data: profile, error } = await supabase
       .from("user_profiles")
       .select("id, avatar_url, username, full_name, role")
       .eq("id", user.id)
       .single();
-    
+
     if (error) {
       console.error("Error fetching user profile:", error);
       return <DashboardNavbarClient isLoading={false} userData={null} error="Failed to load profile" />;
     }
-    
+
     // Verify that the profile belongs to the authenticated user
     if (profile && profile.id === user.id) {
       // Only pass necessary data to the client component
@@ -45,7 +52,7 @@ export async function DashboardNavbarServer() {
         email: user.email,
         role: profile.role,
       };
-      
+
       return (
         <nav className="w-full border-b border-border bg-background py-4 hidden md:block">
           <div className="container mx-auto px-4 flex justify-between items-center">
@@ -94,18 +101,76 @@ export async function DashboardNavbarServer() {
                   </svg>
                   Study Groups
                 </Link>
-                <Link
-                  href="/dashboard/invite"
-                  className="text-sm font-medium flex items-center gap-1 hover:text-primary transition-colors"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user-plus">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <line x1="19" x2="19" y1="8" y2="14" />
-                    <line x1="22" x2="16" y1="11" y2="11" />
-                  </svg>
-                  Invite
-                </Link>
+
+                {/* Items that will be hidden on smaller screens */}
+                <div className="hidden lg:flex items-center gap-4">
+                  <Link
+                    href="/dashboard/scholar-plus"
+                    className="text-sm font-medium flex items-center gap-1 hover:text-primary transition-colors"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-sparkles">
+                      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                      <path d="M5 3v4" />
+                      <path d="M19 17v4" />
+                      <path d="M3 5h4" />
+                      <path d="M17 19h4" />
+                    </svg>
+                    Scholar+
+                  </Link>
+                  <Link
+                    href="/dashboard/invite"
+                    className="text-sm font-medium flex items-center gap-1 hover:text-primary transition-colors"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user-plus">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <line x1="19" x2="19" y1="8" y2="14" />
+                      <line x1="22" x2="16" y1="11" y2="11" />
+                    </svg>
+                    Invite
+                  </Link>
+                </div>
+
+                {/* More dropdown for smaller screens */}
+                <div className="lg:hidden">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="1" />
+                          <circle cx="19" cy="12" r="1" />
+                          <circle cx="5" cy="12" r="1" />
+                        </svg>
+                        <span className="sr-only">More</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild>
+                        <Link href="/dashboard/scholar-plus" className="flex items-center">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                            <path d="M5 3v4" />
+                            <path d="M19 17v4" />
+                            <path d="M3 5h4" />
+                            <path d="M17 19h4" />
+                          </svg>
+                          Scholar+
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/dashboard/invite" className="flex items-center">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <line x1="19" x2="19" y1="8" y2="14" />
+                            <line x1="22" x2="16" y1="11" y2="11" />
+                          </svg>
+                          Invite
+                        </Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </div>
             <div className="flex gap-4 items-center">
