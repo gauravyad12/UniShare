@@ -77,7 +77,7 @@ export default async function StudyGroupsPage({
   const activeTab = searchParams.tab || "all";
 
   // Pagination parameters
-  const pageSize = 9; // Number of items per page
+  const pageSize = 6; // Number of items per page
   const currentPage = parseInt(searchParams.page || "1", 10);
   const offset = (currentPage - 1) * pageSize;
   const searchTerm = searchParams.search || "";

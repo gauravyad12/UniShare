@@ -18,6 +18,7 @@ import {
   Share2,
   UserCircle,
   Eye,
+  GraduationCap,
 } from "lucide-react";
 import ResourcePreview from "./resource-preview";
 import { useRouter } from "next/navigation";
@@ -421,17 +422,20 @@ export default function ResourceCard({
         >
           {resource.title}
         </CardTitle>
-        {resource.professor && (
-          <CardDescription className="text-sm">
-            Prof. {resource.professor}
-          </CardDescription>
-        )}
-        {creatorInfo && (creatorInfo.username || creatorInfo.fullName) && (
-          <CardDescription className="text-sm flex items-center mt-1">
-            <UserCircle className="h-3 w-3 mr-1" />
-            {creatorInfo.fullName || creatorInfo.username || "Unknown User"}
-          </CardDescription>
-        )}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+          {creatorInfo && (creatorInfo.username || creatorInfo.fullName) && (
+            <CardDescription className="text-sm flex items-center">
+              <UserCircle className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span className="truncate">{creatorInfo.fullName || creatorInfo.username || "Unknown User"}</span>
+            </CardDescription>
+          )}
+          {resource.professor && (
+            <CardDescription className="text-sm flex items-center">
+              <GraduationCap className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span className="truncate">Prof. {resource.professor}</span>
+            </CardDescription>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="flex-grow">
         {/* Resource Preview */}
@@ -460,7 +464,7 @@ export default function ResourceCard({
       </CardContent>
       <CardFooter
         ref={cardFooterRef}
-        className="flex justify-between pt-2 border-t px-2 md:px-6 mt-auto h-[60px]"
+        className="flex justify-between py-3 border-t px-2 md:px-6 mt-auto h-[60px]"
       >
         <div className="counters-container flex items-center text-sm text-gray-500 mr-4">
           {/* Only show download count for non-link resources */}

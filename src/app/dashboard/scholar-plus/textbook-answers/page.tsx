@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import DynamicPageTitle from "@/components/dynamic-page-title";
 import PaginationControlWrapper from "@/components/pagination-control-wrapper";
 import StyledSearchBarWrapper from "@/components/styled-search-bar-wrapper";
+import TextbookStats from "@/components/textbook-stats";
 
 // Utility function to format author names
 function formatAuthorName(author: string | null | undefined): string {
@@ -488,7 +489,7 @@ function TextbookDetail({
         {/* Solution display */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Solution</label>
-          <Card className="min-h-[600px] max-h-[800px] flex flex-col overflow-hidden">
+          <Card className="min-h-[300px] max-h-[800px] flex flex-col overflow-hidden">
             <CardContent className="flex-1 flex items-center justify-center p-4 relative">
               {!selectedProblem ? (
                 <p className="text-muted-foreground">Select a problem to view its solution</p>
@@ -500,7 +501,7 @@ function TextbookDetail({
               ) : solutionImageUrl ? (
                 <div className="w-full h-full flex flex-col relative">
                   {/* Main container with image - aligned to top */}
-                  <div className="image-container w-full h-full max-h-[700px] flex items-start justify-center bg-black/5 rounded-md overflow-auto relative">
+                  <div id="solution-image-container" className="image-container w-full h-full max-h-[700px] flex items-start justify-center bg-black/5 overflow-auto relative">
                     {/* Image container - also aligned to top */}
                     <div className="w-full h-full flex items-start justify-center pt-2">
                       <img
@@ -516,16 +517,18 @@ function TextbookDetail({
                             const loader = document.getElementById('solution-loader');
                             const buttonsContainer = document.getElementById('buttons-container');
                             const img = document.querySelector('.image-container img');
+                            const solutionCard = document.querySelector('.image-container').closest('.card');
 
                             console.log('Checking elements:', {
                               imageContainer: !!imageContainer,
                               loader: !!loader,
                               buttonsContainer: !!buttonsContainer,
-                              img: !!img
+                              img: !!img,
+                              solutionCard: !!solutionCard
                             });
 
                             // If we have the image container and the image, we can proceed
-                            if (imageContainer && img) {
+                            if (imageContainer && img && buttonsContainer) {
                               console.log('Image dimensions:', {
                                 naturalWidth: (img as HTMLImageElement).naturalWidth,
                                 naturalHeight: (img as HTMLImageElement).naturalHeight,
@@ -536,14 +539,47 @@ function TextbookDetail({
                               // Always hide loader and show buttons once image has loaded
                               console.log('Image has loaded, hiding loader and showing buttons');
                               if (loader) loader.style.display = 'none';
-                              if (buttonsContainer) {
-                                console.log('Showing buttons container');
-                                buttonsContainer.style.display = 'flex';
 
-                                // Log the button container's computed style to verify it's visible
-                                const computedStyle = window.getComputedStyle(buttonsContainer);
-                                console.log('Button container display:', computedStyle.display);
-                              }
+                              // Show the buttons
+                              console.log('Showing buttons container');
+                              buttonsContainer.style.display = 'flex';
+
+                              // Dynamically adjust container height for mobile
+                              setTimeout(() => {
+                                // Get the image height
+                                const imgHeight = (img as HTMLImageElement).height;
+                                // Get the buttons container height (including margin)
+                                const buttonsHeight = buttonsContainer.offsetHeight + 16; // 16px for margin (mt-4)
+
+                                // Calculate total needed height (image + buttons + padding)
+                                const totalContentHeight = imgHeight + buttonsHeight + 16; // 16px for padding
+
+                                console.log('Content heights:', {
+                                  imgHeight,
+                                  buttonsHeight,
+                                  totalContentHeight
+                                });
+
+                                // If on mobile and content is smaller than min-height
+                                if (window.innerWidth < 768 && totalContentHeight < 600) {
+                                  // Set the container to fit content instead of min-height
+                                  if (solutionCard) {
+                                    // Add some buffer space
+                                    solutionCard.style.minHeight = `${totalContentHeight + 40}px`;
+                                    console.log('Adjusted card height to fit content:', totalContentHeight + 40);
+                                  }
+
+                                  // Also adjust the image container
+                                  if (imageContainer) {
+                                    imageContainer.style.height = 'auto';
+                                    console.log('Set image container to auto height');
+                                  }
+                                }
+                              }, 100);
+
+                              // Log the button container's computed style to verify it's visible
+                              const computedStyle = window.getComputedStyle(buttonsContainer);
+                              console.log('Button container display:', computedStyle.display);
                             } else {
                               console.log('Image or container not found, retrying...');
                               // Try again in a moment if elements aren't ready
@@ -570,7 +606,7 @@ function TextbookDetail({
                   </div>
 
                   {/* Buttons container with loader */}
-                  <div className="mt-6 flex flex-col items-center gap-6 relative min-h-[80px]">
+                  <div className="mt-4 flex flex-col items-center gap-4 relative">
                     {/* Full-height loader container */}
                     <div id="solution-loader" className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -639,7 +675,7 @@ export default function TextbookAnswersPage() {
   const router = useRouter();
 
   // Pagination parameters
-  const pageSize = 9; // Number of textbooks per page
+  const pageSize = 6; // Number of textbooks per page
   const currentPage = parseInt(searchParams.get("page") || "1", 10);
 
   const supabase = createClient();
@@ -802,6 +838,9 @@ export default function TextbookAnswersPage() {
           <TextbookDetail textbookId={selectedTextbookId} onBack={handleBack} />
         ) : (
           <>
+            {/* Statistics section */}
+            <TextbookStats className="mb-6" loading={loading} />
+
             <TextbookList
               textbooks={textbooks}
               loading={loading}

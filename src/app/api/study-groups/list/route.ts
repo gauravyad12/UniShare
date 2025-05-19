@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
 
     // Pagination parameters
-    const limit = parseInt(searchParams.get('limit') || '9', 10); // Number of items per page
+    const limit = parseInt(searchParams.get('limit') || '6', 10); // Number of items per page
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const search = searchParams.get('search') || '';
 

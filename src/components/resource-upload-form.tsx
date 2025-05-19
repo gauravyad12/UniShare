@@ -16,6 +16,8 @@ import { Upload, X, AlertTriangle, Loader2, CheckCircle } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { checkUrlSafety } from "@/utils/urlSafety";
 import { useToast } from "./ui/use-toast";
+import ProfessorSearch from "./professor-search";
+import { Professor } from "@/utils/rateMyProfessor";
 // Import badWords dynamically to use the async version
 
 export default function ResourceUploadForm() {
@@ -29,7 +31,8 @@ export default function ResourceUploadForm() {
     description: "",
     courseCode: "",
     externalLink: "",
-    file: ""
+    file: "",
+    professor: ""
   });
   const [resourceType, setResourceType] = useState<string>("notes");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -38,6 +41,7 @@ export default function ResourceUploadForm() {
   const [description, setDescription] = useState<string>("");
   const [title, setTitle] = useState<string>("");
   const [courseCode, setCourseCode] = useState<string>("");
+  const [professor, setProfessor] = useState<Professor | null>(null);
   const [isCheckingUrl, setIsCheckingUrl] = useState(false);
   const [urlSafetyStatus, setUrlSafetyStatus] = useState<'unknown' | 'checking' | 'safe' | 'unsafe'>('unknown');
 
@@ -59,7 +63,8 @@ export default function ResourceUploadForm() {
       description: "",
       courseCode: "",
       externalLink: "",
-      file: ""
+      file: "",
+      professor: ""
     };
 
     let isValid = true;
@@ -187,6 +192,21 @@ export default function ResourceUploadForm() {
     formData.append("type", resourceType);
     formData.append("course_code", courseCode);
 
+    // Add professor information if selected
+    if (professor) {
+      formData.append("professor", `${professor.firstName} ${professor.lastName}`);
+      // You can also include additional professor data if needed
+      formData.append("professor_data", JSON.stringify({
+        id: professor.id,
+        firstName: professor.firstName,
+        lastName: professor.lastName,
+        department: professor.department || '',
+        school: professor.school ? professor.school.name : '',
+        rating: professor.rating || 0,
+        numRatings: professor.numRatings || 0
+      }));
+    }
+
     // Add file to form data if selected
     if (selectedFile) {
       formData.append("file", selectedFile);
@@ -310,7 +330,9 @@ export default function ResourceUploadForm() {
     setUrlSafetyStatus('checking');
 
     try {
+      console.log('Checking URL safety for:', url);
       const result = await checkUrlSafety(url);
+      console.log('URL safety check result:', result);
 
       if (!result.isSafe) {
         setUrlSafetyStatus('unsafe');
@@ -324,7 +346,20 @@ export default function ResourceUploadForm() {
       }
     } catch (error) {
       console.error('Error checking URL safety:', error);
+      // Show more detailed error information
+      if (error instanceof Error) {
+        console.error('Error details:', error.message, error.stack);
+      }
+
+      // Set status to unknown but don't block submission
       setUrlSafetyStatus('unknown');
+
+      // Show a toast with the error
+      toast({
+        title: "URL Safety Check Failed",
+        description: "Could not verify the safety of this URL. You can still submit, but please ensure it's from a trusted source.",
+        variant: "warning",
+      });
     } finally {
       setIsCheckingUrl(false);
     }
@@ -393,6 +428,18 @@ export default function ResourceUploadForm() {
           <p className="text-sm text-red-500 mt-1">{errors.description}</p>
         )}
       </div>
+
+      {/* Professor Search */}
+      <ProfessorSearch
+        value={professor}
+        onChange={(newProfessor) => {
+          setProfessor(newProfessor);
+          if (errors.professor) {
+            setErrors(prev => ({ ...prev, professor: "" }));
+          }
+        }}
+        error={errors.professor}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">

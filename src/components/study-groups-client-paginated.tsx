@@ -52,7 +52,7 @@ export default function StudyGroupsClientPaginated({
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [totalGroups, setTotalGroups] = useState(0);
   const [totalMyGroups, setTotalMyGroups] = useState(0);
-  const pageSize = 2; // Set to 2 for testing pagination
+  const pageSize = 6; // Number of items per page
 
   // Initialize state from URL parameters on mount
   useEffect(() => {

@@ -22,6 +22,15 @@ export async function POST(request: NextRequest) {
     const courseCode = formData.get("course_code") as string;
     const file = formData.get("file") as File;
     const externalLink = formData.get("external_link") as string;
+    const professor = formData.get("professor") as string;
+    const professorData = formData.get("professor_data") as string;
+
+    // Log professor data for debugging
+    if (professor) {
+      console.log('Professor attached to resource:', professor);
+    } else {
+      console.log('No professor attached to resource');
+    }
 
     // Character limits
     const charLimits = {
@@ -90,14 +99,42 @@ export async function POST(request: NextRequest) {
       // Check URL safety on the server side
       if (externalLink) {
         try {
-          const { checkUrlSafety } = await import('@/utils/urlSafety');
-          const safetyResult = await checkUrlSafety(externalLink);
+          // Use direct API call to the safety check endpoint
+          // This avoids using window.location which is not available in server components
+          // Fallback order: unishare.app, localhost, NEXT_PUBLIC_SITE_URL
+          let baseUrl = 'https://unishare.app';
 
-          if (!safetyResult.isSafe) {
-            return NextResponse.json(
-              { error: `This link has been flagged as potentially unsafe (${safetyResult.threatType || 'Unknown threat'}) and cannot be submitted.` },
-              { status: 400 },
-            );
+          // For local development
+          if (process.env.NODE_ENV === 'development') {
+            baseUrl = 'http://localhost:3000';
+          }
+          // Use NEXT_PUBLIC_SITE_URL as last resort if available
+          else if (process.env.NEXT_PUBLIC_SITE_URL) {
+            baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
+          }
+
+          const apiUrl = new URL('/api/url/check-safety', baseUrl).toString();
+
+          const safetyResponse = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url: externalLink }),
+          });
+
+          if (safetyResponse.ok) {
+            const safetyResult = await safetyResponse.json();
+
+            if (!safetyResult.isSafe) {
+              return NextResponse.json(
+                { error: `This link has been flagged as potentially unsafe (${safetyResult.threatType || 'Unknown threat'}) and cannot be submitted.` },
+                { status: 400 },
+              );
+            }
+          } else {
+            console.error("URL safety check API responded with error:", await safetyResponse.text());
+            // Continue with the submission if the safety check fails
           }
         } catch (error) {
           console.error("Error checking URL safety:", error);
@@ -188,6 +225,7 @@ export async function POST(request: NextRequest) {
         external_link: externalLink,
         author_id: user.id,
         university_id: userProfile.university_id,
+        professor: professor || null, // Add professor name
         is_approved: true, // Auto-approve for now
         created_at: new Date().toISOString(),
       })

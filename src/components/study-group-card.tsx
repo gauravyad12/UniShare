@@ -71,7 +71,7 @@ export default function StudyGroupCard({
   }, [group.id, memberCount]);
 
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow">
+    <Card className="overflow-hidden hover:shadow-md transition-shadow flex flex-col h-[280px]">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
@@ -98,7 +98,7 @@ export default function StudyGroupCard({
           Created {formattedDate}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-grow">
         <p className="text-gray-600 line-clamp-2">{group.description}</p>
 
         <div className="flex items-center justify-between mt-4">
@@ -124,14 +124,14 @@ export default function StudyGroupCard({
           )}
         </div>
       </CardContent>
-      <CardFooter className="flex justify-end pt-2 border-t gap-2">
+      <CardFooter className="flex justify-end items-center py-3 border-t gap-2 mt-auto">
         {isPublicView ? (
           // Public view (signed-out) - redirect to sign-in
           <>
             <Button
               variant="outline"
               size="sm"
-              className="h-9"
+              className="h-8"
               asChild
             >
               <Link href={`/sign-in?redirect=/dashboard/study-groups?view=${group.id}`}>
@@ -140,7 +140,7 @@ export default function StudyGroupCard({
             </Button>
             <Button
               size="sm"
-              className="h-9"
+              className="h-8"
               asChild
             >
               <Link href={`/sign-in?redirect=/dashboard/study-groups?view=${group.id}`}>
@@ -154,7 +154,7 @@ export default function StudyGroupCard({
             <Button
               variant="outline"
               size="sm"
-              className="h-9"
+              className="h-8"
               asChild
             >
               <Link href={`/dashboard/study-groups?view=${group.id}`}>
@@ -163,7 +163,7 @@ export default function StudyGroupCard({
             </Button>
             <Button
               size="sm"
-              className="h-9"
+              className="h-8"
               asChild
             >
               <Link href={`/dashboard/study-groups?view=${group.id}&chat=true`}>
@@ -178,7 +178,7 @@ export default function StudyGroupCard({
             <Button
               variant="outline"
               size="sm"
-              className="h-9"
+              className="h-8"
               asChild
             >
               <Link href={`/dashboard/study-groups?view=${group.id}`}>
@@ -187,7 +187,7 @@ export default function StudyGroupCard({
             </Button>
             <Button
               size="sm"
-              className="h-9"
+              className="h-8"
               onClick={() => onJoin && onJoin(group.id)}
             >
               Join Group

@@ -143,6 +143,22 @@ const CommandShortcut = ({
 };
 CommandShortcut.displayName = "CommandShortcut";
 
+// Add CommandLoading component
+const CommandLoading = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "py-6 text-center text-sm",
+      className
+    )}
+    {...props}
+  />
+));
+CommandLoading.displayName = "CommandLoading";
+
 export {
   Command,
   CommandDialog,
@@ -153,4 +169,5 @@ export {
   CommandItem,
   CommandShortcut,
   CommandSeparator,
+  CommandLoading,
 };

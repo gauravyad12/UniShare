@@ -15,7 +15,33 @@ export async function checkUrlSafety(url: string): Promise<{
 }> {
   try {
     // Call our API endpoint that wraps the Google Safe Browsing API
-    const response = await fetch('/api/url/check-safety', {
+    // Handle both client and server environments
+    let apiUrl = '/api/url/check-safety';
+
+    // In client-side environment, use absolute URL from window.location
+    if (typeof window !== 'undefined') {
+      apiUrl = `${window.location.origin}/api/url/check-safety`;
+    }
+    // In server environment, use fallbacks in the specified order
+    else {
+      // Fallback order: unishare.app, localhost, NEXT_PUBLIC_SITE_URL
+      const baseUrl = 'https://unishare.app';
+
+      // For local development (if detected)
+      if (process.env.NODE_ENV === 'development') {
+        apiUrl = 'http://localhost:3000/api/url/check-safety';
+      }
+      // Use NEXT_PUBLIC_SITE_URL as last resort if available
+      else if (process.env.NEXT_PUBLIC_SITE_URL) {
+        apiUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/url/check-safety`;
+      }
+      // Default to unishare.app
+      else {
+        apiUrl = `${baseUrl}/api/url/check-safety`;
+      }
+    }
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

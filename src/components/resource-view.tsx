@@ -26,6 +26,7 @@ import {
   UserCircle,
   AlertTriangle,
   Flag,
+  GraduationCap,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -790,18 +791,18 @@ export default function ResourceView({
                 </Link>
               </div>
             )}
+            {resource.professor && (
+              <div className="flex items-center">
+                <span className="hidden sm:inline">•</span>
+                <GraduationCap className="h-3 w-3 mx-1" />
+                <span>Prof. {resource.professor}</span>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <p className="text-foreground/70 font-medium">{resource.description}</p>
-
-            {resource.professor && (
-              <div>
-                <span className="font-medium">Professor:</span>{" "}
-                {resource.professor}
-              </div>
-            )}
 
             {resource.external_link && (
               <div className="space-y-4">
