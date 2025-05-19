@@ -529,7 +529,7 @@ export default function ResourceCard({
             ) : resource.resource_type === "link" ? (
               <>
                 <ExternalLink className="h-4 w-4" style={{ marginRight: isCompact ? 0 : '0.5rem' }} />
-                {isCompact ? null : <span>View Link</span>}
+                {isCompact ? null : <span>Open</span>}
               </>
             ) : (
               <>

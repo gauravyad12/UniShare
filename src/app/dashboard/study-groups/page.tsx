@@ -11,6 +11,7 @@ import Link from "next/link";
 import StudyGroupsTabs from "@/components/study-groups-tabs";
 import PaginationControlWrapper from "@/components/pagination-control-wrapper";
 import ResponsiveJoinButton from "@/components/responsive-join-button";
+import StudyGroupsDynamicTitle from "@/components/study-groups-dynamic-title";
 
 export default async function StudyGroupsPage({
   searchParams,
@@ -56,9 +57,14 @@ export default async function StudyGroupsPage({
 
   // If viewing a specific group, render the group view
   if (viewedGroup) {
+    const chatMode = !!searchParams.chat;
+
     return (
       <div className="study-group-view-container px-2 sm:px-4 md:px-6">
-        {searchParams.chat ? (
+        {/* Dynamic page title for viewed group */}
+        <StudyGroupsDynamicTitle viewedGroup={viewedGroup} chatMode={chatMode} />
+
+        {chatMode ? (
           <SimpleGroupChat group={viewedGroup} />
         ) : (
           <SimpleStudyGroupView group={viewedGroup} />
@@ -174,6 +180,9 @@ export default async function StudyGroupsPage({
 
   return (
     <div className="container mx-auto px-4 py-8 pb-15 md:pb-8 flex flex-col gap-8">
+      {/* Dynamic page title for study groups list */}
+      <StudyGroupsDynamicTitle activeTab={activeTab} />
+
       <header className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-2">
           <h1 className="text-3xl font-bold">Study Groups</h1>

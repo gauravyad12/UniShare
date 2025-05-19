@@ -1,5 +1,6 @@
-export const metadata = {
-  title: "UniShare | Scholar+",
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
   description: "Access premium Scholar+ tools and features",
 };
 

@@ -22,6 +22,7 @@ import ResourceViewWrapper from "@/components/resource-view-wrapper";
 import ResourceTabContent from "@/components/resource-tab-content";
 import { Suspense } from "react";
 import { Metadata } from "next";
+import ResourcesDynamicTitle from "@/components/resources-dynamic-title";
 
 // Metadata is now handled in metadata.ts
 
@@ -151,6 +152,9 @@ export default async function ResourcesPage({
 
   return (
     <div className="container mx-auto px-4 py-8 pb-15 md:pb-8 flex flex-col gap-8">
+      {/* Dynamic page title */}
+      <ResourcesDynamicTitle viewedResource={viewedResource} activeTab={activeTab} />
+
       <header className="flex flex-col gap-4">
         <div className="flex justify-between items-center">
           {searchParams.view ? (

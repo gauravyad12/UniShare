@@ -18,7 +18,7 @@ export default function MobileScholarPlusSection() {
     {
       id: "textbook-answers",
       name: "Textbook Answers",
-      comingSoon: true,
+      comingSoon: false,
       path: "/dashboard/scholar-plus/textbook-answers",
     },
     {
@@ -59,7 +59,7 @@ export default function MobileScholarPlusSection() {
                 </div>
               </div>
             </div>
-            <Button size="sm" variant="ghost" asChild disabled={tool.comingSoon}>
+            <Button size="sm" variant="ghost" asChild disabled={tool.comingSoon} className="ml-auto">
               <Link href={tool.path}>
                 <ChevronRight className="h-4 w-4" />
               </Link>

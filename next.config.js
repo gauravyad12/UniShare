@@ -41,6 +41,7 @@ const nextConfig = {
     // Ensure we're only using .env file values
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_GOOGLE_BOOKS_API_KEY: process.env.GOOGLE_BOOKS_API_KEY,
   },
   // Enable SWC minification
   swcMinify: true,
@@ -69,6 +70,46 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "api.dicebear.com"
+      },
+      {
+        protocol: "https",
+        hostname: "covers.openlibrary.org"
+      },
+      {
+        protocol: "http",
+        hostname: "covers.openlibrary.org"
+      },
+      {
+        protocol: "https",
+        hostname: "archive.org"
+      },
+      {
+        protocol: "http",
+        hostname: "archive.org"
+      },
+      {
+        protocol: "https",
+        hostname: "*.archive.org"
+      },
+      {
+        protocol: "http",
+        hostname: "*.archive.org"
+      },
+      {
+        protocol: "https",
+        hostname: "books.google.com"
+      },
+      {
+        protocol: "http",
+        hostname: "books.google.com"
+      },
+      {
+        protocol: "https",
+        hostname: "books.googleusercontent.com"
+      },
+      {
+        protocol: "http",
+        hostname: "books.googleusercontent.com"
       }
     ],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],

@@ -18,6 +18,7 @@ import {
   Upload,
   Mic
 } from "lucide-react";
+import DynamicPageTitle from "@/components/dynamic-page-title";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -53,7 +54,7 @@ export default function ScholarPlusPage({
       icon: BookMarked,
       category: "study",
       path: "/dashboard/scholar-plus/textbook-answers",
-      comingSoon: true,
+      comingSoon: false,
     },
     {
       id: "proxy-browser",
@@ -106,6 +107,9 @@ export default function ScholarPlusPage({
 
   return (
     <div className="container mx-auto px-4 py-8 pb-20 md:pb-8">
+      {/* Set dynamic page title */}
+      <DynamicPageTitle title="UniShare | Scholar+" />
+
       <header className="mb-8">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="h-6 w-6 text-primary" />
@@ -120,7 +124,7 @@ export default function ScholarPlusPage({
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-6 gap-x-3 md:gap-x-4">
         {(activeTab === "all" ? scholarPlusTools : scholarPlusTools.filter(tool => tool.category === activeTab)).map((tool) => (
-          <Card key={tool.id} className="overflow-hidden">
+          <Card key={tool.id} className="overflow-hidden flex flex-col h-full">
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start">
                 <div className="p-2 bg-primary/10 rounded-md">
@@ -135,7 +139,7 @@ export default function ScholarPlusPage({
               <CardTitle className="mt-4">{tool.name}</CardTitle>
               <CardDescription>{tool.description}</CardDescription>
             </CardHeader>
-            <CardFooter className="pt-2">
+            <CardFooter className="pt-2 mt-auto">
               <ClientSubscriptionCheck redirectTo="/pricing">
                 <Button
                   asChild
