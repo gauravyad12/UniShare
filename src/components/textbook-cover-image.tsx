@@ -143,14 +143,22 @@ export default function TextbookCoverImage({
   // Set initial image URL from props
   useEffect(() => {
     // Always start with the primary image URL
-    setImageUrl(primaryImageUrl || null);
+    let initialUrl = primaryImageUrl;
+
+    // If the primary URL is from Open Library, use our proxy instead
+    if (initialUrl && (initialUrl.includes('covers.openlibrary.org') || initialUrl.includes('olcovers'))) {
+      // Use our proxy endpoint for Open Library covers
+      initialUrl = `/api/proxy/openlibrary?isbn=${isbn}&size=L`;
+    }
+
+    setImageUrl(initialUrl || null);
     setIsLoading(true);
     setError(false);
     setIsGoogleApi(false);
 
     // If we know this is an archive.org URL (which often has CORS issues)
     // or if we don't have a primary URL but do have an ISBN, try Google Books API directly
-    if ((primaryImageUrl && (primaryImageUrl.includes('archive.org') || primaryImageUrl.includes('olcovers'))) ||
+    if ((primaryImageUrl && primaryImageUrl.includes('archive.org')) ||
         (!primaryImageUrl && isbn)) {
 
       if (isbn) {
