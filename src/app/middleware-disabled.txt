@@ -1,5 +1,0 @@
-This file is a marker to indicate that we've temporarily disabled complex middleware functionality to fix the middleware-manifest.json error.
-
-The original middleware files have been preserved but we're using a simplified version at the root level.
-
-Once the app is working properly, we can gradually reintroduce the more complex middleware functionality.

@@ -18,7 +18,7 @@ import {
 import { GraduationCap } from "lucide-react";
 import { FormMessage } from "@/components/form-message";
 import { SubmitButton } from "@/components/submit-button";
-import { createClient } from "../../../../supabase/client";
+import { createClient } from "@/utils/supabase/client";
 
 export default function VerifyInviteClient() {
   const [inviteCode, setInviteCode] = useState(["", "", "", "", "", ""]);

@@ -2,19 +2,19 @@ const fs = require('fs');
 const path = require('path');
 
 // Check if the .next directory exists
-if (!fs.existsSync(path.join(__dirname, '.next'))) {
+if (!fs.existsSync(path.join(process.cwd(), '.next'))) {
   console.error('❌ Build failed: .next directory does not exist');
   process.exit(1);
 }
 
 // Check if the .next/server directory exists
-if (!fs.existsSync(path.join(__dirname, '.next', 'server'))) {
+if (!fs.existsSync(path.join(process.cwd(), '.next', 'server'))) {
   console.error('❌ Build failed: .next/server directory does not exist');
   process.exit(1);
 }
 
 // Check if the .next/static directory exists
-if (!fs.existsSync(path.join(__dirname, '.next', 'static'))) {
+if (!fs.existsSync(path.join(process.cwd(), '.next', 'static'))) {
   console.error('❌ Build failed: .next/static directory does not exist');
   process.exit(1);
 }

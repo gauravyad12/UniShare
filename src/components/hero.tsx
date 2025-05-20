@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ArrowUpRight, Check, BookOpen, Users, MapPin } from "lucide-react";
 import ParticlesBackground from "./particles-background";
-import { createClient } from "../../supabase/client";
+import { createClient } from "@/utils/supabase/client";
 import { useEffect, useState } from "react";
 
 export default function Hero() {
