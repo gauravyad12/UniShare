@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
-  // Disable static generation for all routes
+  // Use standalone output for production builds
   output: 'standalone',
   distDir: '.next',
   // Force dynamic rendering for all pages
@@ -21,15 +21,35 @@ const nextConfig = {
     // Disable CSR bailout warning
     missingSuspenseWithCSRBailout: false,
   },
+  // Configure on-demand entries
+  onDemandEntries: {
+    maxInactiveAge: 120 * 1000, // 120 seconds
+    pagesBufferLength: 5,
+  },
   // Disable static generation
   cacheHandler: require.resolve('./disable-cache.js'),
   // Disable static export
   // We're not using exportPathMap
-  // Disable webpack caching to prevent ENOENT errors
-  webpack: (config, { dev }) => {
+  // Disable webpack caching to prevent ENOENT errors and suppress warnings
+  webpack: (config, { dev, isServer }) => {
     if (dev) {
       config.cache = false;
     }
+
+    // Suppress warnings
+    config.infrastructureLogging = {
+      level: 'error',
+    };
+
+    // Ignore specific warnings
+    if (!isServer) {
+      config.optimization.minimizer.forEach((minimizer) => {
+        if (minimizer.constructor.name === 'TerserPlugin') {
+          minimizer.options.terserOptions.compress.warnings = false;
+        }
+      });
+    }
+
     return config;
   },
   // Set server port from environment variable
@@ -118,11 +138,7 @@ const nextConfig = {
   },
   // Compress responses
   compress: true,
-  // Increase memory limit
-  onDemandEntries: {
-    maxInactiveAge: 120 * 1000, // 120 seconds
-    pagesBufferLength: 5,
-  },
+  // Memory limit configuration moved to the top
   // Disable strict mode for API routes
   typescript: {
     ignoreBuildErrors: true,

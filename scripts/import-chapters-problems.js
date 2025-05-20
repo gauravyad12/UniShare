@@ -3,10 +3,18 @@
 const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config(); // Load environment variables from .env file
 
-// Supabase credentials
-const supabaseUrl = 'https://ncvinrzllkqlypnyluco.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jdmlucnpsbGtxbHlwbnlsdWNvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MjE3MjEwMywiZXhwIjoyMDU3NzQ4MTAzfQ.DMqLq_T9dff2-FZqPjMQeOcjuMy5nqCyFd6JwUUmGv4';
+// Supabase credentials from environment variables
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Check if environment variables are set
+if (!supabaseUrl || !supabaseKey) {
+  console.error('Error: Supabase environment variables are not set.');
+  console.error('Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in your .env file.');
+  process.exit(1);
+}
 
 // Initialize Supabase client with longer timeout
 const supabase = createClient(supabaseUrl, supabaseKey, {

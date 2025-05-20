@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Force dynamic rendering for this route since it uses request.nextUrl.searchParams
+export const dynamic = "force-dynamic";
+
 /**
  * Proxy endpoint for images
  * This helps bypass CORS and CSP issues by fetching the image on the server side
@@ -9,35 +12,35 @@ export async function GET(request: NextRequest) {
   try {
     // Get the URL from the query parameter
     const url = request.nextUrl.searchParams.get('url');
-    
+
     if (!url) {
       return new NextResponse('Missing URL parameter', { status: 400 });
     }
-    
+
     // Decode the URL if it's encoded
     const decodedUrl = decodeURIComponent(url);
-    
+
     // Fetch the image
     const response = await fetch(decodedUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
       },
     });
-    
+
     if (!response.ok) {
       console.error(`Error fetching image: ${response.status} ${response.statusText}`);
       return new NextResponse(`Failed to fetch image: ${response.status}`, { status: response.status });
     }
-    
+
     // Get the image data
     const imageBuffer = await response.arrayBuffer();
-    
+
     // Get the content type from the response
     const contentType = response.headers.get('content-type') || 'image/png';
-    
+
     // Get filename from URL or use a default
     let filename = 'Solution Image';
-    
+
     // Check if a title was provided in the request
     const title = request.nextUrl.searchParams.get('title');
     if (title) {
@@ -54,7 +57,7 @@ export async function GET(request: NextRequest) {
         // If URL parsing fails, use default filename
       }
     }
-    
+
     // Return the image with the appropriate content type and headers
     return new NextResponse(imageBuffer, {
       headers: {

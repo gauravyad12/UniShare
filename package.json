@@ -59,6 +59,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "dotenv": "^16.5.0",
     "postcss": "^8",
     "tailwind-merge": "^2",
     "tailwindcss": "^3",
