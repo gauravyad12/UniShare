@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { Button } from "./ui/button";
 import Link from "next/link";
@@ -18,21 +18,25 @@ export function ClientSubscriptionWrapper({
   redirectTo = "/pricing",
 }: ClientSubscriptionWrapperProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isClient, setIsClient] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
 
-    // For now, we'll show an upgrade prompt instead of redirecting
-    // This allows users to still access the dashboard while encouraging upgrades
     if (!hasSubscription) {
-      setShowUpgradePrompt(true);
-
-      // In the future, when we want to enforce subscription checks, uncomment:
-      // router.push(redirectTo);
+      // Check if this is the textbook-answers page
+      if (pathname === "/dashboard/scholar-plus/textbook-answers" ||
+          pathname.startsWith("/dashboard/scholar-plus/textbook-answers/")) {
+        // Redirect to the scholar+ page
+        router.push("/dashboard/scholar-plus");
+      } else {
+        // For other pages, show the upgrade prompt
+        setShowUpgradePrompt(true);
+      }
     }
-  }, [hasSubscription, redirectTo, router]);
+  }, [hasSubscription, redirectTo, router, pathname]);
 
   if (showUpgradePrompt) {
     return (
