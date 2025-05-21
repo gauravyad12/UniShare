@@ -116,7 +116,7 @@ export default function PricingClient() {
       </div>
       <div className="container mx-auto px-4 py-8 md:py-16 flex-1">
         <div className="md:hidden mb-6">
-          <Link href="/app-entry" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground">
+          <Link href="/app" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Link>

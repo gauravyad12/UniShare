@@ -130,6 +130,26 @@ const nextConfig = {
       {
         protocol: "http",
         hostname: "books.googleusercontent.com"
+      },
+      {
+        protocol: "https",
+        hostname: "upload.wikimedia.org"
+      },
+      {
+        protocol: "https",
+        hostname: "*.wikimedia.org"
+      },
+      {
+        protocol: "https",
+        hostname: "*.wikipedia.org"
+      },
+      {
+        protocol: "https",
+        hostname: "cdn-icons-png.freepik.com"
+      },
+      {
+        protocol: "https",
+        hostname: "*.freepik.com"
       }
     ],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],

@@ -1,14 +1,13 @@
 import { Metadata } from "next";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import AppilixEntryIdentity from "@/components/appilix-entry-identity";
 
 export const metadata: Metadata = {
-  title: "UniShare App - Get Started",
-  description: "Welcome to UniShare - Your academic resource sharing platform for university students",
+  title: "Get Started | UniShare",
+  description: "Learn about UniShare's features and how to make the most of your academic journey",
 };
 
-export default async function AppEntryLayout({
+export default async function OnboardingLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -24,9 +23,7 @@ export default async function AppEntryLayout({
   }
 
   return (
-    <div className="app-entry-layout">
-      {/* Add Appilix identity for push notifications */}
-      {user && <AppilixEntryIdentity />}
+    <div className="onboarding-layout">
       {children}
     </div>
   );

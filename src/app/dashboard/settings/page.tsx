@@ -509,8 +509,8 @@ export default function SettingsPage() {
     try {
       const supabase = createClient();
       await supabase.auth.signOut();
-      // Redirect to the app entry page
-      router.push("/app-entry");
+      // Redirect to the app page
+      router.push("/app");
     } catch (error) {
       console.error("Error logging out:", error);
       setLoggingOut(false);

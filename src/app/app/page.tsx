@@ -8,13 +8,13 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Download, Sparkles, BookOpen, Users } from "lucide-react";
 
-export default function AppEntryPage() {
+export default function AppPage() {
   const router = useRouter();
   const [isDesktop, setIsDesktop] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
-  // Check if the user is on desktop and redirect if needed
+  // Check if the user is on desktop or if they're not using Appilix app or localhost
   useEffect(() => {
     // Check if on desktop
     const checkDevice = () => {
@@ -23,6 +23,22 @@ export default function AppEntryPage() {
 
       if (isDesktopDevice) {
         router.push('/');
+        return;
+      }
+    };
+
+    // Check if the user is accessing from Appilix app, localhost, or local network IP
+    const checkAccess = () => {
+      const userAgent = navigator.userAgent;
+      const isAppilix = /Appilix/i.test(userAgent);
+      const hostname = window.location.hostname;
+      const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+      const isLocalNetwork = hostname.startsWith('192.'); // Check for local network IP addresses
+
+      // If not Appilix and not localhost and not local network, redirect to dashboard
+      if (!isAppilix && !isLocalhost && !isLocalNetwork) {
+        router.push('/dashboard');
+        return;
       }
     };
 
@@ -42,7 +58,9 @@ export default function AppEntryPage() {
       setDeferredPrompt(e);
     });
 
+    // Run both checks
     checkDevice();
+    checkAccess();
 
     // Add resize listener for device check
     window.addEventListener('resize', checkDevice);
@@ -362,7 +380,7 @@ export default function AppEntryPage() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <Link href="/verify-invite" className="w-full block">
+          <Link href="/app/onboarding" className="w-full block">
             <Button
               variant={isInstalled || !deferredPrompt ? "default" : "outline"}
               className={`w-full py-6 text-lg gap-2 group ${isInstalled || !deferredPrompt ? 'bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary' : ''}`}
