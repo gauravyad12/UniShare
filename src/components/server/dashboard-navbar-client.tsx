@@ -23,6 +23,7 @@ interface UserData {
   fullName: string | null;
   email: string | null;
   role?: string | null;
+  hasScholarPlus?: boolean;
 }
 
 interface DashboardNavbarClientProps {
@@ -35,7 +36,7 @@ export function DashboardNavbarClient({ isLoading, userData, error }: DashboardN
   const router = useRouter();
   const supabase = createClient();
   const [isSigningOut, setIsSigningOut] = useState(false);
-  
+
   const isAdmin = userData?.role === "admin";
 
   const handleSignOut = async () => {

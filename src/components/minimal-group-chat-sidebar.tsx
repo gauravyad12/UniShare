@@ -135,9 +135,13 @@ export default function MinimalGroupChatSidebar({
                   onClick={() => onChatSelect && onChatSelect()}
                 >
                   <div className="flex items-start gap-3">
-                    <Avatar className="h-10 w-10">
+                    <Avatar className="h-10 w-10 avatar">
                       {group.image_url ? (
-                        <AvatarImage src={group.image_url} alt={group.name} />
+                        <AvatarImage
+                          src={group.image_url}
+                          alt={group.name}
+                          className="object-cover"
+                        />
                       ) : (
                         <AvatarFallback>
                           <Users className="h-5 w-5" />

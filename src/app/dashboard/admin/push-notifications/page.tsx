@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, CheckCircle } from "lucide-react";
 import LoadingSpinner from "@/components/loading-spinner";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
@@ -150,10 +150,14 @@ export default function PushNotificationsPage() {
 
       {result && (
         <Alert
-          variant={result.success ? "default" : "destructive"}
+          variant={result.success ? "success" : "destructive"}
           className="mb-6"
         >
-          <AlertCircle className="h-4 w-4" />
+          {result.success ? (
+            <CheckCircle className="h-4 w-4" />
+          ) : (
+            <AlertCircle className="h-4 w-4" />
+          )}
           <AlertTitle>{result.success ? "Success" : "Error"}</AlertTitle>
           <AlertDescription>{result.message}</AlertDescription>
         </Alert>

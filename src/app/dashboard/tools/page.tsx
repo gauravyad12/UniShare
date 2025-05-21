@@ -16,7 +16,8 @@ import {
   MessageSquare,
   FileQuestion,
   Upload,
-  Mic
+  Mic,
+  LayoutGrid
 } from "lucide-react";
 import DynamicPageTitle from "@/components/dynamic-page-title";
 import { Button } from "@/components/ui/button";
@@ -30,13 +31,13 @@ import {
 } from "@/components/ui/card";
 import { ClientSubscriptionCheck } from "@/components/client-subscription-check";
 import { Badge } from "@/components/ui/badge";
-import ScholarPlusTabs from "@/components/scholar-plus-tabs";
+import ToolsTabs from "@/components/tools-tabs";
 import { SubscriptionRequiredNotice } from "@/components/subscription-required-notice";
 
 // Force dynamic rendering to handle search params
 export const dynamic = "force-dynamic";
 
-export default function ScholarPlusPage({
+export default function ToolsPage({
   searchParams,
 }: {
   searchParams: {
@@ -53,7 +54,7 @@ export default function ScholarPlusPage({
       description: "Access solutions to popular textbooks and study materials",
       icon: BookMarked,
       category: "study",
-      path: "/dashboard/scholar-plus/textbook-answers",
+      path: "/dashboard/tools/textbook-answers",
       comingSoon: false,
     },
     {
@@ -62,7 +63,7 @@ export default function ScholarPlusPage({
       description: "Browse the web securely and privately within UniShare",
       icon: Globe,
       category: "utility",
-      path: "/dashboard/scholar-plus/proxy-browser",
+      path: "/dashboard/tools/proxy-browser",
       comingSoon: true,
     },
     {
@@ -71,7 +72,7 @@ export default function ScholarPlusPage({
       description: "Plan and share your academic journey with integrated resources",
       icon: BarChart3,
       category: "planning",
-      path: "/dashboard/scholar-plus/degree-roadmap",
+      path: "/dashboard/tools/degree-roadmap",
       comingSoon: true,
     },
     {
@@ -80,7 +81,7 @@ export default function ScholarPlusPage({
       description: "Get help drafting essays with customizable prompts and rubrics",
       icon: FileText,
       category: "ai",
-      path: "/dashboard/scholar-plus/ai-essay-writer",
+      path: "/dashboard/tools/ai-essay-writer",
       comingSoon: true,
     },
     {
@@ -89,7 +90,7 @@ export default function ScholarPlusPage({
       description: "Upload PDFs, notes, or text and chat with an AI about the content",
       icon: MessageSquare,
       category: "ai",
-      path: "/dashboard/scholar-plus/ai-document-chat",
+      path: "/dashboard/tools/ai-document-chat",
       comingSoon: true,
     },
     {
@@ -98,7 +99,7 @@ export default function ScholarPlusPage({
       description: "Record lectures and get AI-generated notes, summaries, and flashcards",
       icon: Mic,
       category: "ai",
-      path: "/dashboard/scholar-plus/ai-lecture-notes",
+      path: "/dashboard/tools/ai-lecture-notes",
       comingSoon: true,
     },
   ];
@@ -108,19 +109,19 @@ export default function ScholarPlusPage({
   return (
     <div className="container mx-auto px-4 py-8 pb-20 md:pb-8">
       {/* Set dynamic page title */}
-      <DynamicPageTitle title="UniShare | Scholar+" />
+      <DynamicPageTitle title="UniShare | Tools" />
 
       <header className="mb-8">
         <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="h-6 w-6 text-primary" />
-          <h1 className="text-3xl font-bold">Scholar+</h1>
+          <LayoutGrid className="h-6 w-6 text-primary" />
+          <h1 className="text-3xl font-bold">Tools</h1>
         </div>
         <p className="text-muted-foreground">
-          Unlock powerful features to enhance your academic success
+          Access powerful features to enhance your academic success
         </p>
       </header>
 
-      <ScholarPlusTabs tools={scholarPlusTools} initialTab={activeTab} />
+      <ToolsTabs tools={scholarPlusTools} initialTab={activeTab} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-6 gap-x-3 md:gap-x-4">
         {(activeTab === "all" ? scholarPlusTools : scholarPlusTools.filter(tool => tool.category === activeTab)).map((tool) => (

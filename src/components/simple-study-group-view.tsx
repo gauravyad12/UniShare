@@ -562,10 +562,11 @@ export default function SimpleStudyGroupView({
                   {members.map((member) => (
                     <div key={member.user_id} className="flex items-center gap-3">
                       <div className="flex-shrink-0">
-                        <Avatar className="h-8 w-8">
+                        <Avatar className="h-8 w-8 avatar">
                           <AvatarImage
                             src={member.avatar_url || undefined}
                             alt={member.full_name || member.username || "User"}
+                            className="object-cover"
                           />
                           <AvatarFallback className="text-xs">
                             {member.full_name

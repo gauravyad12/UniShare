@@ -1017,9 +1017,13 @@ export default function SimpleGroupChat({
                       className={`flex gap-2 ${message.sender_id === userId ? 'justify-end' : 'justify-start'}`}
                     >
                   {message.sender_id !== userId && (
-                    <Avatar className="h-8 w-8">
+                    <Avatar className="h-8 w-8 avatar">
                       {message.avatar_url ? (
-                        <AvatarImage src={message.avatar_url} alt={message.full_name || message.username || "User"} />
+                        <AvatarImage
+                          src={message.avatar_url}
+                          alt={message.full_name || message.username || "User"}
+                          className="object-cover"
+                        />
                       ) : (
                         <AvatarFallback className="text-[10px]">
                           {message.full_name ? message.full_name.substring(0, 2).toUpperCase() :
@@ -1086,9 +1090,13 @@ export default function SimpleGroupChat({
                     )}
                   </div>
                   {message.sender_id === userId && (
-                    <Avatar className="h-8 w-8">
+                    <Avatar className="h-8 w-8 avatar">
                       {userProfile?.avatar_url ? (
-                        <AvatarImage src={userProfile.avatar_url} alt={userProfile.full_name || userProfile.username || "You"} />
+                        <AvatarImage
+                          src={userProfile.avatar_url}
+                          alt={userProfile.full_name || userProfile.username || "You"}
+                          className="object-cover"
+                        />
                       ) : (
                         <AvatarFallback className="text-[10px]">
                           {userProfile?.full_name ? userProfile.full_name.substring(0, 2).toUpperCase() :

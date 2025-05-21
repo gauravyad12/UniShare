@@ -12,7 +12,8 @@ import ResourceCard from "@/components/resource-card";
 import StudyGroupCard from "@/components/study-group-card";
 import ShareProfileButton from "@/components/share-profile-button";
 import { useEffect, useState } from "react";
-import { UserPlus, UsersRound } from "lucide-react";
+import { UserPlus, UsersRound, Sparkles, CheckCircle } from "lucide-react";
+import DynamicPageTitle from "@/components/dynamic-page-title";
 
 export default function UserProfilePage({
   params,
@@ -36,6 +37,7 @@ export default function UserProfilePage({
     followersCount: 0,
     followingCount: 0
   });
+  const [hasScholarPlus, setHasScholarPlus] = useState(false);
 
   // First useEffect: Check authentication status immediately
   useEffect(() => {
@@ -135,6 +137,24 @@ export default function UserProfilePage({
         // Ensure we have a valid profile data object
         setProfileData(finalProfileData || {});
 
+        // Check if the user has Scholar+ subscription using the API endpoint
+        try {
+          // Use the API endpoint to check subscription status
+          const apiUrl = `/api/users/${finalProfileData.id}/subscription-status`;
+          const subscriptionResponse = await fetch(apiUrl);
+
+          if (subscriptionResponse.ok) {
+            const subscriptionData = await subscriptionResponse.json();
+            setHasScholarPlus(subscriptionData.hasScholarPlus);
+          } else {
+            console.error("Error fetching subscription status from API");
+            setHasScholarPlus(false);
+          }
+        } catch (error) {
+          console.error("Error checking subscription status");
+          setHasScholarPlus(false);
+        }
+
         // Check if the profile is visible
         const { data: userSettings } = await supabase
           .from("user_settings")
@@ -149,14 +169,14 @@ export default function UserProfilePage({
           return;
         }
 
-        // Fetch public resources by this user
+        // Fetch public resources by this user (limit to 4)
         const { data: resourcesData = [] } = await supabase
           .from("resources")
           .select("*")
           .eq("author_id", finalProfileData.id)
           .eq("is_approved", true)
           .order("created_at", { ascending: false })
-          .limit(3);
+          .limit(4);
 
         setResources(resourcesData || []);
 
@@ -200,10 +220,11 @@ export default function UserProfilePage({
               }
             }
 
-            setStudyGroups(allGroups);
+            // Limit to 4 study groups
+            setStudyGroups(allGroups.slice(0, 4));
           } else {
-            // If user is not a member of any groups, just use created groups
-            setStudyGroups(createdGroupsData);
+            // If user is not a member of any groups, just use created groups (limit to 4)
+            setStudyGroups(createdGroupsData.slice(0, 4));
           }
         } catch (groupsError) {
           console.error("Error fetching study groups:", groupsError);
@@ -216,7 +237,7 @@ export default function UserProfilePage({
               .eq("is_private", false)
               .order("created_at", { ascending: false });
 
-            setStudyGroups(createdGroupsData);
+            setStudyGroups(createdGroupsData.slice(0, 4));
           } catch (fallbackError) {
             console.error("Error in fallback query:", fallbackError);
             setStudyGroups([]);
@@ -289,6 +310,7 @@ export default function UserProfilePage({
   if (notFound) {
     return (
       <div className="container mx-auto py-8 text-center">
+        <DynamicPageTitle title="UniShare | User Not Found" />
         <h1 className="text-2xl font-bold mb-6">User Not Found</h1>
         <p>The profile you're looking for doesn't exist or is not public.</p>
       </div>
@@ -298,6 +320,7 @@ export default function UserProfilePage({
   if (profileHidden) {
     return (
       <div className="container mx-auto py-8 text-center">
+        <DynamicPageTitle title="UniShare | Profile Not Visible" />
         <h1 className="text-2xl font-bold mb-6">Profile Not Visible</h1>
         <p className="mb-4">This user has opted out of public profile visibility.</p>
         <p className="text-sm text-muted-foreground">
@@ -309,6 +332,9 @@ export default function UserProfilePage({
 
   return (
     <div className="container mx-auto py-8 px-4">
+      {/* Set dynamic page title */}
+      <DynamicPageTitle title={`UniShare | ${profileData?.full_name || profileData?.username || "User"}'s Profile`} />
+
       <div className="max-w-4xl mx-auto">
         {/* Profile Header with Share Button in top right */}
         <div className="relative mb-8">
@@ -324,10 +350,11 @@ export default function UserProfilePage({
 
           {/* Profile Content */}
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6 align-top">
-            <Avatar className="w-24 h-24 border-2 border-primary">
+            <Avatar className="w-24 h-24 border-2 border-primary avatar">
               <AvatarImage
                 src={profileData?.avatar_url || undefined}
                 alt={profileData?.full_name || profileData?.username || "User"}
+                className="object-cover"
               />
               <AvatarFallback className="text-xl">
                 {(profileData?.full_name || profileData?.username || "U")
@@ -337,8 +364,18 @@ export default function UserProfilePage({
             </Avatar>
 
             <div className="text-center md:text-left">
-              <h1 className="text-3xl font-bold">
+              <h1 className="text-3xl font-bold flex items-center gap-2 md:justify-start justify-center">
                 {profileData?.full_name || profileData?.username || "User"}
+                {profileData?.is_verified && (
+                  <span className="text-blue-500" title="Verified">
+                    <CheckCircle className="h-5 w-5" />
+                  </span>
+                )}
+                {hasScholarPlus && (
+                  <span className="text-amber-500" title="Scholar+ Member">
+                    <Sparkles className="h-5 w-5" />
+                  </span>
+                )}
               </h1>
               <p className="text-muted-foreground mb-2">
                 @{profileData?.username || "username"}

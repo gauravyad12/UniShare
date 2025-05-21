@@ -16,6 +16,7 @@ import {
   CheckCircle,
   UserPlus,
   UsersRound,
+  Sparkles,
 } from "lucide-react";
 import ResourceCard from "@/components/resource-card";
 import StudyGroupCard from "@/components/study-group-card";
@@ -45,6 +46,7 @@ export default function ProfilePage({
     followingCount: 0,
     isFollowing: false,
   });
+  const [hasScholarPlus, setHasScholarPlus] = useState(false);
 
   // Handle follow status changes
   const handleFollowStatusChange = (status) => {
@@ -147,6 +149,23 @@ export default function ProfilePage({
 
         console.log("Profile data fetched:", profileData);
         setProfile(profileData);
+
+        // Check if the user has Scholar+ subscription
+        const { data: subscriptions } = await supabase
+          .from("subscriptions")
+          .select("status, current_period_end")
+          .eq("user_id", profileData.id)
+          .eq("status", "active")
+          .maybeSingle();
+
+        // Check if the subscription is still valid
+        if (subscriptions) {
+          const currentTime = Math.floor(Date.now() / 1000);
+          const isValid = subscriptions.status === "active" &&
+                        (!subscriptions.current_period_end ||
+                         subscriptions.current_period_end > currentTime);
+          setHasScholarPlus(isValid);
+        }
 
         // Determine if this is the current user's profile
         const isOwnProfile = userData.user?.id === profileData.id;
@@ -303,8 +322,13 @@ export default function ProfilePage({
                 <h1 className="text-2xl font-bold flex items-center gap-2">
                   {profile.full_name}
                   {profile.is_verified && (
-                    <span className="text-blue-500">
+                    <span className="text-blue-500" title="Verified">
                       <CheckCircle className="h-5 w-5" />
+                    </span>
+                  )}
+                  {hasScholarPlus && (
+                    <span className="text-amber-500" title="Scholar+ Member">
+                      <Sparkles className="h-5 w-5" />
                     </span>
                   )}
                 </h1>

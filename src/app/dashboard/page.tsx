@@ -11,6 +11,7 @@ import {
   Users,
   UserPlus,
   CheckSquare,
+  Sparkles,
 } from "lucide-react";
 import MeetingCarousel from "@/components/meeting-carousel";
 import Link from "next/link";
@@ -27,7 +28,7 @@ import MobileDashboardHeader from "@/components/mobile-dashboard-header";
 import MobileMeetingsSection from "@/components/mobile-meetings-section";
 import MobileResourcesSection from "@/components/mobile-resources-section";
 import MobileTodoSection from "@/components/mobile-todo-section";
-import MobileScholarPlusSection from "@/components/mobile-scholar-plus-section";
+import MobileToolsSection from "@/components/mobile-tools-section";
 import MobileActionPopup from "@/components/mobile-action-popup";
 import TodoList from "@/components/todo-list";
 
@@ -193,6 +194,35 @@ export default async function Dashboard() {
   // Get the university name
   const universityName = userProfile?.university?.name || "your university";
 
+  // Check if user has an active subscription
+  let hasScholarPlus = false;
+  try {
+    // Check if user has an active subscription
+    const { data: subscriptions } = await supabase
+      .from("subscriptions")
+      .select("status, current_period_end")
+      .eq("user_id", user.id)
+      .order('created_at', { ascending: false });
+
+    // Get the current time
+    const currentTime = Math.floor(Date.now() / 1000);
+
+    // Check if any subscription is active and valid
+    if (subscriptions && subscriptions.length > 0) {
+      // First check the most recent subscription (ordered by created_at desc)
+      const latestSubscription = subscriptions[0];
+
+      // Check if the latest subscription is active and not expired
+      if (latestSubscription.status === "active" &&
+          (!latestSubscription.current_period_end ||
+           latestSubscription.current_period_end > currentTime)) {
+        hasScholarPlus = true;
+      }
+    }
+  } catch (error) {
+    console.error("Error checking subscription:", error);
+  }
+
   return (
     <>
       {/* Mobile view */}
@@ -222,8 +252,6 @@ export default async function Dashboard() {
         <div className="px-4 -mt-4">
           <MobileTodoSection />
 
-          <MobileScholarPlusSection />
-
           <MobileMeetingsSection
             upcomingMeetings={limitedUpcomingMeetings}
             pastMeetings={limitedPastMeetings}
@@ -232,6 +260,8 @@ export default async function Dashboard() {
           <MobileResourcesSection
             resources={mappedResources || []}
           />
+
+          <MobileToolsSection hasSubscription={hasScholarPlus} />
         </div>
       </div>
 
@@ -240,11 +270,19 @@ export default async function Dashboard() {
         {/* Welcome Section */}
         <header>
           <div className="flex justify-between items-center mb-4">
-            <h1 className="text-3xl font-bold">
-              Welcome, {userName}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold">
+                Welcome, {userName}
+              </h1>
+              {hasScholarPlus && (
+                <div className="bg-amber-100 dark:bg-amber-950 text-amber-600 dark:text-amber-400 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                  <Sparkles className="h-3 w-3" />
+                  <span>Scholar+</span>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="bg-secondary/50 text-sm p-3 px-4 rounded-lg text-muted-foreground flex gap-2 items-center">
+          <div className="inline-flex bg-secondary/50 text-sm p-3 px-4 rounded-lg text-muted-foreground gap-2 items-center">
             <InfoIcon size="14" />
             <span>
               Welcome to {universityName}'s study hub

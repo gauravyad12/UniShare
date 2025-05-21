@@ -364,7 +364,7 @@ export default function SubscriptionManagement({
             {/* Access Scholar+ Button - only for active subscribers */}
             {showAccessButton && isActive && (
               <Button variant="outline" asChild className="w-full md:w-auto">
-                <Link href="/dashboard/scholar-plus">
+                <Link href="/dashboard/tools">
                   <Sparkles className="mr-2 h-4 w-4" />
                   Access Scholar+
                 </Link>

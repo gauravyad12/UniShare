@@ -41,6 +41,26 @@ export async function DashboardNavbarServer() {
       return <DashboardNavbarClient isLoading={false} userData={null} error="Failed to load profile" />;
     }
 
+    // Check if user has Scholar+ subscription
+    let hasScholarPlus = false;
+    try {
+      const { data: subscription } = await supabase
+        .from("subscriptions")
+        .select("status, current_period_end")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (subscription) {
+        const currentTime = Math.floor(Date.now() / 1000);
+        hasScholarPlus = subscription.status === "active" &&
+                        (!subscription.current_period_end ||
+                         subscription.current_period_end > currentTime);
+      }
+    } catch (subscriptionError) {
+      console.error("Error checking subscription:", subscriptionError);
+    }
+
     // Verify that the profile belongs to the authenticated user
     if (profile && profile.id === user.id) {
       // Only pass necessary data to the client component
@@ -51,6 +71,7 @@ export async function DashboardNavbarServer() {
         fullName: profile.full_name,
         email: user.email,
         role: profile.role,
+        hasScholarPlus,
       };
 
       return (
@@ -65,7 +86,20 @@ export async function DashboardNavbarServer() {
                   height={32}
                   className="h-8 w-8"
                 />
-                <span className="text-xl font-bold">UniShare</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xl font-bold">UniShare</span>
+                  {hasScholarPlus && (
+                    <span className="text-amber-500" title="Scholar+ Member">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-sparkles">
+                        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+                        <path d="M5 3v4" />
+                        <path d="M19 17v4" />
+                        <path d="M3 5h4" />
+                        <path d="M17 19h4" />
+                      </svg>
+                    </span>
+                  )}
+                </div>
               </Link>
 
               <div className="flex items-center gap-4 ml-6">
@@ -105,17 +139,16 @@ export async function DashboardNavbarServer() {
                 {/* Items that will be hidden on smaller screens */}
                 <div className="hidden lg:flex items-center gap-4">
                   <Link
-                    href="/dashboard/scholar-plus"
+                    href="/dashboard/tools"
                     className="text-sm font-medium flex items-center gap-1 hover:text-primary transition-colors"
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-sparkles">
-                      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-                      <path d="M5 3v4" />
-                      <path d="M19 17v4" />
-                      <path d="M3 5h4" />
-                      <path d="M17 19h4" />
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-layout-grid">
+                      <rect width="7" height="7" x="3" y="3" rx="1" />
+                      <rect width="7" height="7" x="14" y="3" rx="1" />
+                      <rect width="7" height="7" x="14" y="14" rx="1" />
+                      <rect width="7" height="7" x="3" y="14" rx="1" />
                     </svg>
-                    Scholar+
+                    Tools
                   </Link>
                   <Link
                     href="/dashboard/invite"
@@ -146,15 +179,14 @@ export async function DashboardNavbarServer() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem asChild>
-                        <Link href="/dashboard/scholar-plus" className="flex items-center">
+                        <Link href="/dashboard/tools" className="flex items-center">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-                            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-                            <path d="M5 3v4" />
-                            <path d="M19 17v4" />
-                            <path d="M3 5h4" />
-                            <path d="M17 19h4" />
+                            <rect width="7" height="7" x="3" y="3" rx="1" />
+                            <rect width="7" height="7" x="14" y="3" rx="1" />
+                            <rect width="7" height="7" x="14" y="14" rx="1" />
+                            <rect width="7" height="7" x="3" y="14" rx="1" />
                           </svg>
-                          Scholar+
+                          Tools
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>

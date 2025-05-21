@@ -27,10 +27,10 @@ export function ClientSubscriptionWrapper({
 
     if (!hasSubscription) {
       // Check if this is the textbook-answers page
-      if (pathname === "/dashboard/scholar-plus/textbook-answers" ||
-          pathname.startsWith("/dashboard/scholar-plus/textbook-answers/")) {
-        // Redirect to the scholar+ page
-        router.push("/dashboard/scholar-plus");
+      if (pathname === "/dashboard/tools/textbook-answers" ||
+          pathname.startsWith("/dashboard/tools/textbook-answers/")) {
+        // Redirect to the tools page
+        router.push("/dashboard/tools");
       } else {
         // For other pages, show the upgrade prompt
         setShowUpgradePrompt(true);

@@ -26,6 +26,7 @@ import {
   LogOut,
   CreditCard,
   Sparkles,
+  AlertTriangle,
 } from "lucide-react";
 import SubscriptionManagement from "@/components/subscription-management";
 import {
@@ -982,7 +983,7 @@ export default function SettingsPage() {
         <Card className="border-destructive/50">
           <CardHeader>
             <CardTitle className="text-red-500 flex items-center gap-2">
-              <Trash2 className="h-5 w-5" />
+              <AlertTriangle className="h-5 w-5" />
               Danger Zone
             </CardTitle>
             <CardDescription>
@@ -1001,7 +1002,9 @@ export default function SettingsPage() {
             <Button
               variant="destructive"
               onClick={() => setShowDeleteDialog(true)}
+              className="w-full md:w-auto"
             >
+              <Trash2 className="mr-2 h-4 w-4" />
               Delete Account
             </Button>
           </CardFooter>

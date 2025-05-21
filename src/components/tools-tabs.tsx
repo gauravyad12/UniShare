@@ -7,7 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import MobileTabs from "@/components/mobile-tabs";
 
-interface ScholarPlusTabsProps {
+interface ToolsTabsProps {
   tools: any[];
   initialTab: string;
 }
@@ -25,7 +25,7 @@ function SearchParamsReader({ onParamsChange }: { onParamsChange: (params: URLSe
   return null;
 }
 
-export default function ScholarPlusTabs({ tools, initialTab }: ScholarPlusTabsProps) {
+export default function ToolsTabs({ tools, initialTab }: ToolsTabsProps) {
   const router = useRouter();
   const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -66,7 +66,7 @@ export default function ScholarPlusTabs({ tools, initialTab }: ScholarPlusTabsPr
       params.set("tab", value);
 
       // Use router.push for server-side navigation
-      router.push(`/dashboard/scholar-plus?${params.toString()}`);
+      router.push(`/dashboard/tools?${params.toString()}`);
     }
   };
 

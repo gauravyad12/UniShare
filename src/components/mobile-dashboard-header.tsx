@@ -10,6 +10,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useRouter } from "next/navigation";
 import SearchBarWithClear from "./search-bar-with-clear";
+import { createClient } from "@/utils/supabase/client";
 
 interface MobileDashboardHeaderProps {
   userName: string;
@@ -31,6 +32,9 @@ export default function MobileDashboardHeader({
   username,
 }: MobileDashboardHeaderProps) {
   const [greeting, setGreeting] = useState("Good day");
+  const [hasScholarPlus, setHasScholarPlus] = useState(false);
+  const supabase = createClient();
+
   useEffect(() => {
     // Set appropriate greeting based on time of day
     const hour = new Date().getHours();
@@ -38,6 +42,36 @@ export default function MobileDashboardHeader({
     else if (hour < 18) setGreeting("Good afternoon");
     else setGreeting("Good evening");
   }, []);
+
+  // Check if user has Scholar+ subscription
+  useEffect(() => {
+    async function checkSubscription() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) return;
+
+        const { data: subscription } = await supabase
+          .from("subscriptions")
+          .select("status, current_period_end")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .maybeSingle();
+
+        if (subscription) {
+          const currentTime = Math.floor(Date.now() / 1000);
+          const isValid = subscription.status === "active" &&
+                        (!subscription.current_period_end ||
+                         subscription.current_period_end > currentTime);
+          setHasScholarPlus(isValid);
+        }
+      } catch (error) {
+        console.error("Error checking subscription:", error);
+      }
+    }
+
+    checkSubscription();
+  }, [supabase]);
 
   // Get first name only
   const firstName = userName.split(" ")[0];
@@ -64,7 +98,14 @@ export default function MobileDashboardHeader({
             </Link>
             <div>
               <p className="text-sm text-muted-foreground">{greeting}</p>
-              <h2 className="font-bold text-xl">{firstName}</h2>
+              <div className="flex items-center gap-1.5">
+                <h2 className="font-bold text-xl">{firstName}</h2>
+                {hasScholarPlus && (
+                  <span className="text-amber-500" title="Scholar+ Member">
+                    <Sparkles className="h-4 w-4" />
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 

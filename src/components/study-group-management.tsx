@@ -250,8 +250,11 @@ export default function StudyGroupManagement({
               <div key={member.user_id} className="mb-3">
                 <div className="flex items-center justify-between py-2">
                   <div className="flex items-center space-x-3">
-                    <Avatar>
-                      <AvatarImage src={member.avatar_url || undefined} />
+                    <Avatar className="h-8 w-8 avatar">
+                      <AvatarImage
+                        src={member.avatar_url || undefined}
+                        className="object-cover"
+                      />
                       <AvatarFallback>
                         {(member.full_name || 'U').charAt(0).toUpperCase()}
                       </AvatarFallback>

@@ -24,6 +24,37 @@ import { Check, ChevronsUpDown, X, Star, Info, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { searchProfessors, formatProfessorWithDepartment, type Professor } from "@/utils/rateMyProfessor";
 
+// Function to get university abbreviation
+function getUniversityAbbreviation(universityName: string): string {
+  // Common university abbreviations
+  const abbreviations: Record<string, string> = {
+    "University of Central Florida": "UCF",
+    "Florida State University": "FSU",
+    "University of Florida": "UF",
+    "University of South Florida": "USF",
+    "Florida International University": "FIU",
+    "University of Miami": "UM",
+    "Florida Atlantic University": "FAU",
+    "University of North Florida": "UNF",
+    "Florida Gulf Coast University": "FGCU",
+    "University of West Florida": "UWF",
+  };
+
+  // Check if we have a predefined abbreviation
+  if (abbreviations[universityName]) {
+    return abbreviations[universityName];
+  }
+
+  // If not, try to create an abbreviation from capital letters
+  const capitals = universityName.match(/\b[A-Z]/g);
+  if (capitals && capitals.length >= 2) {
+    return capitals.join("");
+  }
+
+  // If all else fails, return the first 3-4 characters
+  return universityName.substring(0, 4);
+}
+
 interface ProfessorSearchProps {
   value: Professor | null;
   onChange: (professor: Professor | null) => void;
@@ -45,8 +76,27 @@ export default function ProfessorSearch({
   const [filterByUniversity, setFilterByUniversity] = useState(true);
   const [userUniversity, setUserUniversity] = useState<string | null>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // We'll get the university from the search results instead of a separate API call
+
+  // Prevent autofocus when dialog opens
+  useEffect(() => {
+    if (open) {
+      // Use a timeout to ensure this runs after the dialog's built-in focus handling
+      const timer = setTimeout(() => {
+        // Blur any focused element
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        // Ensure the search input doesn't get focused
+        if (searchInputRef.current) {
+          searchInputRef.current.blur();
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
 
   // Filter professors based on university filter setting
   useEffect(() => {
@@ -126,7 +176,11 @@ export default function ProfessorSearch({
       <div className="flex justify-between">
         <Label htmlFor="professor">Professor {required ? "*" : "(optional)"}</Label>
       </div>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={setOpen}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogTrigger asChild>
           <Button
             variant="outline"
@@ -220,7 +274,10 @@ export default function ProfessorSearch({
             </div>
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent
+          className="sm:max-w-[500px]"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <div id="professor-search-description" className="sr-only">Search for professors to attach to this resource</div>
           <DialogHeader>
             <DialogTitle>Search for a Professor</DialogTitle>
@@ -239,22 +296,29 @@ export default function ProfessorSearch({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   className="pl-8"
+                  autoFocus={false}
+                  ref={searchInputRef}
+                  tabIndex={-1} /* Prevent tab focus */
                 />
               </div>
             </div>
             {userUniversity && (
-              <div className="flex items-center space-x-2 mb-3">
-                <Checkbox
-                  id="filter-university"
-                  checked={filterByUniversity}
-                  onCheckedChange={(checked) => setFilterByUniversity(checked === true)}
-                />
-                <label
-                  htmlFor="filter-university"
-                  className="text-sm text-muted-foreground cursor-pointer"
-                >
-                  Show only professors from {userUniversity}
-                </label>
+              <div className="mb-3">
+                <div className="flex items-center h-5">
+                  <Checkbox
+                    id="filter-university"
+                    checked={filterByUniversity}
+                    onCheckedChange={(checked) => setFilterByUniversity(checked === true)}
+                    className="professor-filter-checkbox !h-4 !min-h-0"
+                  />
+                  <label
+                    htmlFor="filter-university"
+                    className="text-sm text-muted-foreground cursor-pointer ml-2 whitespace-nowrap overflow-hidden text-ellipsis"
+                    style={{ maxWidth: "calc(100% - 24px)" }}
+                  >
+                    {getUniversityAbbreviation(userUniversity)} professors only
+                  </label>
+                </div>
               </div>
             )}
 

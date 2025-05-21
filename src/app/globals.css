@@ -505,6 +505,12 @@
     min-height: 44px;
   }
 
+  /* Exception for professor filter checkbox */
+  [role="dialog"] button.professor-filter-checkbox {
+    min-height: 16px !important;
+    height: 16px !important;
+  }
+
   [role="dialog"] button:active {
     transform: scale(0.98);
   }
@@ -748,6 +754,11 @@
     margin-bottom: 1.5rem;
     border-radius: 1rem;
     overflow: hidden;
+  }
+
+  /* Remove border radius for specific sections */
+  .no-border-radius {
+    border-radius: 0 !important;
   }
 
   /* Resource cards in mobile view */

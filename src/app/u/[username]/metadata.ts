@@ -18,16 +18,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     .single();
 
   const displayName = profile?.full_name || profile?.username || username;
-  const description = profile?.bio 
+  const description = profile?.bio
     ? `${displayName}'s profile on UniShare. ${profile.bio.substring(0, 100)}${profile.bio.length > 100 ? '...' : ''}`
     : `View ${displayName}'s profile, resources, and study groups on UniShare.`;
 
   return {
-    title: `${displayName} (@${username}) | UniShare`,
+    title: `UniShare | ${displayName}'s Profile`,
     description,
     openGraph: {
       type: "profile",
-      title: `${displayName} (@${username}) | UniShare`,
+      title: `UniShare | ${displayName}'s Profile`,
       description,
       url: `${baseUrl}/u/${username}`,
       images: [{
@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
     twitter: {
       card: "summary_large_image",
-      title: `${displayName} (@${username}) | UniShare`,
+      title: `UniShare | ${displayName}'s Profile`,
       description,
       images: [`${baseUrl}/api/og/profile?username=${username}`],
     },

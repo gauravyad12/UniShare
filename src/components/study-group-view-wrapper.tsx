@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import ShareStudyGroupButton from "@/components/share-study-group-button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface StudyGroupViewWrapperProps {
   group: any;
@@ -327,17 +328,19 @@ export default function StudyGroupViewWrapper({
                   {members.map((member) => (
                     <div key={member.user_id} className="flex items-center gap-3">
                       <div className="flex-shrink-0">
-                        {member.avatar_url ? (
-                          <img
-                            src={member.avatar_url}
-                            alt={member.full_name || member.username || "User"}
-                            className="h-8 w-8 rounded-full"
-                          />
-                        ) : (
-                          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                            <Users className="h-4 w-4" />
-                          </div>
-                        )}
+                        <Avatar className="h-8 w-8 avatar">
+                          {member.avatar_url ? (
+                            <AvatarImage
+                              src={member.avatar_url}
+                              alt={member.full_name || member.username || "User"}
+                              className="object-cover"
+                            />
+                          ) : (
+                            <AvatarFallback>
+                              <Users className="h-4 w-4" />
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">
