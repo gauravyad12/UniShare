@@ -99,33 +99,57 @@ export default function OnboardingPage() {
 
   const nextStep = () => {
     if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1);
-      // Scroll to the top of the page with smooth behavior
+      // First, scroll to top with smooth behavior
       window.scrollTo({
         top: 0,
         behavior: 'smooth'
       });
+
+      // Then update the step
+      setCurrentStep(currentStep + 1);
+
+      // Add a small delay to scroll again after content might have loaded
+      setTimeout(() => {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      }, 100);
     }
   };
 
   const prevStep = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-      // Scroll to the top of the page with smooth behavior
+      // First, scroll to top with smooth behavior
       window.scrollTo({
         top: 0,
         behavior: 'smooth'
       });
+
+      // Then update the step
+      setCurrentStep(currentStep - 1);
+
+      // Add a small delay to scroll again after content might have loaded
+      setTimeout(() => {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      }, 100);
     }
   };
 
   const goToSignUp = () => {
-    // Scroll to the top before navigating
+    // Scroll to the top with smooth behavior before navigating
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
     });
-    router.push('/verify-invite');
+
+    // Add a small delay before navigation to ensure the scroll completes
+    setTimeout(() => {
+      router.push('/verify-invite');
+    }, 100);
   };
 
   // Get the current step component
@@ -308,14 +332,7 @@ export default function OnboardingPage() {
         ) : currentStep === steps.length ? (
           <Button
             className="w-full py-6 text-lg gap-2 group bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
-            onClick={() => {
-              // Scroll to the top before navigating
-              window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-              });
-              goToSignUp();
-            }}
+            onClick={goToSignUp} // This already includes scrolling to top in the goToSignUp function
           >
             Get Started
             <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -323,14 +340,7 @@ export default function OnboardingPage() {
         ) : (
           <Button
             className="w-full py-6 text-lg gap-2 group"
-            onClick={() => {
-              // Scroll to the top before continuing
-              window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-              });
-              nextStep();
-            }}
+            onClick={nextStep} // This already includes scrolling to top in the nextStep function
             disabled={isButtonDisabled}
           >
             Continue
@@ -343,14 +353,7 @@ export default function OnboardingPage() {
           <Button
             variant="outline"
             className="w-full py-6 text-lg gap-2 group"
-            onClick={() => {
-              // Scroll to the top before going back
-              window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-              });
-              prevStep();
-            }}
+            onClick={prevStep} // This already includes scrolling to top in the prevStep function
           >
             <ChevronLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
             Back
@@ -363,14 +366,7 @@ export default function OnboardingPage() {
             <Button
               variant="link"
               className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              onClick={() => {
-                // Scroll to the top before navigating
-                window.scrollTo({
-                  top: 0,
-                  behavior: 'smooth'
-                });
-                goToSignUp();
-              }}
+              onClick={goToSignUp} // This already includes scrolling to top in the goToSignUp function
             >
               Skip Intro
             </Button>
