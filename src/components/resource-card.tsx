@@ -27,6 +27,7 @@ import React, { useEffect, useState } from "react";
 import { showDownloadToast } from "@/components/mobile-aware-download-toast";
 import { createClient } from "@/utils/supabase/client";
 import { isAppilixOrDevelopment } from "@/utils/appilix-detection";
+import { formatLargeNumber } from "@/utils/format-utils";
 
 interface ResourceCardProps {
   resource: {
@@ -57,16 +58,7 @@ interface ResourceCardProps {
   onDownload?: (id: string) => void;
 }
 
-// Format numbers to use k, m, etc. for thousands, millions, etc.
-const formatNumber = (num: number): string => {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1).replace(/\.0$/, "") + "m";
-  }
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1).replace(/\.0$/, "") + "k";
-  }
-  return num.toString();
-};
+// Using formatLargeNumber from utils instead of local implementation
 
 export default function ResourceCard({
   resource,
@@ -426,7 +418,7 @@ export default function ResourceCard({
             )}
             <div className="flex items-center">
               <ThumbsUp className="h-4 w-4" />
-              <span className="text-sm ml-1">{likesCount}</span>
+              <span className="text-sm ml-1">{formatLargeNumber(likesCount)}</span>
             </div>
           </div>
         </div>
@@ -486,13 +478,13 @@ export default function ResourceCard({
             <div className="flex items-center mr-3">
               <Download className="h-4 w-4 mr-1" />
               <span>
-                {formatNumber(resource.downloads || resource.download_count || 0)}
+                {formatLargeNumber(resource.downloads || resource.download_count || 0)}
               </span>
             </div>
           )}
           <div className="flex items-center">
             <MessageSquare className="h-4 w-4 mr-1" />
-            <span>{formatNumber(resource.comment_count || 0)}</span>
+            <span>{formatLargeNumber(resource.comment_count || 0)}</span>
           </div>
         </div>
 

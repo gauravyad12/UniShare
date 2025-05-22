@@ -14,6 +14,7 @@ import ShareProfileButton from "@/components/share-profile-button";
 import { useEffect, useState } from "react";
 import { UserPlus, UsersRound, Sparkles, CheckCircle } from "lucide-react";
 import DynamicPageTitle from "@/components/dynamic-page-title";
+import { formatLargeNumber } from "@/utils/format-utils";
 
 export default function UserProfilePage({
   params,
@@ -428,14 +429,14 @@ export default function UserProfilePage({
 
               <div className="flex gap-4 mt-4 md:justify-start justify-center">
                 <div className="bg-card rounded-md px-3 py-2 shadow-sm border">
-                  <div className="font-bold text-base">{followStats.followingCount}</div>
+                  <div className="font-bold text-base">{formatLargeNumber(followStats.followingCount)}</div>
                   <div className="flex items-center justify-center gap-1 text-muted-foreground text-xs">
                     <UserPlus className="h-3 w-3" />
                     <span>Following</span>
                   </div>
                 </div>
                 <div className="bg-card rounded-md px-3 py-2 shadow-sm border">
-                  <div className="font-bold text-base">{followStats.followersCount}</div>
+                  <div className="font-bold text-base">{formatLargeNumber(followStats.followersCount)}</div>
                   <div className="flex items-center justify-center gap-1 text-muted-foreground text-xs">
                     <UsersRound className="h-3 w-3" />
                     <span>Followers</span>

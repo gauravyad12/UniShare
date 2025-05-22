@@ -311,16 +311,20 @@ export default function UniversityStep({
               {/* University Info */}
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="font-medium">
+                  <span className="font-medium truncate max-w-[150px]" title={
+                    !isStudent || universities.find(u => u.id === selectedUniversity)?.name === "Standard User"
+                      ? "Not a Student"
+                      : universities.find(u => u.id === selectedUniversity)?.name
+                  }>
                     {!isStudent || universities.find(u => u.id === selectedUniversity)?.name === "Standard User"
                       ? "Not a Student"
                       : universities.find(u => u.id === selectedUniversity)?.name}
                   </span>
-                  <Badge variant="outline" className="bg-primary/5 text-primary ml-2">
+                  <Badge variant="outline" className="bg-primary/5 text-primary ml-2 flex-shrink-0">
                     {universityStats && universityStats[selectedUniversity] ? `${universityStats[selectedUniversity]} users` : 'New'}
                   </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground text-left">
                   {universityStats && universityStats[selectedUniversity] && universityStats[selectedUniversity] > 10
                     ? "Join a thriving community of students sharing resources and knowledge!"
                     : "Be among the first to build your university's community on UniShare!"}

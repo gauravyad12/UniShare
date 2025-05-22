@@ -27,6 +27,7 @@ import {
 import { fetchYandexDiskImageUrl } from "@/utils/yandex-disk";
 import TextbookCoverImage from "@/components/textbook-cover-image";
 import { Button } from "@/components/ui/button";
+import { isAppilixOrDevelopment } from "@/utils/appilix-detection";
 import {
   Card,
   CardContent,
@@ -174,8 +175,17 @@ function TextbookDetail({
   const [solutionImageUrl, setSolutionImageUrl] = useState<string | null>(null);
   const [solutionLoading, setSolutionLoading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isAppilix, setIsAppilix] = useState(false);
 
   const supabase = createClient();
+
+  // Check if we're in Appilix or development environment
+  useEffect(() => {
+    // This needs to run in the browser
+    if (typeof window !== 'undefined') {
+      setIsAppilix(isAppilixOrDevelopment());
+    }
+  }, []);
 
   useEffect(() => {
     async function fetchTextbookDetails() {
@@ -614,26 +624,29 @@ function TextbookDetail({
 
                     {/* Buttons container - initially hidden but will be shown by JavaScript */}
                     <div id="buttons-container" style={{ display: 'none' }} className="w-full flex justify-center gap-4 relative z-10">
+                      {/* Only show View Full Size button if not in Appilix or development environment */}
+                      {!isAppilix && (
+                        <Button variant="outline" size="sm" asChild>
+                          <a
+                            href={solutionImageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ZoomIn className="h-4 w-4 mr-2" />
+                            View Full Size
+                          </a>
+                        </Button>
+                      )}
                       <Button variant="outline" size="sm" asChild>
-                      <a
-                        href={solutionImageUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <ZoomIn className="h-4 w-4 mr-2" />
-                        View Full Size
-                      </a>
-                    </Button>
-                    <Button variant="outline" size="sm" asChild>
-                      <a
-                        href={solutionImageUrl}
-                        download={`${textbook?.isbn || ''}_Ch${chapters.find(c => c.id === selectedChapter)?.chapter_number || ''}_Prob${problems.find(p => p.id === selectedProblem)?.problem_number || ''}.png`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
-                      </a>
+                        <a
+                          href={solutionImageUrl}
+                          download={`${textbook?.isbn || ''}_Ch${chapters.find(c => c.id === selectedChapter)?.chapter_number || ''}_Prob${problems.find(p => p.id === selectedProblem)?.problem_number || ''}.png`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </a>
                       </Button>
                     </div>
                   </div>

@@ -11,6 +11,7 @@ import { Input } from "./ui/input";
 import { useRouter } from "next/navigation";
 import SearchBarWithClear from "./search-bar-with-clear";
 import { createClient } from "@/utils/supabase/client";
+import { formatLargeNumber } from "@/utils/format-utils";
 
 interface MobileDashboardHeaderProps {
   userName: string;
@@ -166,7 +167,7 @@ export default function MobileDashboardHeader({
               <BookOpen className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">Resources</span>
             </div>
-            <p className="text-2xl font-bold">{resourceCount}</p>
+            <p className="text-2xl font-bold">{formatLargeNumber(resourceCount)}</p>
           </div>
 
           <div className="bg-background/70 backdrop-blur-md rounded-xl p-4 shadow-sm border border-primary/10 hover:border-primary/20 transition-colors">
@@ -174,7 +175,7 @@ export default function MobileDashboardHeader({
               <Users className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium">Study Groups</span>
             </div>
-            <p className="text-2xl font-bold">{studyGroupCount}</p>
+            <p className="text-2xl font-bold">{formatLargeNumber(studyGroupCount)}</p>
           </div>
         </div>
 

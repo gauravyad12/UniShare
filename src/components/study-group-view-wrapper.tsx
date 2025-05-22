@@ -28,6 +28,7 @@ import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import ShareStudyGroupButton from "@/components/share-study-group-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { formatLargeNumber } from "@/utils/format-utils";
 
 interface StudyGroupViewWrapperProps {
   group: any;
@@ -259,12 +260,12 @@ export default function StudyGroupViewWrapper({
               <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center">
                   <Users className="h-4 w-4 mr-2" />
-                  <span>{members.length || 0} members</span>
+                  <span>{formatLargeNumber(members.length || 0)} members</span>
                 </div>
                 {group.message_count > 0 && (
                   <div className="flex items-center">
                     <MessageSquare className="h-4 w-4 mr-2" />
-                    <span>{group.message_count} messages</span>
+                    <span>{formatLargeNumber(group.message_count)} messages</span>
                   </div>
                 )}
                 <div className="flex items-center">
@@ -338,7 +339,7 @@ export default function StudyGroupViewWrapper({
             <div>
               <h2 className="text-lg font-semibold mb-2">Members</h2>
               <p className="text-sm text-muted-foreground mb-4">
-                {members.length || 0} of {group.max_members || "∞"} members
+                {formatLargeNumber(members.length || 0)} of {group.max_members ? formatLargeNumber(group.max_members) : "∞"} members
               </p>
               {members && members.length > 0 ? (
                 <div className="space-y-4">

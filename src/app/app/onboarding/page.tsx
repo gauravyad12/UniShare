@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronLeft, ArrowRight, Sparkles } from "lucide-react";
 import DynamicPageTitle from "@/components/dynamic-page-title";
+import { isAppilixOrDevelopment } from "@/utils/appilix-detection";
 
 // Import the standalone pages
 import UniversityStep from "./steps/university-step";
@@ -67,6 +68,24 @@ export default function OnboardingPage() {
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
   const router = useRouter();
 
+  // Check if the user is on desktop or if they're not using Appilix app or localhost
+  useEffect(() => {
+    // Check if the user is accessing from Appilix app, localhost, or local network IP
+    const checkAccess = () => {
+      // Use the utility function to check if this is Appilix or development environment
+      const isAllowedEnvironment = isAppilixOrDevelopment();
+
+      // If not Appilix and not localhost and not local network, redirect to dashboard
+      if (!isAllowedEnvironment) {
+        router.push('/dashboard');
+        return;
+      }
+    };
+
+    // Run the access check
+    checkAccess();
+  }, [router]);
+
   // Function to determine if the continue button should be disabled
   useEffect(() => {
     if (currentStep === 1 && !selectedUniversity) {
@@ -81,16 +100,31 @@ export default function OnboardingPage() {
   const nextStep = () => {
     if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1);
+      // Scroll to the top of the page with smooth behavior
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
     }
   };
 
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+      // Scroll to the top of the page with smooth behavior
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
     }
   };
 
   const goToSignUp = () => {
+    // Scroll to the top before navigating
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
     router.push('/verify-invite');
   };
 
@@ -236,9 +270,6 @@ export default function OnboardingPage() {
               setTargetGPA={setTargetGPA}
               gpaError={gpaError}
               setGpaError={setGpaError}
-              nextStep={nextStep}
-              prevStep={prevStep}
-              goToSignUp={goToSignUp}
             />
           </motion.div>
         </AnimatePresence>
@@ -262,7 +293,14 @@ export default function OnboardingPage() {
             <Button
               variant="outline"
               className="w-full py-6 text-lg gap-2 group border-amber-200 dark:border-amber-800/30"
-              onClick={nextStep}
+              onClick={() => {
+                // Scroll to the top before continuing
+                window.scrollTo({
+                  top: 0,
+                  behavior: 'smooth'
+                });
+                nextStep();
+              }}
             >
               Continue Free
             </Button>
@@ -270,7 +308,14 @@ export default function OnboardingPage() {
         ) : currentStep === steps.length ? (
           <Button
             className="w-full py-6 text-lg gap-2 group bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
-            onClick={goToSignUp}
+            onClick={() => {
+              // Scroll to the top before navigating
+              window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+              });
+              goToSignUp();
+            }}
           >
             Get Started
             <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
@@ -278,7 +323,14 @@ export default function OnboardingPage() {
         ) : (
           <Button
             className="w-full py-6 text-lg gap-2 group"
-            onClick={nextStep}
+            onClick={() => {
+              // Scroll to the top before continuing
+              window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+              });
+              nextStep();
+            }}
             disabled={isButtonDisabled}
           >
             Continue
@@ -291,7 +343,14 @@ export default function OnboardingPage() {
           <Button
             variant="outline"
             className="w-full py-6 text-lg gap-2 group"
-            onClick={prevStep}
+            onClick={() => {
+              // Scroll to the top before going back
+              window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+              });
+              prevStep();
+            }}
           >
             <ChevronLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
             Back
@@ -304,7 +363,14 @@ export default function OnboardingPage() {
             <Button
               variant="link"
               className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              onClick={goToSignUp}
+              onClick={() => {
+                // Scroll to the top before navigating
+                window.scrollTo({
+                  top: 0,
+                  behavior: 'smooth'
+                });
+                goToSignUp();
+              }}
             >
               Skip Intro
             </Button>

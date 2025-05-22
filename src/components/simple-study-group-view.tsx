@@ -44,6 +44,7 @@ import ScheduleGroupMeeting from "./schedule-group-meeting";
 import GroupMeetingsList from "./group-meetings-list";
 import ShareStudyGroupButton from "./share-study-group-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { formatLargeNumber } from "@/utils/format-utils";
 
 interface SimpleStudyGroupViewProps {
   group: any;
@@ -476,12 +477,12 @@ export default function SimpleStudyGroupView({
               <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center">
                   <Users className="h-4 w-4 mr-2" />
-                  <span>{members.length} of {group.max_members || "∞"} members</span>
+                  <span>{formatLargeNumber(members.length)} of {group.max_members ? formatLargeNumber(group.max_members) : "∞"} members</span>
                 </div>
                 {group.message_count > 0 && (
                   <div className="flex items-center">
                     <MessageSquare className="h-4 w-4 mr-2" />
-                    <span>{group.message_count} messages</span>
+                    <span>{formatLargeNumber(group.message_count)} messages</span>
                   </div>
                 )}
                 <div className="flex items-center">
@@ -502,7 +503,7 @@ export default function SimpleStudyGroupView({
             <div>
               <h2 className="text-lg font-semibold mb-2">Members</h2>
               <p className="text-sm text-muted-foreground mb-2">
-                {members.length} of {group.max_members || "∞"} members
+                {formatLargeNumber(members.length)} of {group.max_members ? formatLargeNumber(group.max_members) : "∞"} members
               </p>
               {members && members.length > 0 ? (
                 <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2">

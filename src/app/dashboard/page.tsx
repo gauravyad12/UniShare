@@ -31,6 +31,7 @@ import MobileTodoSection from "@/components/mobile-todo-section";
 import MobileToolsSection from "@/components/mobile-tools-section";
 import MobileActionPopup from "@/components/mobile-action-popup";
 import TodoList from "@/components/todo-list";
+import { formatLargeNumber } from "@/utils/format-utils";
 
 export default async function Dashboard() {
   const supabase = await createClient();
@@ -357,7 +358,7 @@ export default async function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{resourceCount || 0}</p>
+            <p className="text-3xl font-bold">{formatLargeNumber(resourceCount || 0)}</p>
             <p className="text-sm text-muted-foreground">Available resources</p>
           </CardContent>
           <CardFooter>
@@ -375,7 +376,7 @@ export default async function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{studyGroupCount || 0}</p>
+            <p className="text-3xl font-bold">{formatLargeNumber(studyGroupCount || 0)}</p>
             <p className="text-sm text-muted-foreground">Public study groups</p>
           </CardContent>
           <CardFooter>
@@ -393,7 +394,7 @@ export default async function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{userGroupCount}</p>
+            <p className="text-3xl font-bold">{formatLargeNumber(userGroupCount)}</p>
             <p className="text-sm text-muted-foreground">
               Study groups you've joined
             </p>

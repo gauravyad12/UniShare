@@ -20,6 +20,7 @@ import { useEffect, useCallback } from "react";
 import Link from "next/link";
 import SuspenseSearchParams from "@/components/suspense-search-params";
 import StructuredData from "@/components/structured-data";
+import { formatLargeNumber } from "@/utils/format-utils";
 
 export default function HomeClient() {
   // Handle search params changes
@@ -200,17 +201,17 @@ export default function HomeClient() {
           <div className="grid md:grid-cols-3 gap-8 text-center">
             <div className="flex flex-col items-center">
               <School className="w-12 h-12 mb-4 text-primary" />
-              <div className="text-4xl font-bold mb-2">50+</div>
+              <div className="text-4xl font-bold mb-2">{formatLargeNumber(50)}+</div>
               <div className="text-muted-foreground">Universities</div>
             </div>
             <div className="flex flex-col items-center">
               <UserCheck className="w-12 h-12 mb-4 text-primary" />
-              <div className="text-4xl font-bold mb-2">10,000+</div>
+              <div className="text-4xl font-bold mb-2">{formatLargeNumber(10000)}+</div>
               <div className="text-muted-foreground">Active Students</div>
             </div>
             <div className="flex flex-col items-center">
               <FileText className="w-12 h-12 mb-4 text-primary" />
-              <div className="text-4xl font-bold mb-2">25,000+</div>
+              <div className="text-4xl font-bold mb-2">{formatLargeNumber(25000)}+</div>
               <div className="text-muted-foreground">Shared Resources</div>
             </div>
           </div>

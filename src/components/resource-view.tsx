@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
+import { formatLargeNumber } from "@/utils/format-utils";
 import {
   Download,
   ThumbsUp,
@@ -83,16 +84,7 @@ interface Comment {
   };
 }
 
-// Format numbers to use k, m, etc. for thousands, millions, etc.
-const formatNumber = (num: number): string => {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1).replace(/\.0$/, "") + "m";
-  }
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1).replace(/\.0$/, "") + "k";
-  }
-  return num.toString();
-};
+// Using formatLargeNumber from utils instead of local implementation
 
 export default function ResourceView({
   resource,
@@ -890,7 +882,7 @@ export default function ResourceView({
               <div className="flex items-center mr-3">
                 <Download className="h-4 w-4 mr-1" />
                 <span>
-                  {formatNumber(
+                  {formatLargeNumber(
                     resource.downloads || resource.download_count || 0,
                   )}
                 </span>
@@ -898,11 +890,11 @@ export default function ResourceView({
             )}
             <div className="flex items-center mr-3">
               <ThumbsUp className="h-4 w-4 mr-1" />
-              <span>{formatNumber(likeCount)}</span>
+              <span>{formatLargeNumber(likeCount)}</span>
             </div>
             <div className="flex items-center">
               <MessageSquare className="h-4 w-4 mr-1" />
-              <span>{formatNumber(commentCount)}</span>
+              <span>{formatLargeNumber(commentCount)}</span>
             </div>
           </div>
 

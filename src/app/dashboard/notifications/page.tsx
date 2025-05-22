@@ -512,27 +512,37 @@ export default function NotificationsPage() {
         </div>
 
         <NotificationTabs defaultValue="all" className="w-full">
-          <div className="relative">
-            <NotificationTabsList className="grid w-full grid-cols-2">
-              <NotificationTabsTrigger value="all">All</NotificationTabsTrigger>
-              <NotificationTabsTrigger value="unread">
+          <div className={`grid w-full ${isDesktop && selectionMode && notifications.length > 0 ? "grid-cols-[1fr_1fr_auto]" : "grid-cols-2"}`}>
+            <NotificationTabsList className={`${isDesktop && selectionMode && notifications.length > 0 ? "col-span-2" : "col-span-2"}`}>
+              <NotificationTabsTrigger
+                value="all"
+                className="flex-1"
+              >
+                All
+              </NotificationTabsTrigger>
+              <NotificationTabsTrigger
+                value="unread"
+                className="flex-1"
+              >
                 Unread {unreadCount > 0 && `(${unreadCount})`}
               </NotificationTabsTrigger>
             </NotificationTabsList>
 
             {/* Select All button - only show in selection mode */}
             {isDesktop && selectionMode && notifications.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs h-8 absolute right-4 top-1/2 -translate-y-1/2"
-                onClick={() => {
-                  const currentTab = document.querySelector('[data-state="active"][role="tab"]')?.getAttribute('value') as 'all' | 'unread' || 'all';
-                  selectAllNotifications(currentTab);
-                }}
-              >
-                Select All
-              </Button>
+              <div className="flex justify-center items-center bg-background border-l border-b border-border px-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7 my-1"
+                  onClick={() => {
+                    const currentTab = document.querySelector('[data-state="active"][role="tab"]')?.getAttribute('value') as 'all' | 'unread' || 'all';
+                    selectAllNotifications(currentTab);
+                  }}
+                >
+                  Select All
+                </Button>
+              </div>
             )}
           </div>
 
