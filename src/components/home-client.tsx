@@ -84,7 +84,7 @@ export default function HomeClient() {
     <div className="min-h-screen bg-gradient-to-b from-background to-background/95">
       <StructuredData data={websiteStructuredData} />
       <StructuredData data={organizationStructuredData} />
-      <SuspenseSearchParams onParamsChange={handleParamsChange} fallback={<div>Loading...</div>} />
+      <SuspenseSearchParams onParamsChange={handleParamsChange} fallback={null} />
       <ClientNavbar />
       <Hero />
 

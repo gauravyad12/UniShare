@@ -12,6 +12,7 @@ import { createClient } from "@/utils/supabase/server";
 import SignUpForm from "@/components/sign-up-form";
 import { Metadata } from "next";
 import GradientWaveBackground from "@/components/gradient-wave-background";
+import AnimatedLogo from "@/components/animated-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +92,11 @@ export default async function SignUpPage({
         <div className="w-full max-w-md rounded-2xl border-0 bg-card/95 backdrop-blur-sm p-7 shadow-lg relative z-10 overflow-hidden">
           {/* Subtle gradient overlay for card */}
           <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-70 pointer-events-none"></div>
+
+          <div className="space-y-3 text-center mb-6">
+            <AnimatedLogo />
+          </div>
+
           <SignUpForm message={message} />
         </div>
       </div>

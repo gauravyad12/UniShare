@@ -62,7 +62,7 @@ export default function ErrorClient({
 
   return (
     <>
-      <SuspenseSearchParams onParamsChange={handleParamsChange} fallback={<div>Loading...</div>} />
+      <SuspenseSearchParams onParamsChange={handleParamsChange} fallback={null} />
       <ErrorBoundary error={error} reset={reset} />
     </>
   );

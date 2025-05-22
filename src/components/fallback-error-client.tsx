@@ -19,7 +19,7 @@ export default function FallbackErrorClient() {
 
   return (
     <div className="min-h-screen bg-background">
-      <SuspenseSearchParams onParamsChange={handleParamsChange} fallback={<div>Loading...</div>} />
+      <SuspenseSearchParams onParamsChange={handleParamsChange} fallback={null} />
       <nav className="w-full border-b border-border bg-background py-4">
         <div className="container mx-auto px-4 flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">

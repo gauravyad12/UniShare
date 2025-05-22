@@ -19,7 +19,7 @@ export default function NotFoundClient() {
 
   return (
     <>
-      <SuspenseSearchParams onParamsChange={handleParamsChange} fallback={<div>Loading...</div>} />
+      <SuspenseSearchParams onParamsChange={handleParamsChange} fallback={null} />
       <Navbar />
       <div className="flex min-h-[80vh] flex-col items-center justify-center text-center px-4">
         <h1 className="text-6xl font-bold">404</h1>

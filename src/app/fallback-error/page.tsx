@@ -28,7 +28,7 @@ function FallbackErrorPageContent() {
 // Export the page component with Suspense
 export default function FallbackErrorPage() {
   return (
-    <Suspense fallback={<div>Loading fallback error page...</div>}>
+    <Suspense fallback={null}>
       <FallbackErrorPageContent />
     </Suspense>
   );

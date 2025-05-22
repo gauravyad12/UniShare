@@ -431,7 +431,6 @@ export default function SignUpForm({ message }: SignUpFormProps) {
   return (
     <form className="flex flex-col space-y-7 relative" onSubmit={handleSubmit}>
       <div className="space-y-3 text-center">
-        <AnimatedLogo />
         <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80">Join UniShare</h1>
         <p className="text-sm text-muted-foreground">
           Already have an account?{" "}
