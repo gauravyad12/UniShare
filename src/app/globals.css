@@ -499,7 +499,42 @@
   .pb-safe {
     padding-bottom: calc(env(safe-area-inset-bottom, 16px) + 16px);
   }
+}
 
+/* Hide default close button in PDF fullscreen dialog - applied globally */
+.pdf-fullscreen-dialog > .absolute.right-4.top-4.rounded-full {
+  display: none !important;
+}
+
+/* Prevent PDF viewer from changing body background color */
+body.pdf-viewer-open {
+  background-color: var(--background) !important;
+}
+
+/* Additional isolation for PDF iframe container */
+.pdf-iframe-container {
+  isolation: isolate !important;
+  contain: content !important;
+}
+
+.pdf-iframe-container iframe {
+  background-color: white !important;
+}
+
+/* Ensure dialog content doesn't inherit unwanted styles */
+.pdf-fullscreen-dialog {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+/* Make PDF viewer dialog header completely opaque */
+.pdf-fullscreen-dialog [class*="DialogHeader"] {
+  background-color: hsl(var(--background)) !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+}
+
+@media (max-width: 768px) {
   /* Dialog button enhancements for mobile */
   [role="dialog"] button {
     min-height: 44px;

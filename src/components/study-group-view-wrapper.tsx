@@ -35,10 +35,11 @@ interface StudyGroupViewWrapperProps {
 }
 
 export default function StudyGroupViewWrapper({
-  group,
+  group: initialGroup,
 }: StudyGroupViewWrapperProps) {
-  console.log('StudyGroupViewWrapper rendering with group:', group);
   const router = useRouter();
+  const [group, setGroup] = useState(initialGroup);
+  console.log('StudyGroupViewWrapper rendering with group:', group);
   const [isMember, setIsMember] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [members, setMembers] = useState<any[]>([]);
@@ -122,38 +123,54 @@ export default function StudyGroupViewWrapper({
     }
 
     try {
-      const supabase = createClient();
+      // Use the API endpoint instead of direct database access
+      // This ensures proper handling of member counts through the trigger
+      const response = await fetch(`/api/study-groups/${group.id}/join`, {
+        method: "POST",
+      });
 
-      // Check if already a member
-      const { data: existingMember } = await supabase
-        .from("study_group_members")
-        .select("id")
-        .eq("study_group_id", group.id)
-        .eq("user_id", userId)
-        .maybeSingle();
+      const data = await response.json();
 
-      if (existingMember) {
-        console.log("User is already a member of this study group");
-        return;
-      }
-
-      // Join the group
-      const { error } = await supabase
-        .from("study_group_members")
-        .insert({
-          study_group_id: group.id,
-          user_id: userId,
-          role: "member",
-          joined_at: new Date().toISOString(),
-        });
-
-      if (error) {
-        throw error;
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to join study group");
       }
 
       console.log("Successfully joined the study group");
 
+      // Update local state
       setIsMember(true);
+
+      // Immediately update the member count in the UI
+      setGroup({
+        ...group,
+        member_count: (group.member_count || 0) + 1
+      });
+
+      // Also manually increment the member count in the database
+      try {
+        const { error } = await supabase
+          .from("study_groups")
+          .update({
+            member_count: (group.member_count || 0) + 1
+          })
+          .eq("id", group.id);
+
+        if (error) {
+          console.error("Error manually incrementing member count:", error);
+        }
+      } catch (error) {
+        console.error("Error manually incrementing member count:", error);
+      }
+
+      // Fetch updated member list
+      const { data: membersData } = await supabase
+        .rpc('get_study_group_members', {
+          p_group_id: group.id
+        });
+
+      if (membersData) {
+        setMembers(membersData);
+      }
 
       // Refresh the page to update the UI
       router.refresh();

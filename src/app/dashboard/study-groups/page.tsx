@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import SimpleStudyGroupView from "@/components/simple-study-group-view";
 import SimpleGroupChat from "@/components/simple-group-chat";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import StyledSearchBarWrapper from "@/components/styled-search-bar-wrapper";
 import Link from "next/link";
 import StudyGroupsTabs from "@/components/study-groups-tabs";
@@ -82,7 +82,7 @@ export default async function StudyGroupsPage({
   const offset = (currentPage - 1) * pageSize;
   const searchTerm = searchParams.search || "";
 
-  // Get public study groups
+  // Get public study groups - use the member_count column directly
   let publicGroupsQuery = supabase
     .from("study_groups")
     .select("*")
@@ -150,7 +150,7 @@ export default async function StudyGroupsPage({
     const { count: myCount } = await myGroupsCountQuery;
     totalMyGroupsCount = myCount || 0;
 
-    // Get paginated my groups
+    // Get paginated my groups - use the member_count column directly
     let myGroupsQuery = supabase
       .from("study_groups")
       .select("*")
@@ -185,7 +185,10 @@ export default async function StudyGroupsPage({
 
       <header className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-2">
-          <h1 className="text-3xl font-bold">Study Groups</h1>
+          <div className="flex items-center gap-2 mb-2">
+            <Users className="h-6 w-6 text-primary" />
+            <h1 className="text-3xl font-bold">Study Groups</h1>
+          </div>
           <div className="flex flex-wrap w-full sm:w-auto gap-2">
             <ResponsiveJoinButton />
             <Button asChild>

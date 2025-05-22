@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Upload } from "lucide-react";
+import { Upload, BookOpen } from "lucide-react";
 import StyledSearchBarWrapper from "@/components/styled-search-bar-wrapper";
 import ResourcesTabs from "@/components/resources-tabs";
 import PaginationControlWrapper from "@/components/pagination-control-wrapper";
@@ -159,7 +159,10 @@ export default async function ResourcesPage({
         <div className="flex justify-between items-center">
           {searchParams.view ? (
             <div className="relative group">
-              <h1 className="text-3xl font-bold group-hover:text-primary transition-colors md:group-hover:text-inherit">Resources</h1>
+              <div className="flex items-center gap-2 mb-2">
+                <BookOpen className="h-6 w-6 text-primary" />
+                <h1 className="text-3xl font-bold group-hover:text-primary transition-colors md:group-hover:text-inherit">Resources</h1>
+              </div>
               <Link
                 href={`/dashboard/resources${searchParams.tab ? `?tab=${searchParams.tab}` : ''}`}
                 className="md:hidden absolute inset-0"
@@ -167,9 +170,12 @@ export default async function ResourcesPage({
               />
             </div>
           ) : (
-            <h1 className="text-3xl font-bold">Resources</h1>
+            <div className="flex items-center gap-2 mb-2">
+              <BookOpen className="h-6 w-6 text-primary" />
+              <h1 className="text-3xl font-bold">Resources</h1>
+            </div>
           )}
-          <Button asChild>
+          <Button asChild className="hidden md:flex">
             <Link href="/dashboard/resources?upload=true">
               <Upload className="mr-2 h-4 w-4" />
               Upload Resource

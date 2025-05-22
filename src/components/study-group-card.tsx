@@ -60,7 +60,7 @@ export default function StudyGroupCard({
     day: "numeric",
   });
 
-  // Member count with default
+  // Member count with default - use the member_count column directly
   const memberCount = group.member_count || 0;
   const meetingCount = group._count?.meetings || 0;
   const messageCount = group.message_count || 0;
@@ -99,7 +99,7 @@ export default function StudyGroupCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
-        <p className="text-gray-600 line-clamp-2">{group.description}</p>
+        <p className="text-foreground/70 font-medium truncate">{group.description}</p>
 
         <div className="flex items-center justify-between mt-4">
           <div className="flex items-center text-sm text-gray-500">

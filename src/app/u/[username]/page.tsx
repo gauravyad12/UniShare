@@ -57,7 +57,7 @@ export default function UserProfilePage({
             .eq("id", data.user.id)
             .single();
 
-          // Only redirect if the user is viewing their own profile
+          // If the user is viewing their own profile, redirect to dashboard profile
           if (userProfile && userProfile.username.toLowerCase() === params.username.toLowerCase()) {
             // Set redirecting state to true
             setIsRedirecting(true);
@@ -65,6 +65,28 @@ export default function UserProfilePage({
             router.push(`/dashboard/profile/${params.username}`);
             // Don't continue with profile data fetching
             return true;
+          } else {
+            // For any other profile, redirect to the dashboard version of the public profile
+            // First, verify that the username exists
+            const cleanUsername = params.username.startsWith("@")
+              ? params.username.substring(1).trim()
+              : params.username.trim();
+
+            // Check if the profile exists
+            const { data: profileExists } = await supabase
+              .from("user_profiles")
+              .select("id")
+              .or(`username.eq.${cleanUsername},username.ilike.${cleanUsername}`)
+              .maybeSingle();
+
+            if (profileExists) {
+              // Set redirecting state to true
+              setIsRedirecting(true);
+              // Redirect to dashboard profile page
+              router.push(`/dashboard/profile/${params.username}`);
+              // Don't continue with profile data fetching
+              return true;
+            }
           }
         }
         return false;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -50,9 +50,10 @@ interface SimpleStudyGroupViewProps {
 }
 
 export default function SimpleStudyGroupView({
-  group,
+  group: initialGroup,
 }: SimpleStudyGroupViewProps) {
   const router = useRouter();
+  const [group, setGroup] = useState(initialGroup);
   const [isMember, setIsMember] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
@@ -122,7 +123,7 @@ export default function SimpleStudyGroupView({
       }
 
       // Get resources using the API endpoint instead of stored procedure
-      await fetchResources();
+      await fetchResources()();
 
       setLoading(false);
     };
@@ -134,34 +135,36 @@ export default function SimpleStudyGroupView({
   useEffect(() => {
     if (refreshResources > 0) {
       console.log('Refreshing resources due to refreshResources change:', refreshResources);
-      fetchResources();
+      fetchResources()();
     }
-  }, [refreshResources, group.id]);
+  }, [refreshResources]);
 
-  // Function to fetch resources
-  const fetchResources = async () => {
-    try {
-      console.log(`Fetching resources for group ${group.id}`);
-      const response = await fetch(`/api/study-groups/${group.id}/resources`);
+  // Function to fetch resources - defined without useCallback to avoid circular dependencies
+  function fetchResources() {
+    return async () => {
+      try {
+        console.log(`Fetching resources for group ${group.id}`);
+        const response = await fetch(`/api/study-groups/${group.id}/resources`);
 
-      // Log the raw response for debugging
-      console.log('Response status:', response.status);
+        // Log the raw response for debugging
+        console.log('Response status:', response.status);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Error response (${response.status}):`, errorText);
-        throw new Error(`Failed to fetch resources: ${response.status}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Error response (${response.status}):`, errorText);
+          throw new Error(`Failed to fetch resources: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Resources fetched:', data.resources?.length || 0);
+        console.log('Resource data sample:', data.resources?.slice(0, 2) || 'No resources');
+
+        setResources(data.resources || []);
+      } catch (resourcesError) {
+        console.error('Error fetching resources:', resourcesError);
       }
-
-      const data = await response.json();
-      console.log('Resources fetched:', data.resources?.length || 0);
-      console.log('Resource data sample:', data.resources?.slice(0, 2) || 'No resources');
-
-      setResources(data.resources || []);
-    } catch (resourcesError) {
-      console.error('Error fetching resources:', resourcesError);
-    }
-  };
+    };
+  }
 
   const handleJoinGroup = async () => {
     if (!userId) {
@@ -172,117 +175,56 @@ export default function SimpleStudyGroupView({
     try {
       setJoiningGroup(true);
 
-      // Use the API endpoint to join the group instead of direct database access
-      // This avoids the RLS recursion issue
-      const response = await fetch('/api/study-groups/join', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          groupId: group.id
-        })
+      // Use the API endpoint to join the group
+      const response = await fetch(`/api/study-groups/${group.id}/join`, {
+        method: 'POST'
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        console.error('Join group response error:', data);
-
-        // If the error is related to the stored procedure, try the direct join endpoint
-        if (data.error && data.error.includes('stored procedure')) {
-          console.log('Trying direct join endpoint as fallback');
-
-          const directResponse = await fetch('/api/study-groups/join-direct', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              groupId: group.id
-            })
-          });
-
-          const directData = await directResponse.json();
-
-          if (!directResponse.ok) {
-            console.error('Direct join response error:', directData);
-            throw new Error(directData.error || 'Failed to join group directly');
-          }
-
-          // If we get here, the direct join was successful
-          return directData;
-        }
-
         throw new Error(data.error || 'Failed to join group');
-      }
-
-      if (data.alreadyMember) {
-        console.log("User is already a member of this study group");
-        setJoiningGroup(false);
-        return;
       }
 
       console.log("Successfully joined the study group");
 
+      // Update local state
       setIsMember(true);
-      setMembers([...members, {
-        user_id: userId,
-        role: "member",
-        joined_at: new Date().toISOString(),
-        full_name: "You",
-        username: "you",
-        avatar_url: null
-      }]);
+
+      // Immediately update the member count in the UI
+      setGroup({
+        ...group,
+        member_count: (group.member_count || 0) + 1
+      });
+      console.log("Updated member count locally:", (group.member_count || 0) + 1);
+
+      // Fetch updated member list to reflect the new member
+      const supabase = createClient();
+
+      // Fetch updated member list
+      const { data: membersData } = await supabase
+        .rpc('get_study_group_members', {
+          p_group_id: group.id
+        });
+
+      if (membersData) {
+        setMembers(membersData);
+      } else {
+        // Fallback if fetch fails
+        setMembers([...members, {
+          user_id: userId,
+          role: "member",
+          joined_at: new Date().toISOString(),
+          full_name: "You",
+          username: "you",
+          avatar_url: null
+        }]);
+      }
 
       // Refresh the page to update the UI
       router.refresh();
     } catch (error) {
       console.error("Error joining group:", error);
-
-      // Try one more time with the direct endpoint if we haven't already
-      if (error instanceof Error && error.message.includes('Failed to join group') && !error.message.includes('directly')) {
-        try {
-          console.log('Trying direct join endpoint as last resort');
-
-          const directResponse = await fetch('/api/study-groups/join-direct', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              groupId: group.id
-            })
-          });
-
-          const directData = await directResponse.json();
-
-          if (!directResponse.ok) {
-            throw new Error(directData.error || 'Failed to join group directly');
-          }
-
-          // Success!
-          console.log("Successfully joined the study group via direct endpoint");
-
-          setIsMember(true);
-          setMembers([...members, {
-            user_id: userId,
-            role: "member",
-            joined_at: new Date().toISOString(),
-            full_name: "You",
-            username: "you",
-            avatar_url: null
-          }]);
-
-          // Refresh the page to update the UI
-          router.refresh();
-          return;
-        } catch (directError) {
-          console.error("Error in direct join fallback:", directError);
-        }
-      }
-
-      console.error("Failed to join the study group:", error instanceof Error ? error.message : "Unknown error");
     } finally {
       setJoiningGroup(false);
     }
@@ -318,10 +260,15 @@ export default function SimpleStudyGroupView({
         throw new Error(data.error || 'Failed to leave the group');
       }
 
-      console.log("Successfully left the study group");
-
+      // Update local state
       setIsMember(false);
       setMembers(members.filter(member => member.user_id !== userId));
+
+      // Immediately update the member count in the UI
+      setGroup({
+        ...group,
+        member_count: Math.max(0, (group.member_count || 1) - 1)
+      });
 
       // Refresh the page to update the UI
       router.refresh();

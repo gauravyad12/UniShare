@@ -39,7 +39,7 @@ export default function MobileNotifications() {
         setUnreadCount(data.length);
       }
 
-      // Set up realtime subscription for new notifications
+      // Set up realtime subscription for notifications
       const channel = supabase
         .channel("mobile-notifications-channel")
         .on(
@@ -69,6 +69,29 @@ export default function MobileNotifications() {
             }
           },
         )
+        .on(
+          "postgres_changes",
+          {
+            event: "DELETE",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${userData.user.id}`,
+          },
+          (payload) => {
+            const deletedId = payload.old.id;
+            const wasUnread = !payload.old.is_read;
+
+            console.log(`[Mobile Realtime] DELETE event received for notification ${deletedId}, wasUnread: ${wasUnread}`);
+
+            if (wasUnread) {
+              setUnreadCount((prev) => {
+                const newCount = Math.max(0, prev - 1);
+                console.log(`[Mobile Realtime] Updated unread count: ${newCount} (was ${prev})`);
+                return newCount;
+              });
+            }
+          },
+        )
         .subscribe();
 
       return channel;
@@ -89,20 +112,17 @@ export default function MobileNotifications() {
   }, [supabase]);
 
   return (
-    <Button 
-      variant="ghost" 
-      size="icon" 
-      className="relative md:hidden" 
+    <Button
+      variant="ghost"
+      size="icon"
+      className="relative md:hidden"
       onClick={() => window.location.href = "/dashboard/notifications"}
     >
       <Bell className="h-5 w-5" />
       {unreadCount > 0 && (
-        <Badge
-          className="absolute -top-1 -right-1 px-1.5 py-0.5 min-w-[1.25rem] h-5 flex items-center justify-center"
-          variant="destructive"
-        >
+        <span className={`absolute top-0 right-0.5 flex h-4 items-center justify-center rounded-full bg-primary text-[9px] font-medium text-primary-foreground ${unreadCount > 9 ? 'min-w-[18px] px-1' : 'w-4'}`}>
           {unreadCount > 9 ? "9+" : unreadCount}
-        </Badge>
+        </span>
       )}
     </Button>
   );

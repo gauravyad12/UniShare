@@ -40,6 +40,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!course_code) {
+      return NextResponse.json(
+        { error: "Course code is required" },
+        { status: 400 },
+      );
+    }
+
     // Check character limits
     if (name.length > charLimits.name) {
       return NextResponse.json(
@@ -91,12 +98,11 @@ export async function POST(request: NextRequest) {
 
     // Get user profile if university_id is not provided
     let userUniversityId = university_id;
-    let userName = null;
 
     if (!userUniversityId) {
       const { data: userProfile } = await supabase
         .from("user_profiles")
-        .select("university_id, full_name, username")
+        .select("university_id")
         .eq("id", user.id)
         .single();
 
@@ -108,31 +114,7 @@ export async function POST(request: NextRequest) {
       }
 
       userUniversityId = userProfile.university_id;
-      userName = userProfile.full_name || userProfile.username || user.email;
-    } else {
-      // Get user name if university_id is provided
-      const { data: userProfile } = await supabase
-        .from("user_profiles")
-        .select("full_name, username")
-        .eq("id", user.id)
-        .single();
-
-      userName = userProfile?.full_name || userProfile?.username || user.email;
     }
-
-    // Create study group using a direct SQL query
-    const studyGroupData = {
-      name,
-      description,
-      course_code,
-      max_members: max_members || null,
-      is_private: is_private === true,
-      created_by: user.id,
-      university_id: userUniversityId,
-      created_at: new Date().toISOString(),
-    };
-
-    console.log('Creating study group with data:', studyGroupData);
 
     // Use the stored procedure to create the study group and add the creator as a member
     const { data, error } = await supabase
@@ -159,7 +141,6 @@ export async function POST(request: NextRequest) {
 
     // Skip adding the creator as a member for now
     // We'll handle this on the client side after redirect
-    console.log("Study group created successfully, skipping member creation for now");
 
     return NextResponse.json({ success: true, studyGroup });
   } catch (error) {

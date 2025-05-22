@@ -26,6 +26,7 @@ import React, { useEffect, useState } from "react";
 
 import { showDownloadToast } from "@/components/mobile-aware-download-toast";
 import { createClient } from "@/utils/supabase/client";
+import { isAppilixOrDevelopment } from "@/utils/appilix-detection";
 
 interface ResourceCardProps {
   resource: {
@@ -294,9 +295,22 @@ export default function ResourceCard({
         );
       } else {
         if (resource.resource_type === "link") {
-          // Use the dashboard URL for viewing (not the public-facing URL)
-          router.push(`/dashboard/resources?view=${resource.id}`);
+          // For link resources, check if we're in Appilix or development environment
+          if (isAppilixOrDevelopment() && resource.external_link) {
+            // Open in the same tab
+            window.location.href = resource.external_link;
+          } else {
+            // Use the dashboard URL for viewing (not the public-facing URL)
+            router.push(`/dashboard/resources?view=${resource.id}`);
+          }
         } else {
+          // For non-link resources, check if we're in Appilix or development environment
+          if (isAppilixOrDevelopment() && resource.file_url) {
+            // Open the PDF directly in the same tab
+            window.location.href = resource.file_url;
+            return;
+          }
+
           // Set downloading state
           setIsDownloading(true);
 

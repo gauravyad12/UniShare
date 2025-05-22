@@ -113,6 +113,11 @@ export default function CreateStudyGroupForm({
       hasErrors = true;
     }
 
+    if (!formData.courseCode.trim()) {
+      errors.courseCode = "Course code is required";
+      hasErrors = true;
+    }
+
     // Import the bad words utility
     const { containsBadWords } = await import('@/utils/badWords');
 
@@ -241,7 +246,7 @@ export default function CreateStudyGroupForm({
 
       <div className="space-y-2">
         <div className="flex justify-between">
-          <Label htmlFor="courseCode">Course Code (Optional)</Label>
+          <Label htmlFor="courseCode">Course Code *</Label>
           <span className="text-xs text-muted-foreground">{formData.courseCode.length}/{charLimits.courseCode}</span>
         </div>
         <Input
@@ -267,6 +272,7 @@ export default function CreateStudyGroupForm({
               }
             }
           }}
+          required
           maxLength={charLimits.courseCode}
           className={formErrors.courseCode ? "border-red-500" : ""}
         />

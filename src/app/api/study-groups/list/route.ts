@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: countError.message }, { status: 500 });
     }
 
-    // Build query with search if provided
+    // Build query with search if provided - use the member_count column directly
     let query = supabase
       .from('study_groups')
       .select('*')

@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 
 export async function POST(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } },
 ) {
   try {
@@ -83,17 +83,20 @@ export async function POST(
       );
     }
 
-    // Update member count
-    const { error: updateError } = await supabase
-      .from("study_groups")
-      .update({
-        member_count: (studyGroup.member_count || 0) + 1,
-      })
-      .eq("id", groupId);
+    // Also manually update the member count to ensure it's updated correctly
+    try {
+      const { error: updateError } = await supabase
+        .from("study_groups")
+        .update({
+          member_count: (studyGroup.member_count || 0) + 1
+        })
+        .eq("id", groupId);
 
-    if (updateError) {
-      console.error("Error updating member count:", updateError);
-      // Continue despite error - the user was added successfully
+      if (updateError) {
+        console.error("Error manually updating member count:", updateError);
+      }
+    } catch (updateError) {
+      console.error("Error manually updating member count:", updateError);
     }
 
     return NextResponse.json({ success: true });

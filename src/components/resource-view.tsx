@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { showDownloadToast } from "@/components/mobile-aware-download-toast";
+import { isAppilixOrDevelopment } from "@/utils/appilix-detection";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import {
@@ -522,7 +523,14 @@ export default function ResourceView({
     // Handle external link
     if (isExternalLink && resource.external_link) {
       try {
-        // Use a safer way to open links
+        // Check if we're in Appilix or development environment
+        if (isAppilixOrDevelopment()) {
+          // Open in the same tab
+          window.location.href = resource.external_link;
+          return;
+        }
+
+        // For other environments, use a safer way to open links in a new tab
         const newWindow = window.open();
         if (newWindow) {
           newWindow.opener = null; // For security
@@ -549,6 +557,13 @@ export default function ResourceView({
 
     // Handle file download
     if (isFileResource && resource.file_url) {
+      // Check if we're in Appilix or development environment
+      if (isAppilixOrDevelopment()) {
+        // Open the PDF directly in the same tab
+        window.location.href = resource.file_url;
+        return;
+      }
+
       // Set downloading state
       setIsDownloading(true);
       setError(null);

@@ -78,7 +78,7 @@ function TextbookSearch() {
       <StyledSearchBarWrapper
         placeholder="Search by title, author, or ISBN..."
         defaultValue={currentSearch}
-        baseUrl="/dashboard/scholar-plus/textbook-answers"
+        baseUrl="/dashboard/tools/textbook-answers"
       />
     </div>
   );
@@ -796,12 +796,12 @@ export default function TextbookAnswersPage() {
 
   const handleSelectTextbook = (id: string) => {
     setSelectedTextbookId(id);
-    router.push(`/dashboard/scholar-plus/textbook-answers?textbook=${id}`);
+    router.push(`/dashboard/tools/textbook-answers?textbook=${id}`);
   };
 
   const handleBack = () => {
     // Just update the URL - the state will be updated via the SearchParamsReader
-    router.push("/dashboard/scholar-plus/textbook-answers");
+    router.push("/dashboard/tools/textbook-answers");
   };
 
   return (
@@ -854,7 +854,7 @@ export default function TextbookAnswersPage() {
                   currentPage={currentPage}
                   totalItems={totalTextbooks}
                   pageSize={pageSize}
-                  baseUrl="/dashboard/scholar-plus/textbook-answers"
+                  baseUrl="/dashboard/tools/textbook-answers"
                   preserveParams={true}
                 />
               </div>

@@ -138,7 +138,7 @@ export default function SuccessPage() {
 
           <div className="flex flex-col gap-4">
             <Button asChild size="lg">
-              <Link href="/dashboard/scholar-plus">
+              <Link href="/dashboard/tools">
                 Explore Scholar+ Features
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
