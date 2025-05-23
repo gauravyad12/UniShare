@@ -8,15 +8,15 @@ export const size = {
 export const contentType = 'image/png';
 
 export default async function Image() {
-  // Use the default OG image API
+  // For the landing page, use the static image directly
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
                  (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://unishare.app');
 
-  // Redirect to the default API endpoint
+  // Redirect to the static image
   return new Response(null, {
     status: 302,
     headers: {
-      Location: `${baseUrl}/api/og/default`,
+      Location: `${baseUrl}/default-social.png`,
     },
   });
 }

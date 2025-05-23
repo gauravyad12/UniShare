@@ -1,12 +1,12 @@
 // Service Worker for UniShare PWA
 
-const CACHE_NAME = 'unishare-cache-v2';
+const CACHE_NAME = 'unishare-cache-v3';
 const urlsToCache = [
   '/',
   '/sign-in',
   '/sign-up',
   '/dashboard',
-  '/app-entry',
+  '/app',
   '/offline.html',
   '/manifest.json',
   '/site.webmanifest',

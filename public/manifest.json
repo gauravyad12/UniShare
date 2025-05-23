@@ -2,7 +2,7 @@
   "name": "UniShare",
   "short_name": "UniShare",
   "description": "Your academic resource sharing platform for university students",
-  "start_url": "/app-entry",
+  "start_url": "/app",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",

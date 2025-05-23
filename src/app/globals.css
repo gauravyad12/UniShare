@@ -818,14 +818,14 @@ body.pdf-viewer-open {
     100% { transform: scale(0.8); opacity: 0.3; }
   }
 
-  /* App entry page styles */
-  .app-entry-layout {
+  /* App page styles */
+  .app-entry-layout, .app-layout {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
   }
 
-  /* Wave animation for app entry page */
+  /* Wave animation for app page */
   @keyframes wave-animation {
     0% { transform: translateX(0); }
     50% { transform: translateX(-50%); }

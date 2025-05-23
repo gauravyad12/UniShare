@@ -206,6 +206,6 @@ export async function middleware(req: NextRequest) {
 // Specify which routes this middleware should run on
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|og-assets|public|api/payments/webhook|api/proxy|api/debug|api/restart|api/healthcheck|opengraph-image|sitemap.xml|robots.txt|covers.openlibrary.org|upload.wikimedia.org|cloud-api.yandex.net).*)",
+    "/((?!_next/static|_next/image|favicon.ico|og-assets|public|api/payments/webhook|api/proxy|api/debug|api/restart|api/healthcheck|api/og|opengraph-image|twitter-image|sitemap.xml|robots.txt|covers.openlibrary.org|upload.wikimedia.org|cloud-api.yandex.net).*)",
   ],
 };

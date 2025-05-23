@@ -8,6 +8,10 @@ export async function GET(request: NextRequest) {
     // Get the base URL from the request
     const { origin } = new URL(request.url);
 
+    // Get the page title from the query parameters
+    const pageTitle = request.nextUrl.searchParams.get('title') || '';
+
+    // Dynamic image generation as fallback
     return new ImageResponse(
       (
         <div
@@ -22,6 +26,7 @@ export async function GET(request: NextRequest) {
             justifyContent: 'center',
             alignItems: 'center',
             position: 'relative',
+            textAlign: 'center',
           }}
         >
           <div
@@ -42,23 +47,71 @@ export async function GET(request: NextRequest) {
             <span style={{ marginLeft: 20, fontSize: 80, fontWeight: 'bold' }}>UniShare</span>
           </div>
 
-          <div
-            style={{
-              fontSize: 36,
-              opacity: 0.8,
-              textAlign: 'center',
-              maxWidth: '800px',
-              lineHeight: 1.4,
-              marginBottom: 60,
-            }}
-          >
-            An exclusive platform for university students to collaborate, share academic resources, and form study groups
-          </div>
+          {pageTitle ? (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                maxWidth: '800px',
+                marginBottom: 60,
+              }}
+            >
+              <div
+                style={{
+                  width: '180px',
+                  height: '2px',
+                  background: 'rgba(255, 255, 255, 0.6)',
+                  borderRadius: '10px',
+                  marginBottom: '25px',
+                }}
+              />
+              <div
+                style={{
+                  fontSize: 46,
+                  fontWeight: '500',
+                  textAlign: 'center',
+                  lineHeight: 1.3,
+                  color: 'white',
+                  padding: '0 20px',
+                  letterSpacing: '0.5px',
+                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.2)',
+                }}
+              >
+                {pageTitle}
+              </div>
+            </div>
+          ) : null}
+
+          {!pageTitle ? (
+            <div
+              style={{
+                fontSize: 36,
+                opacity: 0.8,
+                textAlign: 'center',
+                maxWidth: '800px',
+                lineHeight: 1.4,
+                marginTop: 20,
+                marginBottom: 60,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <span>
+                An exclusive platform for university students to collaborate, share academic resources, and form study groups
+              </span>
+            </div>
+          ) : null}
 
           <div
             style={{
               display: 'flex',
+              flexDirection: 'row',
               gap: '30px',
+              justifyContent: 'center',
             }}
           >
             <div
@@ -214,9 +267,10 @@ export async function GET(request: NextRequest) {
             textAlign: 'center',
             justifyContent: 'center',
             alignItems: 'center',
+            flexDirection: 'column',
           }}
         >
-          <h1>UniShare</h1>
+          <h1 style={{ margin: 0 }}>UniShare</h1>
         </div>
       ),
       {
