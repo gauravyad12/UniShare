@@ -61,8 +61,14 @@ export default function SuccessPage() {
         return;
       }
 
-      // Use product ID from URL parameter or default to monthly
-      const finalProductId = productId || "com.unishare.app.scholarplusonemonth";
+      // Get product ID from localStorage (stored before purchase) or URL parameter or default to monthly
+      const storedProductId = localStorage.getItem('appilix_product_id');
+      const finalProductId = storedProductId || productId || "com.unishare.app.scholarplusonemonth";
+
+      // Clear the stored product ID after use
+      if (storedProductId) {
+        localStorage.removeItem('appilix_product_id');
+      }
 
       // Call our API to verify the purchase
       const response = await fetch("/api/appilix/verify-purchase", {

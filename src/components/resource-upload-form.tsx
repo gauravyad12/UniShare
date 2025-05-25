@@ -127,7 +127,13 @@ export default function ResourceUploadForm() {
             isValid = false;
           }
 
-          // Check URL safety if it's a valid URL
+          // Check for bad words in URL
+          if (await containsBadWords(externalLink)) {
+            newErrors.externalLink = "URL contains inappropriate language";
+            isValid = false;
+          }
+
+          // Check URL safety if it's a valid URL and doesn't contain bad words
           if (isValid && urlSafetyStatus === 'unknown') {
             // If we haven't checked the URL safety yet, do it now
             await checkUrlSafetyStatus(externalLink);
@@ -506,11 +512,19 @@ export default function ResourceUploadForm() {
             id="external_link"
             placeholder="https://example.com"
             value={externalLink}
-            onChange={(e) => {
+            onChange={async (e) => {
               if (e.target.value.length <= charLimits.externalLink) {
                 setExternalLink(e.target.value);
                 if (errors.externalLink) {
                   setErrors(prev => ({ ...prev, externalLink: "" }));
+                }
+
+                // Check for bad words in real-time
+                if (e.target.value.trim()) {
+                  const { containsBadWords } = await import('@/utils/badWords');
+                  if (await containsBadWords(e.target.value)) {
+                    setErrors(prev => ({ ...prev, externalLink: "URL contains inappropriate language" }));
+                  }
                 }
               }
             }}

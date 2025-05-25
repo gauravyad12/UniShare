@@ -107,7 +107,7 @@ export default function ContactForm() {
           email: formData.email,
           subject: formData.subject,
           message: formData.message,
-          recipient: "kiprasvitas@icloud.com",
+          recipient: "support@unishare.app",
         }),
       });
 

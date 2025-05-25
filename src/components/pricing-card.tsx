@@ -58,6 +58,17 @@ export default function PricingCard({
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setIsAppilix(isAppilixOrDevelopment());
+
+      // Mock Appilix function for testing in development
+      if (isAppilixOrDevelopment() && typeof (window as any).appilixPurchaseProduct !== 'function') {
+        (window as any).appilixPurchaseProduct = function(productId: string, type: string, redirectUrl: string) {
+          console.log('Mock Appilix Purchase:', { productId, type, redirectUrl });
+          // Simulate successful purchase by redirecting with a test code
+          const testCode = 'test_purchase_code_' + Date.now();
+          window.location.href = redirectUrl + '?code=' + testCode;
+        };
+        console.log('Mock appilixPurchaseProduct function created for testing');
+      }
     }
   }, []);
 
@@ -76,7 +87,9 @@ export default function PricingCard({
         : "com.unishare.app.scholarplusonemonth";
 
       const productType = "consumable";
-      const redirectUrl = `${window.location.origin}/dashboard/success?product_id=${productId}`;
+      // Store the product ID in localStorage before purchase
+      localStorage.setItem('appilix_product_id', productId);
+      const redirectUrl = `${window.location.origin}/dashboard/success`;
 
       // Check if appilixPurchaseProduct function is available
       if (typeof (window as any).appilixPurchaseProduct === 'function') {

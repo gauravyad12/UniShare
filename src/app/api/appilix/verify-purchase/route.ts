@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@supabase/supabase-js";
+import { createClient as createUserClient } from "@/utils/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -7,12 +8,16 @@ export async function POST(request: NextRequest) {
   try {
     const { code, productId, userId } = await request.json();
 
-    if (!code || !productId || !userId) {
+    if (!code || !userId) {
       return NextResponse.json(
-        { error: "Missing required parameters: code, productId, userId" },
+        { error: "Missing required parameters: code, userId" },
         { status: 400 }
       );
     }
+
+    // If productId is not provided, we'll need to determine it from the code or default to monthly
+    // In a real implementation, you might encode the product info in the code or have a mapping
+    const finalProductId = productId || "com.unishare.app.scholarplusonemonth";
 
     // Verify the security code against the environment variable
     const expectedCode = process.env.APPILIX_PRODUCT_PURCHASE_CODE;
@@ -25,7 +30,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (code !== expectedCode) {
+    // Allow test codes in development
+    const isTestCode = code.startsWith('test_purchase_code_');
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
+    if (!isTestCode && code !== expectedCode) {
       console.error("Invalid Appilix purchase code provided");
       return NextResponse.json(
         { error: "Invalid purchase code" },
@@ -33,13 +42,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize Supabase client
-    const supabase = createClient();
+    // In development, allow test codes to proceed
+    if (isTestCode && !isDevelopment) {
+      return NextResponse.json(
+        { error: "Test codes only allowed in development" },
+        { status: 401 }
+      );
+    }
 
-    // Verify the user exists
-    const { data: userData, error: userError } = await supabase.auth.getUser();
+    // Initialize user client for authentication
+    const userSupabase = createUserClient();
 
-    if (userError || !userData.user || userData.user.id !== userId) {
+    // Check required environment variables
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_KEY;
+
+    if (!supabaseUrl) {
+      console.error("NEXT_PUBLIC_SUPABASE_URL not set in environment variables");
+      return NextResponse.json(
+        { error: "Server configuration error: Missing Supabase URL" },
+        { status: 500 }
+      );
+    }
+
+    if (!serviceRoleKey) {
+      console.error("SUPABASE_SERVICE_KEY not set in environment variables");
+      return NextResponse.json(
+        { error: "Server configuration error: Missing service role key" },
+        { status: 500 }
+      );
+    }
+
+    // Initialize service client for database operations
+    const serviceSupabase = createClient(supabaseUrl, serviceRoleKey);
+
+    // Verify the user is authenticated and matches the provided userId
+    const { data: { user }, error: userError } = await userSupabase.auth.getUser();
+
+    if (userError || !user || user.id !== userId) {
       return NextResponse.json(
         { error: "User authentication failed" },
         { status: 401 }
@@ -50,10 +90,10 @@ export async function POST(request: NextRequest) {
     let interval: string;
     let amount: number;
 
-    if (productId === "com.unishare.app.scholarplusonemonth") {
+    if (finalProductId === "com.unishare.app.scholarplusonemonth") {
       interval = "month";
       amount = 299; // $2.99 in cents
-    } else if (productId === "com.unishare.app.scholarplusoneyear") {
+    } else if (finalProductId === "com.unishare.app.scholarplusoneyear") {
       interval = "year";
       amount = 2499; // $24.99 in cents
     } else {
@@ -65,12 +105,9 @@ export async function POST(request: NextRequest) {
 
     // Create a subscription record for the Appilix purchase
     const currentTime = Math.floor(Date.now() / 1000);
-    const periodEnd = interval === "month"
-      ? currentTime + (30 * 24 * 60 * 60) // 30 days
-      : currentTime + (365 * 24 * 60 * 60); // 365 days
 
-    // Check if user already has an active subscription
-    const { data: existingSubscription } = await supabase
+    // Check if user already has an active subscription using service client
+    const { data: existingSubscription } = await serviceSupabase
       .from("subscriptions")
       .select("*")
       .eq("user_id", userId)
@@ -78,22 +115,32 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (existingSubscription) {
-      // Update existing subscription
-      const { error: updateError } = await supabase
+      // For renewals, extend from the current period end date, not from now
+      const extensionStartTime = existingSubscription.current_period_end > currentTime
+        ? existingSubscription.current_period_end  // Extend from current end if still active
+        : currentTime; // Start from now if subscription has already expired
+
+      const periodEnd = interval === "month"
+        ? extensionStartTime + (30 * 24 * 60 * 60) // 30 days from extension start
+        : extensionStartTime + (365 * 24 * 60 * 60); // 365 days from extension start
+
+      // Update existing subscription using service client
+      const { error: updateError } = await serviceSupabase
         .from("subscriptions")
         .update({
-          stripe_id: `appilix_${productId}_${Date.now()}`, // Unique identifier for Appilix purchases
+          stripe_id: `appilix_${finalProductId}_${Date.now()}`, // Unique identifier for Appilix purchases
           status: "active",
-          current_period_start: currentTime,
-          current_period_end: periodEnd,
+          current_period_start: existingSubscription.current_period_start, // Keep original start date
+          current_period_end: periodEnd, // Extend the end date
           cancel_at_period_end: false,
           amount: amount,
           interval: interval,
           currency: "usd",
           metadata: JSON.stringify({
             source: "appilix",
-            product_id: productId,
-            purchase_code: code
+            product_id: finalProductId,
+            purchase_code: code,
+            renewal_date: new Date().toISOString()
           })
         })
         .eq("id", existingSubscription.id);
@@ -106,12 +153,16 @@ export async function POST(request: NextRequest) {
         );
       }
     } else {
-      // Create new subscription
-      const { error: insertError } = await supabase
+      // Create new subscription using service client
+      const periodEnd = interval === "month"
+        ? currentTime + (30 * 24 * 60 * 60) // 30 days from now
+        : currentTime + (365 * 24 * 60 * 60); // 365 days from now
+
+      const { error: insertError } = await serviceSupabase
         .from("subscriptions")
         .insert({
           user_id: userId,
-          stripe_id: `appilix_${productId}_${Date.now()}`, // Unique identifier for Appilix purchases
+          stripe_id: `appilix_${finalProductId}_${Date.now()}`, // Unique identifier for Appilix purchases
           customer_id: `appilix_customer_${userId}`, // Appilix customer identifier
           status: "active",
           current_period_start: currentTime,
@@ -122,7 +173,7 @@ export async function POST(request: NextRequest) {
           currency: "usd",
           metadata: JSON.stringify({
             source: "appilix",
-            product_id: productId,
+            product_id: finalProductId,
             purchase_code: code
           })
         });

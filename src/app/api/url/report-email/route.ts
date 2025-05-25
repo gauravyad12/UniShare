@@ -10,7 +10,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function POST(request: NextRequest) {
   try {
     const supabase = createClient();
-    
+
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
         .select('name')
         .eq('id', profile.university_id)
         .single();
-      
+
       if (university) {
         universityName = university.name;
       }
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     const userName = profile?.full_name || user.email;
     const userUsername = profile?.username || 'N/A';
     const resourceTitle = resource?.title || 'Unknown Resource';
-    
+
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #e11d48;">Malicious URL Report</h2>
@@ -75,14 +75,14 @@ export async function POST(request: NextRequest) {
         <p><strong>Reported by:</strong> ${userName} (${userUsername})</p>
         <p><strong>User Email:</strong> ${user.email}</p>
         <p><strong>University:</strong> ${universityName}</p>
-        
+
         ${reason ? `
         <div style="margin-top: 20px; padding: 15px; background-color: #f9fafb; border-radius: 5px;">
           <p><strong>Reason for reporting:</strong></p>
           <p style="white-space: pre-line;">${reason}</p>
         </div>
         ` : ''}
-        
+
         <p style="margin-top: 20px; font-size: 12px; color: #6b7280;">
           This report was sent from the UniShare URL reporting system.
         </p>
@@ -107,7 +107,7 @@ This report was sent from the UniShare URL reporting system.
     // Send email using Resend
     const { data: emailData, error: resendError } = await resend.emails.send({
       from: "UniShare <reports@unishare.app>",
-      to: ["kiprasvitas@icloud.com"], // Admin email
+      to: ["urgent@unishare.app"], // Admin email
       subject: `Malicious URL Report: ${resourceTitle}`,
       html: emailHtml,
       text: emailText,

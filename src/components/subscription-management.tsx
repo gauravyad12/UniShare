@@ -32,6 +32,7 @@ export default function SubscriptionManagement({
   const [portalLoading, setPortalLoading] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [renewLoading, setRenewLoading] = useState(false);
+  const [isAppilixEnvironment, setIsAppilixEnvironment] = useState(false);
 
   useEffect(() => {
     async function fetchSubscription() {
@@ -89,6 +90,29 @@ export default function SubscriptionManagement({
     }
 
     fetchSubscription();
+
+    // Check if we're in Appilix environment and set up mock function for testing
+    if (typeof window !== 'undefined') {
+      // Check for Appilix environment
+      const isAppilix = navigator.userAgent.includes('Appilix');
+      const isLocalhost = window.location.hostname.includes('localhost') || window.location.hostname.includes('192.');
+      const isMobileView = window.innerWidth <= 768; // Simple mobile detection
+
+      // Set Appilix environment state
+      const appilixEnv = isAppilix || (isLocalhost && isMobileView);
+      setIsAppilixEnvironment(appilixEnv);
+
+      // Mock Appilix function for testing in development
+      if (appilixEnv && typeof (window as any).appilixPurchaseProduct !== 'function') {
+        (window as any).appilixPurchaseProduct = function(productId: string, type: string, redirectUrl: string) {
+          console.log('Mock Appilix Purchase:', { productId, type, redirectUrl });
+          // Simulate successful purchase by redirecting with a test code
+          const testCode = 'test_purchase_code_' + Date.now();
+          window.location.href = redirectUrl + '?code=' + testCode;
+        };
+        console.log('Mock appilixPurchaseProduct function created for testing');
+      }
+    }
   }, []);
 
   const handleCancelSubscription = async () => {
@@ -242,7 +266,9 @@ export default function SubscriptionManagement({
         : "com.unishare.app.scholarplusonemonth";
 
       const productType = "consumable";
-      const redirectUrl = `${window.location.origin}/dashboard/success?product_id=${productId}`;
+      // Store the product ID in localStorage before purchase
+      localStorage.setItem('appilix_product_id', productId);
+      const redirectUrl = `${window.location.origin}/dashboard/success`;
 
       // Check if appilixPurchaseProduct function is available (only available in Appilix app)
       if (typeof (window as any).appilixPurchaseProduct === 'function') {
@@ -401,20 +427,22 @@ export default function SubscriptionManagement({
 
             {/* Different buttons based on subscription type */}
             {isAppilixSubscription(subscription) ? (
-              /* Appilix Subscription - Show Renew Button */
-              <Button
-                variant="outline"
-                onClick={handleAppilixRenewal}
-                disabled={renewLoading}
-                className="w-full md:w-auto"
-              >
-                {renewLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                )}
-                Renew {subscription.interval === "year" ? "Year" : "Month"}
-              </Button>
+              /* Appilix Subscription - Show Renew Button only in Appilix environment */
+              isAppilixEnvironment && (
+                <Button
+                  variant="outline"
+                  onClick={handleAppilixRenewal}
+                  disabled={renewLoading}
+                  className="w-full md:w-auto"
+                >
+                  {renewLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                  )}
+                  Renew {subscription.interval === "year" ? "Year" : "Month"}
+                </Button>
+              )
             ) : (
               /* Stripe Subscription - Show Manage and Cancel Buttons */
               <>
