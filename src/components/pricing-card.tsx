@@ -59,8 +59,14 @@ export default function PricingCard({
     if (typeof window !== 'undefined') {
       setIsAppilix(isAppilixOrDevelopment());
 
-      // Mock Appilix function for testing in development
-      if (isAppilixOrDevelopment() && typeof (window as any).appilixPurchaseProduct !== 'function') {
+      // Check if we're in a real Appilix app or development
+      const isRealAppilix = navigator.userAgent.includes('Appilix');
+      const isDevelopment = (window.location.hostname.includes('localhost') ||
+                           window.location.hostname.includes('192.')) &&
+                           window.innerWidth < 768;
+
+      // Only create mock function in development, not in real Appilix app
+      if (isDevelopment && !isRealAppilix && typeof (window as any).appilixPurchaseProduct !== 'function') {
         (window as any).appilixPurchaseProduct = function(productId: string, type: string, redirectUrl: string) {
           console.log('Mock Appilix Purchase:', { productId, type, redirectUrl });
           // Simulate successful purchase by redirecting with a test code

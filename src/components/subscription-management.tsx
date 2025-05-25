@@ -102,8 +102,9 @@ export default function SubscriptionManagement({
       const appilixEnv = isAppilix || (isLocalhost && isMobileView);
       setIsAppilixEnvironment(appilixEnv);
 
-      // Mock Appilix function for testing in development
-      if (appilixEnv && typeof (window as any).appilixPurchaseProduct !== 'function') {
+      // Only create mock function in development, not in real Appilix app
+      const isDevelopment = isLocalhost && isMobileView;
+      if (isDevelopment && !isAppilix && typeof (window as any).appilixPurchaseProduct !== 'function') {
         (window as any).appilixPurchaseProduct = function(productId: string, type: string, redirectUrl: string) {
           console.log('Mock Appilix Purchase:', { productId, type, redirectUrl });
           // Simulate successful purchase by redirecting with a test code
