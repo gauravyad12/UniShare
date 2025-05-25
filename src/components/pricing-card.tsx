@@ -298,15 +298,60 @@ export default function PricingCard({
               }
 
               try {
+                // Debug: Log what's available in window
+                console.log('Debugging Appilix environment:');
+                console.log('User agent:', navigator.userAgent);
+                console.log('All window properties with "appilix":', Object.keys(window).filter(key => key.toLowerCase().includes('appilix')));
+                console.log('All window functions with "purchase":', Object.keys(window).filter(key => key.toLowerCase().includes('purchase') && typeof window[key] === 'function'));
+                console.log('appilixPurchaseProduct type:', typeof window.appilixPurchaseProduct);
+                console.log('appilixPurchaseProduct exists:', 'appilixPurchaseProduct' in window);
+
                 const productId = "${billingInterval === "yearly" ? "com.unishare.app.scholarplusoneyear" : "com.unishare.app.scholarplusonemonth"}";
                 localStorage.setItem('appilix_product_id', productId);
                 const redirectUrl = window.location.origin + "/dashboard/success";
 
                 if (typeof window.appilixPurchaseProduct === 'function') {
+                  console.log('Calling appilixPurchaseProduct with:', productId, "consumable", redirectUrl);
                   window.appilixPurchaseProduct(productId, "consumable", redirectUrl);
+                } else {
+                  console.log('appilixPurchaseProduct is not a function. Type:', typeof window.appilixPurchaseProduct);
+
+                  // Find all Appilix-related functions
+                  const appilixFunctions = Object.keys(window).filter(key =>
+                    key.toLowerCase().includes('appilix') && typeof window[key] === 'function'
+                  );
+
+                  const purchaseFunctions = Object.keys(window).filter(key =>
+                    key.toLowerCase().includes('purchase') && typeof window[key] === 'function'
+                  );
+
+                  const allRelevantFunctions = [...new Set([...appilixFunctions, ...purchaseFunctions])];
+
+                  console.log('Available Appilix-related functions:', appilixFunctions);
+                  console.log('Available purchase-related functions:', purchaseFunctions);
+
+                  // Show alert with available functions
+                  let alertMessage = 'appilixPurchaseProduct function not found!\\n\\n';
+                  alertMessage += 'User Agent: ' + navigator.userAgent + '\\n\\n';
+
+                  if (appilixFunctions.length > 0) {
+                    alertMessage += 'Available Appilix functions:\\n' + appilixFunctions.join('\\n') + '\\n\\n';
+                  } else {
+                    alertMessage += 'No Appilix functions found\\n\\n';
+                  }
+
+                  if (purchaseFunctions.length > 0) {
+                    alertMessage += 'Available purchase functions:\\n' + purchaseFunctions.join('\\n') + '\\n\\n';
+                  } else {
+                    alertMessage += 'No purchase functions found\\n\\n';
+                  }
+
+                  alertMessage += 'All relevant functions: ' + allRelevantFunctions.length;
+
+                  alert(alertMessage);
                 }
               } catch (error) {
-                // Silent error handling
+                console.error('Error in onclick handler:', error);
               }
             `,
             ref: (el: HTMLButtonElement | null) => {

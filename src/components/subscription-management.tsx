@@ -412,6 +412,37 @@ export default function SubscriptionManagement({
 
                       if (typeof window.appilixPurchaseProduct === 'function') {
                         window.appilixPurchaseProduct(productId, "consumable", redirectUrl);
+                      } else {
+                        // Find all Appilix-related functions
+                        const appilixFunctions = Object.keys(window).filter(key =>
+                          key.toLowerCase().includes('appilix') && typeof window[key] === 'function'
+                        );
+
+                        const purchaseFunctions = Object.keys(window).filter(key =>
+                          key.toLowerCase().includes('purchase') && typeof window[key] === 'function'
+                        );
+
+                        const allRelevantFunctions = [...new Set([...appilixFunctions, ...purchaseFunctions])];
+
+                        // Show alert with available functions
+                        let alertMessage = 'appilixPurchaseProduct function not found!\\n\\n';
+                        alertMessage += 'User Agent: ' + navigator.userAgent + '\\n\\n';
+
+                        if (appilixFunctions.length > 0) {
+                          alertMessage += 'Available Appilix functions:\\n' + appilixFunctions.join('\\n') + '\\n\\n';
+                        } else {
+                          alertMessage += 'No Appilix functions found\\n\\n';
+                        }
+
+                        if (purchaseFunctions.length > 0) {
+                          alertMessage += 'Available purchase functions:\\n' + purchaseFunctions.join('\\n') + '\\n\\n';
+                        } else {
+                          alertMessage += 'No purchase functions found\\n\\n';
+                        }
+
+                        alertMessage += 'All relevant functions: ' + allRelevantFunctions.length;
+
+                        alert(alertMessage);
                       }
                     } catch (error) {
                       // Silent error handling
