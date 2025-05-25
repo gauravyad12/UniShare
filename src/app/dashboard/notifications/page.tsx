@@ -42,6 +42,7 @@ export default function NotificationsPage() {
   const [selectedNotifications, setSelectedNotifications] = useState<string[]>([]);
   const [isDesktop, setIsDesktop] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
+  const [currentTab, setCurrentTab] = useState<'all' | 'unread'>('all');
   const supabase = createClient();
 
   // Check if we're on desktop
@@ -328,6 +329,17 @@ export default function NotificationsPage() {
     setSelectedNotifications(notificationsToSelect.map(n => n.id));
   };
 
+  // Check if all notifications in the current tab are selected
+  const areAllNotificationsSelected = (tabValue: 'all' | 'unread') => {
+    const notificationsInTab = tabValue === 'all'
+      ? notifications
+      : notifications.filter(n => !n.is_read);
+
+    if (notificationsInTab.length === 0) return false;
+
+    return notificationsInTab.every(n => selectedNotifications.includes(n.id));
+  };
+
   // Clear all selections
   const clearSelections = () => {
     setSelectedNotifications([]);
@@ -459,6 +471,18 @@ export default function NotificationsPage() {
           <div className="flex justify-between items-center">
             <h2 className="font-medium">Your Notifications</h2>
             <div className="flex items-center gap-2">
+              {/* Select All button - only show in selection mode and when not all items are selected */}
+              {isDesktop && selectionMode && notifications.length > 0 && !areAllNotificationsSelected(currentTab) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-8"
+                  onClick={() => selectAllNotifications(currentTab)}
+                >
+                  Select All
+                </Button>
+              )}
+
               {/* Selection mode toggle - desktop only */}
               {isDesktop && notifications.length > 0 && (
                 <Button
@@ -511,40 +535,25 @@ export default function NotificationsPage() {
           </div>
         </div>
 
-        <NotificationTabs defaultValue="all" className="w-full">
-          <div className={`grid w-full ${isDesktop && selectionMode && notifications.length > 0 ? "grid-cols-[1fr_1fr_auto]" : "grid-cols-2"}`}>
-            <NotificationTabsList className={`${isDesktop && selectionMode && notifications.length > 0 ? "col-span-2" : "col-span-2"}`}>
-              <NotificationTabsTrigger
-                value="all"
-                className="flex-1"
-              >
-                All
-              </NotificationTabsTrigger>
-              <NotificationTabsTrigger
-                value="unread"
-                className="flex-1"
-              >
-                Unread {unreadCount > 0 && `(${unreadCount})`}
-              </NotificationTabsTrigger>
-            </NotificationTabsList>
-
-            {/* Select All button - only show in selection mode */}
-            {isDesktop && selectionMode && notifications.length > 0 && (
-              <div className="flex justify-center items-center bg-background border-l border-b border-border px-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs h-7 my-1"
-                  onClick={() => {
-                    const currentTab = document.querySelector('[data-state="active"][role="tab"]')?.getAttribute('value') as 'all' | 'unread' || 'all';
-                    selectAllNotifications(currentTab);
-                  }}
-                >
-                  Select All
-                </Button>
-              </div>
-            )}
-          </div>
+        <NotificationTabs
+          defaultValue="all"
+          className="w-full"
+          onValueChange={(value) => setCurrentTab(value as 'all' | 'unread')}
+        >
+          <NotificationTabsList className="grid w-full grid-cols-2">
+            <NotificationTabsTrigger
+              value="all"
+              className="flex-1"
+            >
+              All
+            </NotificationTabsTrigger>
+            <NotificationTabsTrigger
+              value="unread"
+              className="flex-1"
+            >
+              Unread {unreadCount > 0 && `(${unreadCount})`}
+            </NotificationTabsTrigger>
+          </NotificationTabsList>
 
           <NotificationTabsContent value="all">
             {isLoading ? (

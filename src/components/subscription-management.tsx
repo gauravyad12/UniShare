@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle, CreditCard, Sparkles, XCircle, CheckCircle } from "lucide-react";
+import { Loader2, AlertCircle, CreditCard, Sparkles, XCircle, CheckCircle, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from "next/link";
@@ -31,6 +31,7 @@ export default function SubscriptionManagement({
   const [cancelSuccess, setCancelSuccess] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [renewLoading, setRenewLoading] = useState(false);
 
   useEffect(() => {
     async function fetchSubscription() {
@@ -228,6 +229,44 @@ export default function SubscriptionManagement({
     }
   };
 
+  // Function to handle Appilix subscription renewal
+  const handleAppilixRenewal = async () => {
+    if (!subscription) return;
+
+    try {
+      setRenewLoading(true);
+
+      // Determine the product ID based on the current subscription interval
+      const productId = subscription.interval === "year"
+        ? "com.unishare.app.scholarplusoneyear"
+        : "com.unishare.app.scholarplusonemonth";
+
+      const productType = "consumable";
+      const redirectUrl = `${window.location.origin}/dashboard/success?product_id=${productId}`;
+
+      // Check if appilixPurchaseProduct function is available (only available in Appilix app)
+      if (typeof (window as any).appilixPurchaseProduct === 'function') {
+        // Call the Appilix purchase function
+        (window as any).appilixPurchaseProduct(productId, productType, redirectUrl);
+      } else {
+        // If not in Appilix app, redirect to pricing page
+        console.log("Appilix purchase function not available, redirecting to pricing page");
+        window.location.href = "/pricing";
+        setRenewLoading(false);
+      }
+    } catch (error) {
+      console.error("Error initiating Appilix renewal:", error);
+      setError("An error occurred while initiating the renewal. Please try again.");
+      setRenewLoading(false);
+    }
+  };
+
+  // Helper function to check if subscription is from Appilix
+  const isAppilixSubscription = (subscription: any) => {
+    return subscription?.stripe_id?.startsWith('appilix_') ||
+           subscription?.metadata?.source === 'appilix';
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -327,7 +366,12 @@ export default function SubscriptionManagement({
         {currentPeriodEnd && (
           <div className="flex justify-between">
             <span className="text-muted-foreground">
-              {willCancel ? "Access Until:" : "Next Billing Date:"}
+              {willCancel
+                ? "Access Until:"
+                : isAppilixSubscription(subscription)
+                  ? "Access Until:"
+                  : "Next Billing Date:"
+              }
             </span>
             <span className="font-medium">{format(currentPeriodEnd, "MMMM d, yyyy")}</span>
           </div>
@@ -345,24 +389,8 @@ export default function SubscriptionManagement({
         {/* Buttons for active subscription */}
         {subscription && isActive && (
           <>
-            {/* Manage Subscription Button */}
-            <Button
-              variant="outline"
-              onClick={handleManageSubscription}
-              disabled={portalLoading}
-              className="w-full md:w-auto"
-            >
-              {portalLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <CreditCard className="mr-2 h-4 w-4" />
-              )}
-              Manage Subscription
-            </Button>
-
-            {/* Cancel Subscription Button with Confirmation Dialog */}
-            {/* Access Scholar+ Button - only for active subscribers */}
-            {showAccessButton && isActive && (
+            {/* Access Scholar+ Button - always show for active subscribers */}
+            {showAccessButton && (
               <Button variant="outline" asChild className="w-full md:w-auto">
                 <Link href="/dashboard/tools">
                   <Sparkles className="mr-2 h-4 w-4" />
@@ -371,58 +399,93 @@ export default function SubscriptionManagement({
               </Button>
             )}
 
-            {!willCancel && (
+            {/* Different buttons based on subscription type */}
+            {isAppilixSubscription(subscription) ? (
+              /* Appilix Subscription - Show Renew Button */
+              <Button
+                variant="outline"
+                onClick={handleAppilixRenewal}
+                disabled={renewLoading}
+                className="w-full md:w-auto"
+              >
+                {renewLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                )}
+                Renew {subscription.interval === "year" ? "Year" : "Month"}
+              </Button>
+            ) : (
+              /* Stripe Subscription - Show Manage and Cancel Buttons */
               <>
                 <Button
                   variant="outline"
-                  onClick={() => setShowCancelDialog(true)}
-                  className="w-full md:w-auto text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30"
+                  onClick={handleManageSubscription}
+                  disabled={portalLoading}
+                  className="w-full md:w-auto"
                 >
-                  <XCircle className="mr-2 h-4 w-4" />
-                  Cancel Subscription
+                  {portalLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <CreditCard className="mr-2 h-4 w-4" />
+                  )}
+                  Manage Subscription
                 </Button>
 
-                {/* Cancel Confirmation Dialog */}
-                <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-                  <DialogContent className="sm:max-w-[425px] p-6">
-                    <div id="cancel-subscription-description" className="sr-only">Cancel subscription confirmation dialog</div>
-                    <DialogHeader className="space-y-2 text-center sm:text-left">
-                      <DialogTitle className="text-lg font-semibold">Cancel Subscription</DialogTitle>
-                      <DialogDescription>
-                        Are you sure you want to cancel your Scholar+ subscription? You'll still have access to all Scholar+ features until the end of your current billing period.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 space-y-1 space-y-reverse sm:space-y-0">
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowCancelDialog(false)}
-                        disabled={cancelLoading}
-                        className="sm:mt-0 mt-1 h-8 sm:h-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
-                        tabIndex={-1}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          handleCancelSubscription();
-                          setShowCancelDialog(false);
-                        }}
-                        disabled={cancelLoading}
-                        className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30 h-8 sm:h-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
-                      >
-                        {cancelLoading ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Canceling...
-                          </>
-                        ) : (
-                          "Cancel Subscription"
-                        )}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                {!willCancel && (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowCancelDialog(true)}
+                      className="w-full md:w-auto text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30"
+                    >
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Cancel Subscription
+                    </Button>
+
+                    {/* Cancel Confirmation Dialog */}
+                    <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+                      <DialogContent className="sm:max-w-[425px] p-6">
+                        <div id="cancel-subscription-description" className="sr-only">Cancel subscription confirmation dialog</div>
+                        <DialogHeader className="space-y-2 text-center sm:text-left">
+                          <DialogTitle className="text-lg font-semibold">Cancel Subscription</DialogTitle>
+                          <DialogDescription>
+                            Are you sure you want to cancel your Scholar+ subscription? You'll still have access to all Scholar+ features until the end of your current billing period.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 space-y-1 space-y-reverse sm:space-y-0">
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowCancelDialog(false)}
+                            disabled={cancelLoading}
+                            className="sm:mt-0 mt-1 h-8 sm:h-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
+                            tabIndex={-1}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              handleCancelSubscription();
+                              setShowCancelDialog(false);
+                            }}
+                            disabled={cancelLoading}
+                            className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30 h-8 sm:h-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
+                          >
+                            {cancelLoading ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Canceling...
+                              </>
+                            ) : (
+                              "Cancel Subscription"
+                            )}
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </>
+                )}
               </>
             )}
           </>

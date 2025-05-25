@@ -27,16 +27,81 @@ function SearchParamsReader({ onParamsChange }: { onParamsChange: (params: URLSe
 export default function SuccessPage() {
   const router = useRouter();
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [appilixCode, setAppilixCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Handle search params changes
   const handleParamsChange = (params: URLSearchParams) => {
     const sid = params.get("session_id");
+    const code = params.get("code");
+    const productId = params.get("product_id"); // Optional product ID parameter
     setSessionId(sid);
+    setAppilixCode(code);
+
+    // Store product ID in state if provided
+    if (productId) {
+      setProductId(productId);
+    }
+  };
+
+  const [productId, setProductId] = useState<string | null>(null);
+
+  // Function to verify Appilix purchase
+  const verifyAppilixPurchase = async (code: string) => {
+    try {
+      setLoading(true);
+
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        setError("User not found. Please sign in.");
+        setLoading(false);
+        return;
+      }
+
+      // Use product ID from URL parameter or default to monthly
+      const finalProductId = productId || "com.unishare.app.scholarplusonemonth";
+
+      // Call our API to verify the purchase
+      const response = await fetch("/api/appilix/verify-purchase", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          code: code,
+          productId: finalProductId,
+          userId: user.id,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setError(result.error || "Failed to verify purchase");
+        setLoading(false);
+        return;
+      }
+
+      // Purchase verified successfully
+      setLoading(false);
+    } catch (error) {
+      console.error("Error verifying Appilix purchase:", error);
+      setError("An error occurred while verifying your purchase.");
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
+    // Check if this is an Appilix purchase (has code parameter)
+    if (appilixCode) {
+      verifyAppilixPurchase(appilixCode);
+      return;
+    }
+
+    // Otherwise, handle Stripe purchase (has session_id parameter)
     if (!sessionId) return;
 
     const verifySession = async () => {
@@ -107,7 +172,7 @@ export default function SuccessPage() {
     };
 
     verifySession();
-  }, [sessionId]);
+  }, [sessionId, appilixCode]);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">

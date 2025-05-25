@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User } from "@supabase/supabase-js";
 import { Button } from "./ui/button";
 import {
@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { Badge } from "./ui/badge";
+import { isAppilixOrDevelopment } from "@/utils/appilix-detection";
 
 // Helper function to render the appropriate icon based on the iconName
 const renderIcon = (iconName: string, className: string) => {
@@ -51,6 +52,46 @@ export default function PricingCard({
   user: User | null;
 }) {
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
+  const [isAppilix, setIsAppilix] = useState(false);
+
+  // Check if we're in Appilix or development environment
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsAppilix(isAppilixOrDevelopment());
+    }
+  }, []);
+
+  // Handle Appilix in-app purchase
+  const handleAppilixPurchase = async (billingInterval: "monthly" | "yearly") => {
+    if (!user) {
+      // Redirect to login if user is not authenticated
+      window.location.href = "/sign-in";
+      return;
+    }
+
+    try {
+      // Determine the product ID based on billing interval
+      const productId = billingInterval === "yearly"
+        ? "com.unishare.app.scholarplusoneyear"
+        : "com.unishare.app.scholarplusonemonth";
+
+      const productType = "consumable";
+      const redirectUrl = `${window.location.origin}/dashboard/success?product_id=${productId}`;
+
+      // Check if appilixPurchaseProduct function is available
+      if (typeof (window as any).appilixPurchaseProduct === 'function') {
+        // Call the Appilix purchase function
+        (window as any).appilixPurchaseProduct(productId, productType, redirectUrl);
+      } else {
+        console.error("Appilix purchase function not available");
+        alert("In-app purchase is not available. Please try again later.");
+      }
+    } catch (error) {
+      console.error("Error initiating Appilix purchase:", error);
+      alert("An error occurred while initiating the purchase. Please try again.");
+    }
+  };
+
   // Handle checkout process
   const handleCheckout = async (priceId: string) => {
     if (!user) {
@@ -235,16 +276,22 @@ export default function PricingCard({
       <CardFooter className="relative">
         <Button
           onClick={async () => {
-            // If this is the Scholar+ plan, use the appropriate price ID based on the plan
+            // If this is the Scholar+ plan, use the appropriate method based on environment
             if (item.name === "Scholar+") {
-              // Your actual Stripe price IDs
-              const monthlyPriceId = "price_1RPHHtDcATCY5VhWO6vyle1i"; // Your existing monthly price ID
-              const yearlyPriceId = "price_1RPHnIDcATCY5VhWM5Tyceq6"; // Replace with your actual yearly price ID from Stripe
+              // Check if we're in Appilix environment
+              if (isAppilix) {
+                // Use Appilix in-app purchase
+                await handleAppilixPurchase(billingInterval);
+              } else {
+                // Use Stripe checkout
+                const monthlyPriceId = "price_1RPHHtDcATCY5VhWO6vyle1i"; // Your existing monthly price ID
+                const yearlyPriceId = "price_1RPHnIDcATCY5VhWM5Tyceq6"; // Replace with your actual yearly price ID from Stripe
 
-              // Use the appropriate price ID based on the selected billing interval
-              const selectedPriceId = billingInterval === "yearly" ? yearlyPriceId : monthlyPriceId;
+                // Use the appropriate price ID based on the selected billing interval
+                const selectedPriceId = billingInterval === "yearly" ? yearlyPriceId : monthlyPriceId;
 
-              await handleCheckout(selectedPriceId);
+                await handleCheckout(selectedPriceId);
+              }
             } else {
               await handleCheckout(item.id);
             }

@@ -508,7 +508,11 @@ export default function SimpleStudyGroupView({
               {members && members.length > 0 ? (
                 <div className="space-y-3 max-h-[200px] overflow-y-auto pr-2">
                   {members.map((member) => (
-                    <div key={member.user_id} className="flex items-center gap-3">
+                    <Link
+                      key={member.user_id}
+                      href={`/u/${member.username}`}
+                      className="flex items-center gap-3 cursor-pointer"
+                    >
                       <div className="flex-shrink-0">
                         <Avatar className="h-8 w-8 avatar">
                           <AvatarImage
@@ -536,7 +540,7 @@ export default function SimpleStudyGroupView({
                           {member.role === "admin" ? "Admin" : "Member"}
                         </p>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               ) : (

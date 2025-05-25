@@ -57,6 +57,7 @@ export default function SimpleGroupChat({
   const [isMobile, setIsMobile] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
+
   // Detect mobile devices and keyboard visibility
   useEffect(() => {
     const checkMobile = () => {
@@ -247,11 +248,7 @@ export default function SimpleGroupChat({
       // Update isKeyboardVisible state
       setIsKeyboardVisible(isKeyboardShown);
 
-      if (isKeyboardShown) {
-        console.log('Keyboard visible - button will be positioned at 5rem from bottom');
-      } else {
-        console.log('Keyboard hidden - button will be positioned at 8rem from bottom');
-      }
+      // Update isKeyboardVisible state without logging
     };
 
     viewport?.addEventListener('resize', handleViewportChange);
@@ -273,7 +270,7 @@ export default function SimpleGroupChat({
   const updateTypingStatus = useCallback(async (isTyping: boolean) => {
     if (!userId || !group.id) return;
 
-    console.log('Updating typing status:', isTyping);
+
 
     try {
       const supabase = createClient();
@@ -292,7 +289,6 @@ export default function SimpleGroupChat({
       }
 
       if (!success) {
-        console.log('Failed to update typing status - user may not be a member of this group');
         return;
       }
 
@@ -315,7 +311,7 @@ export default function SimpleGroupChat({
   const clearTypingStatus = useCallback(async () => {
     if (!userId || !group.id) return;
 
-    console.log('Clearing typing status');
+
 
     try {
       const supabase = createClient();
@@ -494,7 +490,6 @@ export default function SimpleGroupChat({
         } else if (messagesData && messagesData.length > 0) {
           // Only update if we have new messages
           if (messagesData.length !== messages.length) {
-            console.log('New messages found during polling, updating...');
             setMessages(messagesData);
           }
         }
@@ -509,7 +504,6 @@ export default function SimpleGroupChat({
         if (typingError) {
           console.error('Error polling typing status:', typingError);
         } else if (typingData && Array.isArray(typingData)) {
-          console.log('Typing status data:', typingData);
 
           // Process typing status updates
           const now = new Date();
@@ -986,6 +980,7 @@ export default function SimpleGroupChat({
                 <MessageSquare className="h-3 w-3 mr-1" />
                 Chat
               </Badge>
+
             </div>
           </div>
         </div>
@@ -1128,22 +1123,60 @@ export default function SimpleGroupChat({
 
           {/* We'll move the button to the flex container with the input and plus button */}
 
-          {/* Typing indicator */}
-          {Object.keys(typingUsers).length > 0 && (
-            <div className={`flex items-center ${isMobile && isKeyboardVisible ? 'mb-0 text-xs' : 'mb-2 text-sm'} text-muted-foreground w-full md:max-w-3xl transition-all duration-100`}>
-              <span>
-                {Object.keys(typingUsers).length === 1
-                  ? `${Object.values(typingUsers)[0].full_name || Object.values(typingUsers)[0].username || 'Someone'} is typing`
-                  : `${Object.keys(typingUsers).length} people are typing`}
-              </span>
-              <span className="ml-1 flex">
-                <span className="animate-bounce">.</span>
-                <span className="animate-bounce delay-100">.</span>
-                <span className="animate-bounce delay-200">.</span>
-              </span>
-            </div>
-          )}
+          {/* Input container with typing indicator positioned relative to it */}
           <div className={`flex ${isMobile && isKeyboardVisible ? 'gap-1' : 'gap-2'} items-center w-full md:mx-auto md:max-w-3xl transition-all duration-100 relative`}>
+            {/* ShareGroupResource button with typing indicator positioned relative to it on mobile */}
+            <div className="relative">
+              {/* Typing indicator positioned above ShareGroupResource button on mobile */}
+              {Object.keys(typingUsers).length > 0 && isMobile && (
+                <div className={`absolute left-0 flex items-center justify-start ${
+                  isKeyboardVisible ? 'text-xs' : 'text-sm'
+                } text-muted-foreground transition-all duration-100`}
+                style={{
+                  top: isKeyboardVisible ? '-1.25rem' : '-1.75rem',
+                  whiteSpace: 'nowrap'
+                }}>
+                  <span>
+                    {Object.keys(typingUsers).length === 1
+                      ? `${Object.values(typingUsers)[0].full_name || Object.values(typingUsers)[0].username || 'Someone'} is typing`
+                      : `${Object.keys(typingUsers).length} people are typing`}
+                  </span>
+                  <span className="ml-1 flex">
+                    <span className="animate-bounce">.</span>
+                    <span className="animate-bounce delay-100">.</span>
+                    <span className="animate-bounce delay-200">.</span>
+                  </span>
+                </div>
+              )}
+              <ShareGroupResource
+                groupId={group.id}
+                onResourceSelected={(resourceId, resourceTitle) => {
+                  // Create a message with a link to the resource
+                  const resourceLink = `[Resource: ${resourceTitle}](/dashboard/resources?view=${resourceId})`;
+                  setNewMessage(prev => prev ? `${prev} ${resourceLink}` : resourceLink);
+                }}
+              />
+            </div>
+
+            {/* Typing indicator for desktop - positioned relative to input container */}
+            {Object.keys(typingUsers).length > 0 && !isMobile && (
+              <div className="absolute left-0 right-0 flex items-center justify-start text-sm text-muted-foreground transition-all duration-100"
+              style={{
+                top: '-1.75rem',
+                paddingLeft: '3rem' // Account for ShareGroupResource button width
+              }}>
+                <span>
+                  {Object.keys(typingUsers).length === 1
+                    ? `${Object.values(typingUsers)[0].full_name || Object.values(typingUsers)[0].username || 'Someone'} is typing`
+                    : `${Object.keys(typingUsers).length} people are typing`}
+                </span>
+                <span className="ml-1 flex">
+                  <span className="animate-bounce">.</span>
+                  <span className="animate-bounce delay-100">.</span>
+                  <span className="animate-bounce delay-200">.</span>
+                </span>
+              </div>
+            )}
             {/* New Messages button - centered relative to the input and plus button */}
             <div className="absolute left-0 right-0 top-0 flex justify-center z-[100] pointer-events-none" style={{ transform: 'translateY(-100%)', marginTop: '-1rem' }}>
               <AnimatePresence>
@@ -1175,14 +1208,7 @@ export default function SimpleGroupChat({
               </AnimatePresence>
             </div>
 
-            <ShareGroupResource
-              groupId={group.id}
-              onResourceSelected={(resourceId, resourceTitle) => {
-                // Create a message with a link to the resource
-                const resourceLink = `[Resource: ${resourceTitle}](/dashboard/resources?view=${resourceId})`;
-                setNewMessage(prev => prev ? `${prev} ${resourceLink}` : resourceLink);
-              }}
-            />
+
             <div className="relative flex-1">
               <Input
                 placeholder="Type your message..."
