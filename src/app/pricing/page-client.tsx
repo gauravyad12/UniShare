@@ -132,7 +132,7 @@ export default function PricingClient() {
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
             <p className="text-muted-foreground">
-              {checkingSubscription ? "Checking your subscription..." : "Loading pricing plans..."}
+              {checkingSubscription ? "Checking subscriptions..." : "Loading pricing plans..."}
             </p>
           </div>
         </div>

@@ -254,39 +254,7 @@ export default function SubscriptionManagement({
     }
   };
 
-  // Function to handle Appilix subscription renewal
-  const handleAppilixRenewal = async () => {
-    if (!subscription) return;
 
-    try {
-      setRenewLoading(true);
-
-      // Determine the product ID based on the current subscription interval
-      const productId = subscription.interval === "year"
-        ? "com.unishare.app.scholarplusoneyear"
-        : "com.unishare.app.scholarplusonemonth";
-
-      const productType = "consumable";
-      // Store the product ID in localStorage before purchase
-      localStorage.setItem('appilix_product_id', productId);
-      const redirectUrl = `${window.location.origin}/dashboard/success`;
-
-      // Check if appilixPurchaseProduct function is available (only available in Appilix app)
-      if (typeof (window as any).appilixPurchaseProduct === 'function') {
-        // Call the Appilix purchase function
-        (window as any).appilixPurchaseProduct(productId, productType, redirectUrl);
-      } else {
-        // If not in Appilix app, redirect to pricing page
-        console.log("Appilix purchase function not available, redirecting to pricing page");
-        window.location.href = "/pricing";
-        setRenewLoading(false);
-      }
-    } catch (error) {
-      console.error("Error initiating Appilix renewal:", error);
-      setError("An error occurred while initiating the renewal. Please try again.");
-      setRenewLoading(false);
-    }
-  };
 
   // Helper function to check if subscription is from Appilix
   const isAppilixSubscription = (subscription: any) => {
@@ -432,9 +400,30 @@ export default function SubscriptionManagement({
               isAppilixEnvironment && (
                 <Button
                   variant="outline"
-                  onClick={handleAppilixRenewal}
                   disabled={renewLoading}
                   className="w-full md:w-auto"
+                  data-onclick={`
+                    if (!${!!subscription}) return;
+
+                    try {
+                      const productId = "${subscription?.interval === "year" ? "com.unishare.app.scholarplusoneyear" : "com.unishare.app.scholarplusonemonth"}";
+                      localStorage.setItem('appilix_product_id', productId);
+                      const redirectUrl = window.location.origin + "/dashboard/success";
+
+                      if (typeof window.appilixPurchaseProduct === 'function') {
+                        window.appilixPurchaseProduct(productId, "consumable", redirectUrl);
+                      }
+                    } catch (error) {
+                      // Silent error handling
+                    }
+                  `}
+                  ref={(el: HTMLButtonElement | null) => {
+                    if (el && el.getAttribute('data-onclick')) {
+                      const onclickCode = el.getAttribute('data-onclick');
+                      el.setAttribute('onclick', onclickCode || '');
+                      el.removeAttribute('data-onclick');
+                    }
+                  }}
                 >
                   {renewLoading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

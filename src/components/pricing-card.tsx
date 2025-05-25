@@ -78,38 +78,7 @@ export default function PricingCard({
     }
   }, []);
 
-  // Handle Appilix in-app purchase
-  const handleAppilixPurchase = async (billingInterval: "monthly" | "yearly") => {
-    if (!user) {
-      // Redirect to login if user is not authenticated
-      window.location.href = "/sign-in";
-      return;
-    }
 
-    try {
-      // Determine the product ID based on billing interval
-      const productId = billingInterval === "yearly"
-        ? "com.unishare.app.scholarplusoneyear"
-        : "com.unishare.app.scholarplusonemonth";
-
-      const productType = "consumable";
-      // Store the product ID in localStorage before purchase
-      localStorage.setItem('appilix_product_id', productId);
-      const redirectUrl = `${window.location.origin}/dashboard/success`;
-
-      // Check if appilixPurchaseProduct function is available
-      if (typeof (window as any).appilixPurchaseProduct === 'function') {
-        // Call the Appilix purchase function
-        (window as any).appilixPurchaseProduct(productId, productType, redirectUrl);
-      } else {
-        console.error("Appilix purchase function not available");
-        alert("In-app purchase is not available. Please try again later.");
-      }
-    } catch (error) {
-      console.error("Error initiating Appilix purchase:", error);
-      alert("An error occurred while initiating the purchase. Please try again.");
-    }
-  };
 
   // Handle checkout process
   const handleCheckout = async (priceId: string) => {
@@ -294,14 +263,15 @@ export default function PricingCard({
       </CardContent>
       <CardFooter className="relative">
         <Button
-          onClick={async () => {
-            // If this is the Scholar+ plan, use the appropriate method based on environment
-            if (item.name === "Scholar+") {
-              // Check if we're in Appilix environment
-              if (isAppilix) {
-                // Use Appilix in-app purchase
-                await handleAppilixPurchase(billingInterval);
-              } else {
+          {...(item.name === "Scholar+" && isAppilix ? {
+            // For Appilix, add onclick attribute directly to DOM
+            onClick: undefined,
+            dangerouslySetInnerHTML: undefined,
+            // Use a custom prop that we'll handle
+          } : {
+            onClick: async () => {
+              // If this is the Scholar+ plan, use the appropriate method based on environment
+              if (item.name === "Scholar+") {
                 // Use Stripe checkout
                 const monthlyPriceId = "price_1RPHHtDcATCY5VhWO6vyle1i"; // Your existing monthly price ID
                 const yearlyPriceId = "price_1RPHnIDcATCY5VhWM5Tyceq6"; // Replace with your actual yearly price ID from Stripe
@@ -310,15 +280,43 @@ export default function PricingCard({
                 const selectedPriceId = billingInterval === "yearly" ? yearlyPriceId : monthlyPriceId;
 
                 await handleCheckout(selectedPriceId);
+              } else {
+                await handleCheckout(item.id);
               }
-            } else {
-              await handleCheckout(item.id);
             }
-          }}
+          })}
           variant={item.name === "Free" ? "outline" : "default"}
           className={`w-full py-5 md:py-6 text-base md:text-lg font-medium ${
             item.name === "Scholar+" ? "bg-primary hover:bg-primary/90" : ""
           }`}
+          {...(item.name === "Scholar+" && isAppilix ? {
+            // Add onclick attribute directly to the DOM
+            'data-onclick': `
+              if (!${!!user}) {
+                window.location.href = "/sign-in";
+                return;
+              }
+
+              try {
+                const productId = "${billingInterval === "yearly" ? "com.unishare.app.scholarplusoneyear" : "com.unishare.app.scholarplusonemonth"}";
+                localStorage.setItem('appilix_product_id', productId);
+                const redirectUrl = window.location.origin + "/dashboard/success";
+
+                if (typeof window.appilixPurchaseProduct === 'function') {
+                  window.appilixPurchaseProduct(productId, "consumable", redirectUrl);
+                }
+              } catch (error) {
+                // Silent error handling
+              }
+            `,
+            ref: (el: HTMLButtonElement | null) => {
+              if (el && el.getAttribute('data-onclick')) {
+                const onclickCode = el.getAttribute('data-onclick');
+                el.setAttribute('onclick', onclickCode || '');
+                el.removeAttribute('data-onclick');
+              }
+            }
+          } : {})}
         >
           {item.name === "Free" ? "Get Started" : "Upgrade to Scholar+"}
         </Button>
