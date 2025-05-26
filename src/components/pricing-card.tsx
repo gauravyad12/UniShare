@@ -54,6 +54,9 @@ export default function PricingCard({
   const [billingInterval, setBillingInterval] = useState<"monthly" | "yearly">("monthly");
   const [isAppilix, setIsAppilix] = useState(false);
 
+  // Only show Appilix button if user is signed in AND in Appilix environment
+  const shouldShowAppilixButton = isAppilix && user;
+
   // Check if we're in Appilix or development environment
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -266,7 +269,7 @@ export default function PricingCard({
           <>
             {/* Appilix button - ALWAYS rendered in DOM so Appilix can detect it on page load */}
             <div
-              className={`w-full ${isAppilix ? "block" : "hidden"}`}
+              className={`w-full ${shouldShowAppilixButton ? "block" : "hidden"}`}
               dangerouslySetInnerHTML={{
                 __html: `
                   <button
@@ -279,7 +282,7 @@ export default function PricingCard({
               }}
             />
 
-            {/* Regular React button - hidden when in Appilix */}
+            {/* Regular React button - hidden when showing Appilix button */}
             <Button
               onClick={async () => {
                 // Use Stripe checkout
@@ -293,7 +296,7 @@ export default function PricingCard({
               }}
               variant="default"
               className={`w-full h-auto py-3 text-base md:text-lg font-medium ${
-                isAppilix ? "hidden" : "block"
+                shouldShowAppilixButton ? "hidden" : "block"
               }`}
             >
               Upgrade to Scholar+
