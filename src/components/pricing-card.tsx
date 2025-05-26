@@ -262,25 +262,27 @@ export default function PricingCard({
         </ul>
       </CardContent>
       <CardFooter className="relative">
-        {item.name === "Scholar+" && isAppilix ? (
-          // For Appilix, render button with onclick directly in HTML using dangerouslySetInnerHTML
-          <div
-            dangerouslySetInnerHTML={{
-              __html: `
-                <button
-                  class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full py-5 md:py-6 text-base md:text-lg font-medium"
-                  onclick="appilixPurchaseProduct('${billingInterval === "yearly" ? "com.unishare.app.scholarplusoneyear" : "com.unishare.app.scholarplusonemonth"}', 'consumable', window.location.origin + '/dashboard/success')"
-                >
-                  Upgrade to Scholar+
-                </button>
-              `
-            }}
-          />
-        ) : (
-          <Button
-            onClick={async () => {
-              // If this is the Scholar+ plan, use the appropriate method based on environment
-              if (item.name === "Scholar+") {
+        {item.name === "Scholar+" ? (
+          <>
+            {/* Appilix button - ALWAYS rendered in DOM so Appilix can detect it on page load */}
+            <div
+              className="w-full"
+              dangerouslySetInnerHTML={{
+                __html: `
+                  <button
+                    class="inline-flex items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 px-4 w-full h-auto py-3 text-base md:text-lg font-medium appilix-upgrade-button"
+                    onclick="appilixPurchaseProduct('${billingInterval === "yearly" ? "com.unishare.app.scholarplusoneyear" : "com.unishare.app.scholarplusonemonth"}', 'consumable', window.location.origin + '/dashboard/success')"
+                    style="display: ${isAppilix ? 'flex' : 'none'}"
+                  >
+                    Upgrade to Scholar+
+                  </button>
+                `
+              }}
+            />
+
+            {/* Regular React button - hidden when in Appilix */}
+            <Button
+              onClick={async () => {
                 // Use Stripe checkout
                 const monthlyPriceId = "price_1RPHHtDcATCY5VhWO6vyle1i"; // Your existing monthly price ID
                 const yearlyPriceId = "price_1RPHnIDcATCY5VhWM5Tyceq6"; // Replace with your actual yearly price ID from Stripe
@@ -289,16 +291,24 @@ export default function PricingCard({
                 const selectedPriceId = billingInterval === "yearly" ? yearlyPriceId : monthlyPriceId;
 
                 await handleCheckout(selectedPriceId);
-              } else {
-                await handleCheckout(item.id);
-              }
+              }}
+              variant="default"
+              className={`w-full h-auto py-3 text-base md:text-lg font-medium ${
+                isAppilix ? "hidden" : "block"
+              }`}
+            >
+              Upgrade to Scholar+
+            </Button>
+          </>
+        ) : (
+          <Button
+            onClick={async () => {
+              await handleCheckout(item.id);
             }}
-            variant={item.name === "Free" ? "outline" : "default"}
-            className={`w-full py-5 md:py-6 text-base md:text-lg font-medium ${
-              item.name === "Scholar+" ? "bg-primary hover:bg-primary/90" : ""
-            }`}
+            variant="outline"
+            className="w-full h-auto py-3 text-base md:text-lg font-medium"
           >
-            {item.name === "Free" ? "Get Started" : "Upgrade to Scholar+"}
+            Get Started
           </Button>
         )}
       </CardFooter>
