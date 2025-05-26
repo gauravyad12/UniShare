@@ -262,14 +262,23 @@ export default function PricingCard({
         </ul>
       </CardContent>
       <CardFooter className="relative">
-        <Button
-          {...(item.name === "Scholar+" && isAppilix ? {
-            // For Appilix, add onclick attribute directly to DOM
-            onClick: undefined,
-            dangerouslySetInnerHTML: undefined,
-            // Use a custom prop that we'll handle
-          } : {
-            onClick: async () => {
+        {item.name === "Scholar+" && isAppilix ? (
+          // For Appilix, render button with onclick directly in HTML using dangerouslySetInnerHTML
+          <div
+            dangerouslySetInnerHTML={{
+              __html: `
+                <button
+                  class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full py-5 md:py-6 text-base md:text-lg font-medium"
+                  onclick="appilixPurchaseProduct('${billingInterval === "yearly" ? "com.unishare.app.scholarplusoneyear" : "com.unishare.app.scholarplusonemonth"}', 'consumable', window.location.origin + '/dashboard/success')"
+                >
+                  Upgrade to Scholar+
+                </button>
+              `
+            }}
+          />
+        ) : (
+          <Button
+            onClick={async () => {
               // If this is the Scholar+ plan, use the appropriate method based on environment
               if (item.name === "Scholar+") {
                 // Use Stripe checkout
@@ -283,88 +292,15 @@ export default function PricingCard({
               } else {
                 await handleCheckout(item.id);
               }
-            }
-          })}
-          variant={item.name === "Free" ? "outline" : "default"}
-          className={`w-full py-5 md:py-6 text-base md:text-lg font-medium ${
-            item.name === "Scholar+" ? "bg-primary hover:bg-primary/90" : ""
-          }`}
-          {...(item.name === "Scholar+" && isAppilix ? {
-            // Add onclick attribute directly to the DOM
-            'data-onclick': `
-              if (!${!!user}) {
-                window.location.href = "/sign-in";
-                return;
-              }
-
-              try {
-                // Debug: Log what's available in window
-                console.log('Debugging Appilix environment:');
-                console.log('User agent:', navigator.userAgent);
-                console.log('All window properties with "appilix":', Object.keys(window).filter(key => key.toLowerCase().includes('appilix')));
-                console.log('All window functions with "purchase":', Object.keys(window).filter(key => key.toLowerCase().includes('purchase') && typeof window[key] === 'function'));
-                console.log('appilixPurchaseProduct type:', typeof window.appilixPurchaseProduct);
-                console.log('appilixPurchaseProduct exists:', 'appilixPurchaseProduct' in window);
-
-                const productId = "${billingInterval === "yearly" ? "com.unishare.app.scholarplusoneyear" : "com.unishare.app.scholarplusonemonth"}";
-                localStorage.setItem('appilix_product_id', productId);
-                const redirectUrl = window.location.origin + "/dashboard/success";
-
-                if (typeof window.appilixPurchaseProduct === 'function') {
-                  console.log('Calling appilixPurchaseProduct with:', productId, "consumable", redirectUrl);
-                  window.appilixPurchaseProduct(productId, "consumable", redirectUrl);
-                } else {
-                  console.log('appilixPurchaseProduct is not a function. Type:', typeof window.appilixPurchaseProduct);
-
-                  // Find all Appilix-related functions
-                  const appilixFunctions = Object.keys(window).filter(key =>
-                    key.toLowerCase().includes('appilix') && typeof window[key] === 'function'
-                  );
-
-                  const purchaseFunctions = Object.keys(window).filter(key =>
-                    key.toLowerCase().includes('purchase') && typeof window[key] === 'function'
-                  );
-
-                  const allRelevantFunctions = [...new Set([...appilixFunctions, ...purchaseFunctions])];
-
-                  console.log('Available Appilix-related functions:', appilixFunctions);
-                  console.log('Available purchase-related functions:', purchaseFunctions);
-
-                  // Show alert with available functions
-                  let alertMessage = 'appilixPurchaseProduct function not found!\\n\\n';
-                  alertMessage += 'User Agent: ' + navigator.userAgent + '\\n\\n';
-
-                  if (appilixFunctions.length > 0) {
-                    alertMessage += 'Available Appilix functions:\\n' + appilixFunctions.join('\\n') + '\\n\\n';
-                  } else {
-                    alertMessage += 'No Appilix functions found\\n\\n';
-                  }
-
-                  if (purchaseFunctions.length > 0) {
-                    alertMessage += 'Available purchase functions:\\n' + purchaseFunctions.join('\\n') + '\\n\\n';
-                  } else {
-                    alertMessage += 'No purchase functions found\\n\\n';
-                  }
-
-                  alertMessage += 'All relevant functions: ' + allRelevantFunctions.length;
-
-                  alert(alertMessage);
-                }
-              } catch (error) {
-                console.error('Error in onclick handler:', error);
-              }
-            `,
-            ref: (el: HTMLButtonElement | null) => {
-              if (el && el.getAttribute('data-onclick')) {
-                const onclickCode = el.getAttribute('data-onclick');
-                el.setAttribute('onclick', onclickCode || '');
-                el.removeAttribute('data-onclick');
-              }
-            }
-          } : {})}
-        >
-          {item.name === "Free" ? "Get Started" : "Upgrade to Scholar+"}
-        </Button>
+            }}
+            variant={item.name === "Free" ? "outline" : "default"}
+            className={`w-full py-5 md:py-6 text-base md:text-lg font-medium ${
+              item.name === "Scholar+" ? "bg-primary hover:bg-primary/90" : ""
+            }`}
+          >
+            {item.name === "Free" ? "Get Started" : "Upgrade to Scholar+"}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );
