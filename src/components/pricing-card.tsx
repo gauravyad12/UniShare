@@ -274,7 +274,7 @@ export default function PricingCard({
                 __html: `
                   <button
                     class="inline-flex items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 px-4 w-full h-auto py-3 text-base md:text-lg font-medium appilix-upgrade-button"
-                    onclick="appilixPurchaseProduct('${billingInterval === "yearly" ? "com.unishare.app.scholarplusoneyear" : "com.unishare.app.scholarplusonemonth"}', 'consumable', window.location.origin + '/dashboard/success')"
+                    onclick="localStorage.setItem('appilix_product_id', '${billingInterval === "yearly" ? "com.unishare.app.scholarplusoneyear" : "com.unishare.app.scholarplusonemonth"}'); appilixPurchaseProduct('${billingInterval === "yearly" ? "com.unishare.app.scholarplusoneyear" : "com.unishare.app.scholarplusonemonth"}', 'consumable', window.location.origin + '/dashboard/success')"
                   >
                     Upgrade to Scholar+
                   </button>
