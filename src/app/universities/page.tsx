@@ -1,5 +1,6 @@
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import LazyImage from "@/components/lazy-image";
 import { createClient } from "@/utils/supabase/server";
 import { Metadata } from "next";
 import Link from "next/link";
@@ -77,13 +78,14 @@ export default async function Universities() {
                 className="flex flex-col gap-4 p-6 bg-card rounded-xl shadow-sm hover:shadow-md transition-all border"
               >
                 <div className="flex-shrink-0 w-24 h-24 mx-auto">
-                  <img
+                  <LazyImage
                     src={
                       university.logo_url ||
                       "https://images.unsplash.com/photo-1592280771190-3e2e4d571952?w=128&q=80"
                     }
                     alt={`${university.name} logo`}
-                    className="w-full h-full object-contain"
+                    className="w-full h-full rounded-full"
+                    fallbackSrc="https://images.unsplash.com/photo-1592280771190-3e2e4d571952?w=128&q=80"
                   />
                 </div>
                 <div className="flex-grow text-center">

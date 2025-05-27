@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { LayoutGrid, ChevronRight, Lock, FileText, BookMarked, MessageSquare } from "lucide-react";
+import { LayoutGrid, ChevronRight, Lock, FileText, BookMarked, MessageSquare, Globe } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -23,13 +23,6 @@ export default function MobileToolsSection({ hasSubscription = false }: MobileTo
   // Featured tools for mobile view with more accurate icons
   const featuredTools = [
     {
-      id: "ai-essay-writer",
-      name: "AI Essay Writer",
-      comingSoon: true,
-      path: "/dashboard/tools/ai-essay-writer",
-      icon: FileText,
-    },
-    {
       id: "textbook-answers",
       name: "Textbook Answers",
       comingSoon: false,
@@ -37,11 +30,18 @@ export default function MobileToolsSection({ hasSubscription = false }: MobileTo
       icon: BookMarked,
     },
     {
-      id: "ai-document-chat",
-      name: "AI Document Chat",
+      id: "proxy-browser",
+      name: "Proxy Browser",
+      comingSoon: false,
+      path: "/dashboard/tools/proxy-browser",
+      icon: Globe,
+    },
+    {
+      id: "ai-essay-writer",
+      name: "AI Essay Writer",
       comingSoon: true,
-      path: "/dashboard/tools/ai-document-chat",
-      icon: MessageSquare,
+      path: "/dashboard/tools/ai-essay-writer",
+      icon: FileText,
     },
   ];
 

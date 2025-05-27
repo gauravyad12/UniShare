@@ -64,7 +64,7 @@ export default function ToolsPage({
       icon: Globe,
       category: "utility",
       path: "/dashboard/tools/proxy-browser",
-      comingSoon: true,
+      comingSoon: false,
     },
     {
       id: "degree-roadmap",
