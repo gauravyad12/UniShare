@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from '@/utils/supabase/server';
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   try {
+    // Authentication check - accessible to all authenticated users
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
     const { url } = await request.json();
 
     if (!url) {

@@ -844,3 +844,12 @@ body.pdf-viewer-open {
     animation: wave-animation 20s linear infinite;
   }
 }
+
+/* Proxy browser navigation button height fix */
+@media (min-width: 768px) {
+  .proxy-nav-btn {
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
+  }
+}

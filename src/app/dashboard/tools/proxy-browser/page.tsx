@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ClientSubscriptionCheck } from "@/components/client-subscription-check";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { useMobileDetection } from "@/hooks/use-mobile-detection";
+import SearchBarWithClear from "@/components/search-bar-with-clear";
 
 export default function ProxyBrowserPage() {
   const [url, setUrl] = useState("");
@@ -22,8 +24,10 @@ export default function ProxyBrowserPage() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const rateLimitMonitorRef = useRef<NodeJS.Timeout | null>(null);
   const requestCountRef = useRef<number>(0);
   const lastRequestTimeRef = useRef<number>(0);
+  const isMobile = useMobileDetection();
 
   // Listen for navigation messages from the iframe
   useEffect(() => {
@@ -43,8 +47,65 @@ export default function ProxyBrowserPage() {
       if (countdownIntervalRef.current) {
         clearInterval(countdownIntervalRef.current);
       }
+      if (rateLimitMonitorRef.current) {
+        clearInterval(rateLimitMonitorRef.current);
+      }
     };
   }, []);
+
+  // Function to check if the proxy response indicates rate limiting
+  const checkForRateLimiting = async (url: string): Promise<{ isRateLimited: boolean; message?: string }> => {
+    try {
+      const proxyUrl = `/api/proxy/web?url=${encodeURIComponent(url)}`;
+      const response = await fetch(proxyUrl, { method: 'GET' }); // Use GET instead of HEAD to get actual response
+      
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After');
+        const blockedDomain = response.headers.get('X-Blocked-Domain');
+        const blockReason = response.headers.get('X-Block-Reason');
+        
+        let message = "Rate limit exceeded. Please wait before accessing this website again.";
+        
+        if (blockedDomain && blockReason === 'Spam protection') {
+          message = `The website "${blockedDomain}" has been temporarily blocked due to excessive requests. This helps protect our servers from spam.`;
+        } else if (retryAfter) {
+          const waitTime = parseInt(retryAfter);
+          if (waitTime >= 60) {
+            message = `Rate limit exceeded. Please wait ${Math.ceil(waitTime / 60)} minutes before trying again.`;
+          } else {
+            message = `Rate limit exceeded. Please wait ${waitTime} seconds before trying again.`;
+          }
+        }
+        
+        return { isRateLimited: true, message };
+      }
+      
+      // Also check response text for rate limiting messages
+      const responseText = await response.text();
+      if (responseText.includes('Rate limit exceeded') || 
+          responseText.includes('Too many requests') ||
+          responseText.includes('temporarily blocked') ||
+          responseText.includes('Domain temporarily blocked')) {
+        
+        let message = "Rate limit exceeded. The website has been closed to prevent further issues.";
+        if (responseText.includes('Domain') && responseText.includes('temporarily blocked')) {
+          // Extract the specific message from the response
+          const lines = responseText.split('\n');
+          const relevantLine = lines.find(line => line.includes('temporarily blocked'));
+          if (relevantLine) {
+            message = relevantLine.trim();
+          }
+        }
+        
+        return { isRateLimited: true, message };
+      }
+      
+      return { isRateLimited: false };
+    } catch (error) {
+      console.error('Error checking rate limiting:', error);
+      return { isRateLimited: false };
+    }
+  };
 
   // Simple function to load iframe with guaranteed 2-second refresh
   const loadIframe = (url: string, retryCount = 0) => {
@@ -88,7 +149,7 @@ export default function ProxyBrowserPage() {
       setLoading(false);
       setCountdown(0);
 
-      // Clear timeouts
+      // Clear loading timeouts
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
         loadingTimeoutRef.current = null;
@@ -99,8 +160,47 @@ export default function ProxyBrowserPage() {
       }
     };
 
-    const forceRefresh = () => {
-      console.log(`⏰ 2 seconds elapsed - forcing refresh (attempt ${retryCount + 1})`);
+    const handleRateLimitDetected = (message: string) => {
+      console.log('🚫 Rate limiting detected, closing website');
+      hasLoaded = true; // Prevent further retries
+      
+      // Clear all timeouts and intervals
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+        loadingTimeoutRef.current = null;
+      }
+      if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+        countdownIntervalRef.current = null;
+      }
+      if (rateLimitMonitorRef.current) {
+        clearInterval(rateLimitMonitorRef.current);
+        rateLimitMonitorRef.current = null;
+      }
+      
+      // Close the website and show error
+      setError(message);
+      setProxyStatus("");
+      setLoading(false);
+      setCountdown(0);
+      setCurrentUrl("");
+      setUrl("");
+      
+      // Clear the iframe
+      if (iframeRef.current) {
+        iframeRef.current.src = "about:blank";
+      }
+    };
+
+    const forceRefresh = async () => {
+      console.log(`⏰ 2 seconds elapsed - checking for rate limiting before refresh (attempt ${retryCount + 1})`);
+
+      // Check for rate limiting before attempting refresh
+      const rateLimitCheck = await checkForRateLimiting(url);
+      if (rateLimitCheck.isRateLimited) {
+        handleRateLimitDetected(rateLimitCheck.message || "Rate limit exceeded");
+        return;
+      }
 
       // Clear countdown
       if (countdownIntervalRef.current) {
@@ -130,51 +230,137 @@ export default function ProxyBrowserPage() {
     };
 
     // Set up iframe
-    iframe.onload = () => {
+    iframe.onload = async () => {
       console.log('📄 Iframe onload event fired');
-      // Mark as loaded immediately when iframe loads
+      
+      // Check if the loaded content indicates rate limiting
+      try {
+        // Try to access the iframe's content to check for rate limiting
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (iframeDoc) {
+          const bodyText = iframeDoc.body?.textContent || '';
+          const titleText = iframeDoc.title || '';
+          
+          // Check for rate limiting indicators in the content
+          if (bodyText.includes('Rate limit exceeded') || 
+              bodyText.includes('Too many requests') ||
+              bodyText.includes('temporarily blocked') ||
+              titleText.includes('429') ||
+              bodyText.includes('Domain temporarily blocked')) {
+            
+            console.log('🚫 Rate limiting detected in iframe content');
+            
+            // Extract message from content if possible
+            let message = "Rate limit exceeded. The website has been closed to prevent further issues.";
+            if (bodyText.includes('Domain') && bodyText.includes('temporarily blocked')) {
+              message = bodyText.trim();
+            } else if (bodyText.includes('Rate limit exceeded')) {
+              message = bodyText.trim();
+            }
+            
+            handleRateLimitDetected(message);
+            return;
+          }
+        }
+      } catch (error) {
+        // Cross-origin restrictions prevent access, which is normal
+        console.log('Cannot access iframe content (cross-origin), proceeding normally');
+      }
+      
+      // Additional check: Monitor if iframe loaded but shows blank/error content
+      setTimeout(async () => {
+        try {
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+          if (iframeDoc) {
+            const bodyText = iframeDoc.body?.textContent || '';
+            const hasContent = bodyText.trim().length > 0;
+            
+            // If iframe loaded but has no content, it might be a rate limit response
+            if (!hasContent) {
+              console.log('🚫 Iframe loaded but has no content, checking for rate limiting');
+              const rateLimitCheck = await checkForRateLimiting(url);
+              if (rateLimitCheck.isRateLimited) {
+                handleRateLimitDetected(rateLimitCheck.message || "Rate limit exceeded");
+                return;
+              }
+            }
+          }
+        } catch (error) {
+          // Cross-origin restrictions, ignore
+        }
+      }, 500); // Check after 500ms
+      
+      // Mark as loaded if no rate limiting detected
       markAsLoaded();
+      
+      // Start periodic monitoring for rate limiting after page loads
+      rateLimitMonitorRef.current = setInterval(async () => {
+        try {
+          const rateLimitCheck = await checkForRateLimiting(url);
+          if (rateLimitCheck.isRateLimited) {
+            console.log('🚫 Rate limiting detected during periodic check');
+            handleRateLimitDetected(rateLimitCheck.message || "Rate limit exceeded");
+          }
+        } catch (error) {
+          console.log('Error during periodic rate limit check:', error);
+        }
+      }, 5000); // Check every 5 seconds
     };
 
-    iframe.onerror = () => {
-      console.log('❌ Iframe error occurred');
+    iframe.onerror = async () => {
+      console.log('❌ Iframe error occurred, checking for rate limiting');
+      
+      // When iframe fails to load, check if it's due to rate limiting
+      const rateLimitCheck = await checkForRateLimiting(url);
+      if (rateLimitCheck.isRateLimited) {
+        handleRateLimitDetected(rateLimitCheck.message || "Rate limit exceeded");
+        return;
+      }
     };
 
-    // Load the page
-    console.log('🌐 Setting iframe src to:', proxyUrl);
-    iframe.src = proxyUrl;
-
-    // Start countdown
-    console.log('⏱️ Starting countdown from 2.0 seconds...');
-    setCountdown(2.0);
-
-    // Update countdown every 100ms
-    console.log('🔄 Setting up countdown interval...');
-    countdownIntervalRef.current = setInterval(() => {
-      timeLeft -= 0.1;
-      const newCountdown = Math.max(0, timeLeft);
-      setCountdown(newCountdown);
-
-      // Debug log every second
-      if (timeLeft % 1 < 0.1) {
-        console.log(`⏰ Countdown: ${newCountdown.toFixed(1)}s`);
+    // Check for rate limiting before loading
+    checkForRateLimiting(url).then((rateLimitCheck) => {
+      if (rateLimitCheck.isRateLimited) {
+        handleRateLimitDetected(rateLimitCheck.message || "Rate limit exceeded");
+        return;
       }
+      
+      // Load the page if not rate limited
+      console.log('🌐 Setting iframe src to:', proxyUrl);
+      iframe.src = proxyUrl;
 
-      if (timeLeft <= 0.1) {
-        console.log('⏰ Countdown reached zero');
-      }
-    }, 100);
+      // Start countdown
+      console.log('⏱️ Starting countdown from 2.0 seconds...');
+      setCountdown(2.0);
 
-    // Force refresh after exactly 2 seconds
-    console.log('⏰ Setting up 2-second timeout...');
-    loadingTimeoutRef.current = setTimeout(() => {
-      console.log('🚨 TIMEOUT TRIGGERED! hasLoaded:', hasLoaded);
-      if (!hasLoaded) {
-        forceRefresh();
-      } else {
-        console.log('✅ Page already loaded, skipping refresh');
-      }
-    }, 2000);
+      // Update countdown every 100ms
+      console.log('🔄 Setting up countdown interval...');
+      countdownIntervalRef.current = setInterval(() => {
+        timeLeft -= 0.1;
+        const newCountdown = Math.max(0, timeLeft);
+        setCountdown(newCountdown);
+
+        // Debug log every second
+        if (timeLeft % 1 < 0.1) {
+          console.log(`⏰ Countdown: ${newCountdown.toFixed(1)}s`);
+        }
+
+        if (timeLeft <= 0.1) {
+          console.log('⏰ Countdown reached zero');
+        }
+      }, 100);
+
+      // Force refresh after exactly 2 seconds
+      console.log('⏰ Setting up 2-second timeout...');
+      loadingTimeoutRef.current = setTimeout(() => {
+        console.log('🚨 TIMEOUT TRIGGERED! hasLoaded:', hasLoaded);
+        if (!hasLoaded) {
+          forceRefresh();
+        } else {
+          console.log('✅ Page already loaded, skipping refresh');
+        }
+      }, 2000);
+    });
 
     console.log('🎯 loadIframe setup complete!');
   };
@@ -186,7 +372,6 @@ export default function ProxyBrowserPage() {
     { name: "arXiv", url: "https://arxiv.org", description: "Scientific papers & research" },
     { name: "Google Scholar", url: "https://scholar.google.com", description: "Academic search engine" },
     { name: "MIT OpenCourseWare", url: "https://ocw.mit.edu", description: "Free MIT course materials" },
-    { name: "Stabfish.io", url: "https://stabfish.io", description: "Multiplayer online game" },
     { name: "NitroType", url: "https://www.nitrotype.com", description: "Typing speed racing game" },
   ];
 
@@ -194,7 +379,7 @@ export default function ProxyBrowserPage() {
     let validUrl = inputUrl.trim();
 
     // Add protocol if missing
-    if (!validUrl.startsWith('http://') && !validUrl.startsWith('https://')) {
+    if (!/^https?:\/\//i.test(validUrl)) {
       validUrl = 'https://' + validUrl;
     }
 
@@ -346,14 +531,16 @@ export default function ProxyBrowserPage() {
 
   return (
     <ClientSubscriptionCheck redirectTo="/pricing">
-      <div className="container mx-auto px-4 py-8 pb-20 md:pb-8">
+      <div className="container mx-auto px-4 pt-4 pb-4">
         <DynamicPageTitle title="UniShare | Proxy Browser" />
 
         <header className="mb-8">
-          <div className="flex items-center gap-2 mb-2">
-            <Globe className="h-6 w-6 text-primary" />
-            <h1 className="text-3xl font-bold">Proxy Browser</h1>
-            <Badge variant="outline" className="bg-primary/5 text-primary">
+          <div className="flex flex-col items-start gap-0 mb-2 sm:flex-row sm:items-center sm:gap-2">
+            <div className="flex items-center gap-2">
+              <Globe className="h-6 w-6 text-primary" />
+              <h1 className="text-3xl font-bold">Proxy Browser</h1>
+            </div>
+            <Badge variant="outline" className="bg-primary/5 text-primary mt-2 sm:mt-0">
               <Shield className="h-3 w-3 mr-1" />
               Secure
             </Badge>
@@ -365,53 +552,78 @@ export default function ProxyBrowserPage() {
 
         {/* Browser Controls */}
         <Card className="mb-6">
-          <CardHeader className="pb-4">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goBack}
-                disabled={historyIndex <= 0}
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goForward}
-                disabled={historyIndex >= history.length - 1}
-              >
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={refresh}
-                disabled={!currentUrl}
-              >
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goHome}
-              >
-                <Home className="h-4 w-4" />
-              </Button>
-
-              <form onSubmit={handleSubmit} className="flex-1 flex gap-2">
-                <Input
-                  type="url"
-                  placeholder="Enter a website URL (e.g., wikipedia.org)"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  className="flex-1"
-                />
-                <Button type="submit" disabled={loading}>
-                  {loading ? "Loading..." : "Go"}
+          <CardHeader className="!p-4">
+            {isMobile ? (
+              <div className="flex flex-col gap-2 w-full">
+                {/* Mobile: Navigation Buttons Row */}
+                <div className="flex gap-2 w-full mb-2">
+                  <Button variant="outline" onClick={goBack} disabled={historyIndex <= 0} className="flex-1 h-9 flex items-center justify-center proxy-nav-btn">
+                    <ArrowLeft className="h-4 w-4 mx-auto md:h-6 md:w-6" />
+                  </Button>
+                  <Button variant="outline" onClick={goForward} disabled={historyIndex >= history.length - 1} className="flex-1 h-9 flex items-center justify-center proxy-nav-btn">
+                    <ArrowRight className="h-4 w-4 mx-auto md:h-6 md:w-6" />
+                  </Button>
+                  <Button variant="outline" onClick={refresh} disabled={!currentUrl} className="flex-1 h-9 flex items-center justify-center proxy-nav-btn">
+                    <RotateCcw className="h-4 w-4 mx-auto md:h-6 md:w-6" />
+                  </Button>
+                  <Button variant="outline" onClick={goHome} className="flex-1 h-9 flex items-center justify-center proxy-nav-btn">
+                    <Home className="h-4 w-4 mx-auto md:h-6 md:w-6" />
+                  </Button>
+                </div>
+                {/* Mobile: Search Bar Row (now also used for desktop) */}
+                <div className="bg-background/80 backdrop-blur-md rounded-full px-3 py-1 shadow-sm border border-primary/10 hover:border-primary/20 transition-all duration-300 search-bar-container w-full">
+                  <form onSubmit={handleSubmit} className="relative w-full flex items-center">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center z-10 search-icon-wrapper">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary/80 search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <circle cx="11" cy="11" r="7" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      </svg>
+                    </div>
+                    <Input
+                      type="text"
+                      placeholder="Enter a website URL (e.g., wikipedia.org)"
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      className="pl-11 pr-4 w-full text-lg py-3 rounded-full bg-transparent border-none shadow-none transition-all duration-300 search-input-no-outline placeholder:text-muted-foreground/70 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none focus-visible:outline-none active:outline-none"
+                      style={{ textOverflow: 'ellipsis' }}
+                    />
+                  </form>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 w-full">
+                <Button variant="outline" onClick={goBack} disabled={historyIndex <= 0} className="proxy-nav-btn">
+                  <ArrowLeft className="h-4 w-4" />
                 </Button>
-              </form>
-            </div>
+                <Button variant="outline" onClick={goForward} disabled={historyIndex >= history.length - 1} className="proxy-nav-btn">
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" onClick={refresh} disabled={!currentUrl} className="proxy-nav-btn">
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" onClick={goHome} className="proxy-nav-btn">
+                  <Home className="h-4 w-4" />
+                </Button>
+                <div className="flex-1 bg-background/80 backdrop-blur-md rounded-full px-3 py-2 md:py-1 shadow-sm border border-primary/10 hover:border-primary/20 transition-all duration-300 search-bar-container">
+                  <form onSubmit={handleSubmit} className="relative w-full flex items-center">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center z-10 search-icon-wrapper">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-primary/80 search-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <circle cx="11" cy="11" r="7" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      </svg>
+                    </div>
+                    <Input
+                      type="text"
+                      placeholder="Enter a website URL (e.g., wikipedia.org)"
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      className="pl-11 pr-4 w-full text-lg md:text-base py-3 md:py-1 rounded-full bg-transparent border-none shadow-none transition-all duration-300 search-input-no-outline placeholder:text-muted-foreground/70 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none focus-visible:outline-none active:outline-none"
+                      style={{ textOverflow: 'ellipsis' }}
+                    />
+                  </form>
+                </div>
+              </div>
+            )}
           </CardHeader>
         </Card>
 

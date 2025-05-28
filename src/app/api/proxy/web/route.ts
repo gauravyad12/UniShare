@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/utils/supabase/server';
 
 export const dynamic = "force-dynamic";
 
@@ -9,14 +10,40 @@ const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 100; // Max requests per minute per IP
 const RATE_LIMIT_MAX_REQUESTS_PER_URL = 10; // Max requests per minute per URL
 
+// Anti-spam configuration for aggressive websites
+const ANTI_SPAM_ENABLED = true;
+const spamBlockedDomains = new Map<string, { blockedUntil: number; reason: string }>();
+const domainRequestCounts = new Map<string, { count: number; resetTime: number; violations: number }>();
+const DOMAIN_SPAM_THRESHOLD = 50; // Max requests per minute per domain
+const DOMAIN_VIOLATION_THRESHOLD = 3; // Number of violations before blocking
+const DOMAIN_BLOCK_DURATION = 10 * 60 * 1000; // 10 minutes block
+const AGGRESSIVE_SPAM_THRESHOLD = 100; // Immediate block threshold
+
 // Cleanup old entries periodically
 setInterval(() => {
   const now = Date.now();
-  for (const [key, value] of rateLimitMap.entries()) {
+  
+  // Cleanup rate limit entries
+  Array.from(rateLimitMap.entries()).forEach(([key, value]) => {
     if (now > value.resetTime) {
       rateLimitMap.delete(key);
     }
-  }
+  });
+  
+  // Cleanup domain request counts
+  Array.from(domainRequestCounts.entries()).forEach(([key, value]) => {
+    if (now > value.resetTime) {
+      domainRequestCounts.delete(key);
+    }
+  });
+  
+  // Cleanup expired domain blocks
+  Array.from(spamBlockedDomains.entries()).forEach(([domain, blockInfo]) => {
+    if (now > blockInfo.blockedUntil) {
+      console.log(`Unblocking domain: ${domain} (block expired)`);
+      spamBlockedDomains.delete(domain);
+    }
+  });
 }, 5 * 60 * 1000); // Cleanup every 5 minutes
 
 function checkRateLimit(identifier: string, maxRequests: number): boolean {
@@ -40,12 +67,107 @@ function checkRateLimit(identifier: string, maxRequests: number): boolean {
   return true;
 }
 
+function checkDomainSpam(domain: string, clientIP: string): { allowed: boolean; reason?: string } {
+  if (!ANTI_SPAM_ENABLED) {
+    return { allowed: true };
+  }
+
+  const now = Date.now();
+
+  // Check if domain is currently blocked
+  const blockInfo = spamBlockedDomains.get(domain);
+  if (blockInfo && now < blockInfo.blockedUntil) {
+    return { 
+      allowed: false, 
+      reason: `Domain ${domain} is temporarily blocked: ${blockInfo.reason}. Block expires in ${Math.ceil((blockInfo.blockedUntil - now) / 60000)} minutes.`
+    };
+  }
+
+  // Track domain request counts
+  const domainKey = `domain:${domain}`;
+  const domainEntry = domainRequestCounts.get(domainKey);
+
+  if (!domainEntry || now > domainEntry.resetTime) {
+    // Reset or create new entry
+    domainRequestCounts.set(domainKey, {
+      count: 1,
+      resetTime: now + RATE_LIMIT_WINDOW,
+      violations: domainEntry?.violations || 0
+    });
+    return { allowed: true };
+  }
+
+  domainEntry.count++;
+
+  // Check for aggressive spam (immediate block)
+  if (domainEntry.count >= AGGRESSIVE_SPAM_THRESHOLD) {
+    const reason = `Aggressive spam detected (${domainEntry.count} requests in 1 minute)`;
+    spamBlockedDomains.set(domain, {
+      blockedUntil: now + DOMAIN_BLOCK_DURATION,
+      reason: reason
+    });
+    console.log(`🚫 BLOCKED DOMAIN: ${domain} - ${reason} (IP: ${clientIP})`);
+    return { allowed: false, reason: `Domain ${domain} blocked for aggressive spam behavior.` };
+  }
+
+  // Check for spam threshold violation
+  if (domainEntry.count >= DOMAIN_SPAM_THRESHOLD) {
+    domainEntry.violations++;
+    console.log(`⚠️  SPAM WARNING: ${domain} exceeded threshold (${domainEntry.count} requests, violation #${domainEntry.violations}) (IP: ${clientIP})`);
+
+    // Block domain after multiple violations
+    if (domainEntry.violations >= DOMAIN_VIOLATION_THRESHOLD) {
+      const reason = `Multiple spam violations (${domainEntry.violations} violations)`;
+      spamBlockedDomains.set(domain, {
+        blockedUntil: now + DOMAIN_BLOCK_DURATION,
+        reason: reason
+      });
+      console.log(`🚫 BLOCKED DOMAIN: ${domain} - ${reason} (IP: ${clientIP})`);
+      return { allowed: false, reason: `Domain ${domain} blocked for repeated spam violations.` };
+    }
+
+    return { allowed: false, reason: `Domain ${domain} is sending too many requests. Please slow down.` };
+  }
+
+  return { allowed: true };
+}
+
 /**
  * Enhanced web proxy endpoint for the proxy browser tool
  * Handles HTML pages, API requests, static assets, and more
  */
 export async function GET(request: NextRequest) {
   try {
+    // Authentication and subscription check
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return new NextResponse('Authentication required', { status: 401 });
+    }
+
+    // Check if user has an active Scholar+ subscription
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("status, current_period_end")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (!subscription) {
+      return new NextResponse('Scholar+ subscription required', { status: 403 });
+    }
+
+    // Check if subscription is still valid
+    const currentTime = Math.floor(Date.now() / 1000);
+    const isValid = subscription.status === "active" &&
+                    (!subscription.current_period_end ||
+                     subscription.current_period_end > currentTime);
+
+    if (!isValid) {
+      return new NextResponse('Active Scholar+ subscription required', { status: 403 });
+    }
+
     const url = request.nextUrl.searchParams.get('url');
 
     if (!url) {
@@ -151,8 +273,13 @@ export async function GET(request: NextRequest) {
       return new NextResponse('Only HTTP and HTTPS protocols are allowed', { status: 400 });
     }
 
-    // Block local/private IP addresses for security
+    // Block access to our own domain to prevent recursion and confusion
     const hostname = targetUrl.hostname.toLowerCase();
+    if (hostname.includes('unishare.app') || hostname.includes('localhost:3000') || hostname.includes('127.0.0.1:3000')) {
+      return new NextResponse('Access to UniShare domains is not allowed through the proxy', { status: 403 });
+    }
+
+    // Block local/private IP addresses for security
     if (
       hostname === 'localhost' ||
       hostname.startsWith('127.') ||
@@ -163,6 +290,20 @@ export async function GET(request: NextRequest) {
       hostname.includes('local')
     ) {
       return new NextResponse('Access to local addresses is not allowed', { status: 403 });
+    }
+
+    // Check for domain-level spam and blocking
+    const domainSpamCheck = checkDomainSpam(hostname, clientIP);
+    if (!domainSpamCheck.allowed) {
+      console.log(`Domain spam check failed for ${hostname}: ${domainSpamCheck.reason}`);
+      return new NextResponse(domainSpamCheck.reason || 'Domain temporarily blocked', {
+        status: 429,
+        headers: {
+          'Retry-After': '600', // 10 minutes
+          'X-Blocked-Domain': hostname,
+          'X-Block-Reason': 'Spam protection',
+        }
+      });
     }
 
     // Block known problematic domains that cause DNS issues
@@ -538,6 +679,36 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Authentication and subscription check
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return new NextResponse('Authentication required', { status: 401 });
+    }
+
+    // Check if user has an active Scholar+ subscription
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("status, current_period_end")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (!subscription) {
+      return new NextResponse('Scholar+ subscription required', { status: 403 });
+    }
+
+    // Check if subscription is still valid
+    const currentTime = Math.floor(Date.now() / 1000);
+    const isValid = subscription.status === "active" &&
+                    (!subscription.current_period_end ||
+                     subscription.current_period_end > currentTime);
+
+    if (!isValid) {
+      return new NextResponse('Active Scholar+ subscription required', { status: 403 });
+    }
+
     const url = request.nextUrl.searchParams.get('url');
 
     if (!url) {
@@ -598,8 +769,40 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Only HTTP and HTTPS protocols are allowed', { status: 400 });
     }
 
-    // Block known problematic domains for POST requests too
+    // Block access to our own domain to prevent recursion and confusion
     const hostname = targetUrl.hostname.toLowerCase();
+    if (hostname.includes('unishare.app') || hostname.includes('localhost:3000') || hostname.includes('127.0.0.1:3000')) {
+      return new NextResponse('Access to UniShare domains is not allowed through the proxy', { status: 403 });
+    }
+
+    // Block local/private IP addresses for security
+    if (
+      hostname === 'localhost' ||
+      hostname.startsWith('127.') ||
+      hostname.startsWith('192.168.') ||
+      hostname.startsWith('10.') ||
+      hostname.startsWith('172.') ||
+      hostname === '0.0.0.0' ||
+      hostname.includes('local')
+    ) {
+      return new NextResponse('Access to local addresses is not allowed', { status: 403 });
+    }
+
+    // Check for domain-level spam and blocking
+    const domainSpamCheck = checkDomainSpam(hostname, clientIP);
+    if (!domainSpamCheck.allowed) {
+      console.log(`Domain spam check failed for ${hostname}: ${domainSpamCheck.reason}`);
+      return new NextResponse(domainSpamCheck.reason || 'Domain temporarily blocked', {
+        status: 429,
+        headers: {
+          'Retry-After': '600', // 10 minutes
+          'X-Blocked-Domain': hostname,
+          'X-Block-Reason': 'Spam protection',
+        }
+      });
+    }
+
+    // Block known problematic domains that cause DNS issues
     const blockedDomains = [
       'sentry.end.gg',
       'analytics.google.com',
@@ -914,6 +1117,60 @@ function modifyHtmlForProxy(html: string, targetUrl: URL): string {
             // This will fail due to same-origin policy, which is what we want
           }
         }
+
+        // Intercept all form submissions to ensure the proxy URL is used
+        document.addEventListener('submit', function(e) {
+          const form = e.target;
+          if (form.tagName === 'FORM') {
+            e.preventDefault();
+            let action = form.getAttribute('action') || window.location.pathname + window.location.search;
+
+            // If the action is already a proxy URL, extract the real target URL
+            const proxyPrefix = '/api/proxy/web?url=';
+            if (action.startsWith(proxyPrefix)) {
+              const urlParam = action.slice(proxyPrefix.length);
+              const [encodedUrl] = urlParam.split('&');
+              action = decodeURIComponent(encodedUrl || '');
+              if (!action) action = window.location.origin;
+            } else if (action.startsWith('/')) {
+              // If action is a relative path, make it absolute using the original domain
+              action = window.location.origin + action;
+            } else if (!action.startsWith('http')) {
+              // Make it absolute using the current location
+              action = window.location.origin + '/' + action;
+            }
+
+            // Build the form data as a query string
+            const formData = new FormData(form);
+            const params = new URLSearchParams();
+            for (const [key, value] of formData.entries()) {
+              params.append(key, value);
+            }
+            // Append form data to the action URL
+            const urlWithParams = action + (action.includes('?') ? '&' : '?') + params.toString();
+            // Redirect through the proxy
+            window.location.href = '/api/proxy/web?url=' + encodeURIComponent(urlWithParams);
+          }
+        }, true);
+
+        // Intercept all click events on <a> tags to ensure proxying
+        document.addEventListener('click', function(e) {
+          let el = e.target;
+          while (el && el.tagName !== 'A') el = el.parentElement;
+          if (el && el.tagName === 'A' && el.href) {
+            const href = el.getAttribute('href');
+            if (href && !href.startsWith('#') && !href.startsWith('javascript:')) {
+              e.preventDefault();
+              let targetUrl = href;
+              if (href.startsWith('/')) {
+                targetUrl = window.location.origin + href;
+              } else if (!href.startsWith('http')) {
+                targetUrl = window.location.origin + '/' + href;
+              }
+              window.location.href = '/api/proxy/web?url=' + encodeURIComponent(targetUrl);
+            }
+          }
+        }, true);
       })();
     </script>
   `;
@@ -939,11 +1196,10 @@ function rewriteUrlsInHtml(html: string, baseUrl: string): string {
 
   // Helper function to rewrite a URL
   const rewriteUrl = (url: string): string => {
-    // Skip data URLs, blob URLs, and javascript URLs
+    // Skip data URLs, blob URLs, javascript URLs, anchors
     if (url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('javascript:') || url.startsWith('#')) {
       return url;
     }
-
     if (url.startsWith('http') || url.startsWith('//')) {
       const fullUrl = url.startsWith('//') ? 'https:' + url : url;
       return `${proxyBase}${encodeURIComponent(fullUrl)}`;
@@ -955,7 +1211,6 @@ function rewriteUrlsInHtml(html: string, baseUrl: string): string {
       const fullUrl = baseUrl + '/' + url;
       return `${proxyBase}${encodeURIComponent(fullUrl)}`;
     }
-
     return url;
   };
 
@@ -976,6 +1231,24 @@ function rewriteUrlsInHtml(html: string, baseUrl: string): string {
     const newUrl = rewriteUrl(url);
     return `action="${newUrl}"`;
   });
+
+  // Rewrite srcset attributes (for responsive images)
+  html = html.replace(/srcset=["']([^"']+)["']/g, (match, srcset) => {
+    // srcset can have multiple URLs separated by commas
+    const rewritten = srcset.split(',').map((part: string) => {
+      const [url, descriptor] = part.trim().split(/\s+/, 2);
+      return `${rewriteUrl(url)}${descriptor ? ' ' + descriptor : ''}`;
+    }).join(', ');
+    return `srcset="${rewritten}"`;
+  });
+
+  // Rewrite <meta http-equiv="refresh" content="...url=..."> tags
+  html = html.replace(/(<meta[^>]+http-equiv=["']refresh["'][^>]+content=["'][^"'>]*url=)([^"'>]+)(["'][^>]*>)/gi, (match, before, url, after) => {
+    return `${before}${rewriteUrl(url)}${after}`;
+  });
+
+  // TODO: Optionally rewrite inline event handlers, data-* attributes, etc.
+  // TODO: Optionally rewrite inline JS (complex, not always needed)
 
   return html;
 }

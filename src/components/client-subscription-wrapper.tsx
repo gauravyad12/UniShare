@@ -31,6 +31,10 @@ export function ClientSubscriptionWrapper({
           pathname.startsWith("/dashboard/tools/textbook-answers/")) {
         // Redirect to the tools page
         router.push("/dashboard/tools");
+      } else if (pathname === "/dashboard/tools/proxy-browser" ||
+                 pathname.startsWith("/dashboard/tools/proxy-browser/")) {
+        // Redirect to the tools page
+        router.push("/dashboard/tools");
       } else {
         // For other pages, show the upgrade prompt
         setShowUpgradePrompt(true);
