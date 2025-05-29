@@ -214,8 +214,8 @@ export default function CanvasIntegrationCard() {
         setAccessToken("");
         console.log("Canvas integration connected successfully");
 
-        // Sync GPA after connecting
-        syncGpa();
+        // Sync GPA after connecting and wait for it to complete
+        await syncGpa();
       } else {
         // Get a user-friendly error message
         const rawErrorMessage = data.error || "Failed to connect Canvas integration";
@@ -347,7 +347,7 @@ export default function CanvasIntegrationCard() {
 
                   // Update local state with the recalculated value
                   if (data.integration) {
-                    data.integration.gpa = recalculatedGpa;
+                    data.integration.gpa = parseFloat(recalculatedGpa);
                   }
                 }
               } else {
@@ -653,7 +653,7 @@ export default function CanvasIntegrationCard() {
       if (integration) {
         const updatedIntegration = {
           ...integration,
-          gpa: newGpa
+          gpa: parseFloat(newGpa)
         };
         setIntegration(updatedIntegration);
 

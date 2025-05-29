@@ -639,9 +639,11 @@ export default function ProxyBrowserPage() {
 
         {/* Error Alert */}
         {error && (
-          <Alert className="mb-6" variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+          <Alert className="mb-6 !pl-4 pr-4" variant="destructive">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+              <AlertDescription className="mb-0">{error}</AlertDescription>
+            </div>
           </Alert>
         )}
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { LayoutGrid, ChevronRight, Lock, FileText, BookMarked, MessageSquare, Globe } from "lucide-react";
+import { LayoutGrid, ChevronRight, Lock, FileText, BookMarked, MessageSquare, Globe, BarChart3 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -35,6 +35,13 @@ export default function MobileToolsSection({ hasSubscription = false }: MobileTo
       comingSoon: false,
       path: "/dashboard/tools/proxy-browser",
       icon: Globe,
+    },
+    {
+      id: "degree-roadmap",
+      name: "Degree Roadmap",
+      comingSoon: false,
+      path: "/dashboard/tools/degree-roadmap",
+      icon: BarChart3,
     },
     {
       id: "ai-essay-writer",

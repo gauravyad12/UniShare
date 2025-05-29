@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
@@ -15,6 +15,8 @@ import KeyboardAwareLayout from "@/components/keyboard-aware-layout";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 import ViewportWarningWrapper from "@/components/viewport-warning-wrapper";
+import { Toaster } from "@/components/ui/toaster";
+import WarningSuppressor from "@/components/warning-suppressor";
 // Force dynamic rendering for all pages
 import "./force-dynamic";
 
@@ -75,11 +77,21 @@ export const metadata: Metadata = {
     google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION,
     yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION,
     yahoo: process.env.NEXT_PUBLIC_YAHOO_VERIFICATION,
-    bing: process.env.NEXT_PUBLIC_BING_VERIFICATION,
   },
   alternates: {
     canonical: "/",
   },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: 'white' },
+    { media: '(prefers-color-scheme: dark)', color: 'black' },
+  ],
 };
 
 export default function RootLayout({
@@ -111,6 +123,7 @@ export default function RootLayout({
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <ThemeContextProvider>
+            <WarningSuppressor />
             <GlobalStylesProvider />
             <GlobalLoadingSpinner />
             <KeyboardAwareLayout />
@@ -130,6 +143,7 @@ export default function RootLayout({
             </div>
           </ThemeContextProvider>
         </ThemeProvider>
+        <Toaster />
       </body>
     </html>
   );

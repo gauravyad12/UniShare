@@ -26,16 +26,22 @@ export function createClient() {
           try {
             cookieStore.set({ name, value, ...options });
           } catch (error) {
-            // Handle cookies being modified in a Server Action
-            console.warn("Error setting cookie in server:", error);
+            // This is expected during SSR when Supabase tries to set auth cookies
+            // The error is safely handled and doesn't affect functionality
+            if (process.env.NODE_ENV === 'development') {
+              console.debug("Cookie modification attempted during SSR (this is normal):", name);
+            }
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
             cookieStore.set({ name, value: "", ...options });
           } catch (error) {
-            // Handle cookies being modified in a Server Action
-            console.warn("Error removing cookie in server:", error);
+            // This is expected during SSR when Supabase tries to remove auth cookies
+            // The error is safely handled and doesn't affect functionality
+            if (process.env.NODE_ENV === 'development') {
+              console.debug("Cookie removal attempted during SSR (this is normal):", name);
+            }
           }
         },
       },

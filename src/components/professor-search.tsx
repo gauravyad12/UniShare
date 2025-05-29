@@ -1,28 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Check, ChevronsUpDown, X, Star, Info, Search } from "lucide-react";
+import { Search, ChevronsUpDown, X, Check, Star, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { type Professor } from "@/utils/rateMyProfessor";
 import { cn } from "@/lib/utils";
-import { searchProfessors, formatProfessorWithDepartment, type Professor } from "@/utils/rateMyProfessor";
+import { searchProfessors, formatProfessorWithDepartment } from "@/utils/rateMyProfessor";
 
 // Function to get university abbreviation
 function getUniversityAbbreviation(universityName: string): string {
@@ -176,18 +164,16 @@ export default function ProfessorSearch({
       <div className="flex justify-between">
         <Label htmlFor="professor">Professor {required ? "*" : "(optional)"}</Label>
       </div>
-      <Dialog
-        open={open}
-        onOpenChange={setOpen}
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button
             variant="outline"
             role="combobox"
             type="button"
+            aria-expanded={open}
+            aria-describedby="professor-search-description"
             className={cn(
-              "w-full justify-between",
+              "w-full justify-between h-auto min-h-[2.5rem] px-3 py-2",
               error ? "border-red-500" : "",
               !value && "text-muted-foreground"
             )}
@@ -200,16 +186,9 @@ export default function ProfessorSearch({
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5 ml-2 p-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                            }}
-                          >
+                          <div className="inline-flex items-center justify-center h-5 w-5 ml-2 cursor-help">
                             <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                          </Button>
+                          </div>
                         </TooltipTrigger>
                         <TooltipContent side="top" className="max-w-[300px] p-4">
                           <div className="space-y-2">
@@ -256,19 +235,17 @@ export default function ProfessorSearch({
                 </div>
               )}
             </div>
-            <div className="flex">
+            <div className="flex items-center">
               {value && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-4 w-4 mr-2"
+                <div
+                  className="inline-flex items-center justify-center h-4 w-4 mr-2 cursor-pointer hover:bg-muted rounded-sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleClear();
                   }}
                 >
                   <X className="h-3 w-3" />
-                </Button>
+                </div>
               )}
               <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
             </div>
@@ -276,7 +253,6 @@ export default function ProfessorSearch({
         </DialogTrigger>
         <DialogContent
           className="sm:max-w-[500px]"
-          onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <div id="professor-search-description" className="sr-only">Search for professors to attach to this resource</div>
           <DialogHeader>
@@ -382,7 +358,7 @@ export default function ProfessorSearch({
               )}
             </div>
           </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 sm:mt-6">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-3 pt-6">
             <Button
               variant="outline"
               onClick={() => {

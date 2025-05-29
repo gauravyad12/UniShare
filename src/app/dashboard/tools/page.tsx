@@ -73,7 +73,7 @@ export default function ToolsPage({
       icon: BarChart3,
       category: "planning",
       path: "/dashboard/tools/degree-roadmap",
-      comingSoon: true,
+      comingSoon: false,
     },
     {
       id: "ai-essay-writer",
