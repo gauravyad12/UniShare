@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 // PUT /api/roadmaps/[id] - Update a roadmap
 export async function PUT(
   request: NextRequest,
