@@ -197,6 +197,9 @@ export async function POST(
       );
     }
 
+    // Update roadmap GPA
+    await updateRoadmapGPA(supabase, roadmapId);
+
     return NextResponse.json({ course }, { status: 201 });
   } catch (error) {
     console.error("Error in POST /api/roadmaps/[id]/courses:", error);
@@ -345,6 +348,9 @@ export async function PUT(
       );
     }
 
+    // Update roadmap GPA
+    await updateRoadmapGPA(supabase, roadmapId);
+
     return NextResponse.json({ course });
   } catch (error) {
     console.error("Error in PUT /api/roadmaps/[id]/courses:", error);
@@ -443,6 +449,9 @@ export async function DELETE(
       );
     }
 
+    // Update roadmap GPA
+    await updateRoadmapGPA(supabase, roadmapId);
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error in DELETE /api/roadmaps/[id]/courses:", error);
@@ -450,5 +459,73 @@ export async function DELETE(
       { error: "Internal server error" },
       { status: 500 }
     );
+  }
+}
+
+// Helper function to calculate and update roadmap GPA
+async function updateRoadmapGPA(supabase: any, roadmapId: string) {
+  try {
+    // Get all courses for this roadmap with grades
+    const { data: courses } = await supabase
+      .from("roadmap_courses")
+      .select("credits, grade, status")
+      .eq("roadmap_id", roadmapId);
+
+    if (!courses) return;
+
+    // Calculate GPA using the same logic as the frontend
+    const coursesWithGrades = courses.filter((course: any) => 
+      (course.status === 'completed' || course.status === 'failed') && 
+      course.grade && 
+      course.grade.trim() !== ''
+    );
+
+    if (coursesWithGrades.length === 0) {
+      // No graded courses, set GPA to 0
+      await supabase
+        .from("degree_roadmaps")
+        .update({ current_gpa: 0.0 })
+        .eq("id", roadmapId);
+      return;
+    }
+
+    // Grade point mapping
+    const gradePoints: { [key: string]: number | null } = {
+      'A+': 4.0, 'A': 4.0, 'A-': 3.7,
+      'B+': 3.3, 'B': 3.0, 'B-': 2.7,
+      'C+': 2.3, 'C': 2.0, 'C-': 1.7,
+      'D+': 1.3, 'D': 1.0, 'D-': 0.7,
+      'F': 0.0,
+      // Special grades that don't count toward GPA
+      'W': null, 'I': null, 'P': null, 'NP': null
+    };
+
+    let totalGradePoints = 0;
+    let totalCredits = 0;
+
+    for (const course of coursesWithGrades) {
+      const grade = course.grade.trim();
+      const gradePoint = gradePoints[grade];
+      
+      // Skip courses with grades that don't count toward GPA
+      if (gradePoint === null || gradePoint === undefined) {
+        continue;
+      }
+
+      totalGradePoints += gradePoint * course.credits;
+      totalCredits += course.credits;
+    }
+
+    const calculatedGPA = totalCredits > 0 ? totalGradePoints / totalCredits : 0.0;
+
+    // Update the roadmap's current_gpa
+    await supabase
+      .from("degree_roadmaps")
+      .update({ current_gpa: calculatedGPA })
+      .eq("id", roadmapId);
+
+  } catch (error) {
+    console.error("Error updating roadmap GPA:", error);
+    // Don't throw error to avoid breaking the main operation
   }
 } 

@@ -4,55 +4,69 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  BarChart3, 
   Plus, 
-  Calendar, 
-  BookOpen, 
-  Target, 
-  Share2, 
+  Search, 
+  Filter, 
   Download, 
   Upload,
+  Settings,
+  Trash2,
+  Edit,
   GraduationCap,
+  BookOpen,
+  Calendar,
   Clock,
   CheckCircle,
-  Circle,
-  Star,
+  XCircle,
+  AlertCircle,
+  Target,
   Users,
+  Star,
+  BarChart3,
   TrendingUp,
-  Filter,
-  Search,
+  Award,
+  FileText,
+  ExternalLink,
   ChevronDown,
   ChevronRight,
-  Edit,
-  Trash2,
+  MoreHorizontal,
   Eye,
-  ExternalLink,
-  Award,
-  AlertCircle,
-  Info,
-  Loader2,
-  AlertTriangle
+  EyeOff,
+  Copy,
+  Share,
+  AlertTriangle,
+  Brain,
+  Loader2
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ClientSubscriptionCheck } from "@/components/client-subscription-check";
 import DynamicPageTitle from "@/components/dynamic-page-title";
+import { ClientSubscriptionCheck } from "@/components/client-subscription-check";
 import CreateRoadmapDialog from "@/components/create-roadmap-dialog";
 import ProfessorSearch from "@/components/professor-search";
+import UniversitySearch from "@/components/university-search";
+import RoadmapThumbnail from "@/components/roadmap-thumbnail";
+import FlowchartUpload from "@/components/flowchart-upload";
+import FlowchartAnalysisReview from "@/components/flowchart-analysis-review";
+import PreviousAnalyses from "@/components/previous-analyses";
+import MobileTabs from "@/components/mobile-tabs";
+import ShareRoadmapButton from "@/components/share-roadmap-button";
 import { createClient } from "@/utils/supabase/client";
 import { type Professor } from "@/utils/rateMyProfessor";
+import { useMobileDetection } from "@/hooks/use-mobile-detection";
 
 // Types
 interface Course {
@@ -92,6 +106,7 @@ interface DegreeRoadmap {
   gpa: number;
   semesters: Semester[];
   isPublic: boolean;
+  showGpa: boolean;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -108,6 +123,7 @@ const sampleRoadmap: DegreeRoadmap = {
   expectedGraduation: "Spring 2026",
   gpa: 3.7,
   isPublic: false,
+  showGpa: true,
   createdBy: "user123",
   createdAt: "2024-01-15",
   updatedAt: "2024-01-20",
@@ -350,11 +366,11 @@ const getStatusIcon = (status: Course['status']) => {
     case 'in-progress':
       return <Clock className="h-4 w-4" />;
     case 'planned':
-      return <Circle className="h-4 w-4" />;
+      return <XCircle className="h-4 w-4" />;
     case 'failed':
       return <AlertCircle className="h-4 w-4" />;
     default:
-      return <Circle className="h-4 w-4" />;
+      return <XCircle className="h-4 w-4" />;
   }
 };
 
@@ -404,7 +420,7 @@ const CourseCard = ({ course, onEdit, onDelete }: {
               {course.name}
             </CardTitle>
           </div>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-4">
             <Button
               variant="ghost"
               size="sm"
@@ -806,7 +822,8 @@ export default function DegreeRoadmapPage() {
     major: "",
     expectedGraduation: "",
     totalCredits: 120,
-    isPublic: false
+    isPublic: false,
+    showGpa: true
   });
   const [settingsErrors, setSettingsErrors] = useState<{ [key: string]: string }>({});
   const [courseFormData, setCourseFormData] = useState({
@@ -831,6 +848,26 @@ export default function DegreeRoadmapPage() {
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Public roadmaps and gallery state
+  const [publicRoadmaps, setPublicRoadmaps] = useState<DegreeRoadmap[]>([]);
+  const [loadingPublicRoadmaps, setLoadingPublicRoadmaps] = useState(false);
+  const [gallerySearchQuery, setGallerySearchQuery] = useState("");
+  const [galleryFilterUniversity, setGalleryFilterUniversity] = useState("");
+  const [galleryFilterUniversityName, setGalleryFilterUniversityName] = useState("");
+  const [galleryFilterGpaMin, setGalleryFilterGpaMin] = useState("any");
+  const [galleryFilterGpaMax, setGalleryFilterGpaMax] = useState("any");
+  const [galleryFilterGradYear, setGalleryFilterGradYear] = useState("all");
+  
+  // Flowchart analysis state
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [showAnalysisResults, setShowAnalysisResults] = useState(false);
+  const [flowchartKey, setFlowchartKey] = useState(0);
+  const [flowchartLayout, setFlowchartLayout] = useState<'semester' | 'level' | 'department'>('semester');
+  const [isRegeneratingFlowchart, setIsRegeneratingFlowchart] = useState(false);
+
+  // Mobile detection
+  const isMobile = useMobileDetection();
 
   // Character limits for course form fields
   const courseCharLimits = {
@@ -897,6 +934,7 @@ export default function DegreeRoadmapPage() {
           expectedGraduation: roadmap.expected_graduation,
           gpa: parseFloat(roadmap.current_gpa || '0'),
           isPublic: roadmap.is_public,
+          showGpa: roadmap.show_gpa,
           createdBy: roadmap.user_id,
           createdAt: roadmap.created_at,
           updatedAt: roadmap.updated_at,
@@ -1191,7 +1229,8 @@ export default function DegreeRoadmapPage() {
       major: selectedRoadmap.major,
       expectedGraduation: selectedRoadmap.expectedGraduation,
       totalCredits: selectedRoadmap.totalCredits,
-      isPublic: selectedRoadmap.isPublic
+      isPublic: selectedRoadmap.isPublic,
+      showGpa: selectedRoadmap.showGpa
     });
     setSettingsErrors({});
     setIsEditingSettings(true);
@@ -1231,12 +1270,17 @@ export default function DegreeRoadmapPage() {
       : 120;
 
     try {
+      // Calculate the current GPA based on courses
+      const calculatedGpa = calculateGPA(selectedRoadmap);
+      
       const requestBody = {
         name: settingsFormData.name,
         major: settingsFormData.major,
         expected_graduation: settingsFormData.expectedGraduation,
         total_credits: totalCredits,
-        is_public: settingsFormData.isPublic
+        is_public: settingsFormData.isPublic,
+        show_gpa: settingsFormData.showGpa,
+        current_gpa: calculatedGpa
       };
 
       const response = await fetch(`/api/roadmaps/${selectedRoadmap.id}`, {
@@ -1271,7 +1315,8 @@ export default function DegreeRoadmapPage() {
       major: "",
       expectedGraduation: "",
       totalCredits: 120,
-      isPublic: false
+      isPublic: false,
+      showGpa: true
     });
   };
 
@@ -1328,6 +1373,104 @@ export default function DegreeRoadmapPage() {
       }
     } catch (error) {
       console.error('Error performing bulk status update:', error);
+    } finally {
+      setIsPerformingBulkAction(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!selectedRoadmap || selectedCourses.size === 0) return;
+
+    // Confirm deletion
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete ${selectedCourses.size} selected course${selectedCourses.size !== 1 ? 's' : ''}? This action cannot be undone.`
+    );
+
+    if (!confirmDelete) return;
+
+    setIsPerformingBulkAction(true);
+    try {
+      // Delete each selected course
+      const deletePromises = Array.from(selectedCourses).map(async (courseId) => {
+        const response = await fetch(`/api/roadmaps/${selectedRoadmap.id}/courses`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ courseId }),
+        });
+        return response.ok;
+      });
+
+      const results = await Promise.all(deletePromises);
+      const successCount = results.filter(Boolean).length;
+
+      if (successCount === selectedCourses.size) {
+        // All deletions successful
+        setSelectedCourses(new Set());
+        fetchRoadmaps(); // Refresh data
+      } else {
+        console.error(`Only ${successCount} out of ${selectedCourses.size} courses were deleted`);
+      }
+    } catch (error) {
+      console.error('Error performing bulk delete:', error);
+    } finally {
+      setIsPerformingBulkAction(false);
+    }
+  };
+
+  const handleBulkMoveSemester = async (targetSemesterId: string) => {
+    if (!selectedRoadmap || selectedCourses.size === 0) return;
+
+    setIsPerformingBulkAction(true);
+    try {
+      // Get all courses data to find the selected ones
+      const allCourses = selectedRoadmap.semesters.flatMap(s => 
+        s.courses.map(course => ({
+          ...course,
+          semesterName: s.name,
+          semesterId: s.id
+        }))
+      );
+      
+      const selectedCoursesData = allCourses.filter(course => selectedCourses.has(course.id));
+
+      // Update each selected course to move to the target semester
+      const updatePromises = selectedCoursesData.map(async (course) => {
+        const response = await fetch(`/api/roadmaps/${selectedRoadmap.id}/courses`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: course.id,
+            semester_id: targetSemesterId,
+            course_code: course.code,
+            course_name: course.name,
+            credits: course.credits,
+            status: course.status,
+            grade: course.grade || null,
+            professor: course.professor || null,
+            difficulty_rating: course.difficulty || null,
+            description: course.description || null,
+            professor_data: course.professor_data ? JSON.stringify(course.professor_data) : null
+          }),
+        });
+        return response.ok;
+      });
+
+      const results = await Promise.all(updatePromises);
+      const successCount = results.filter(Boolean).length;
+
+      if (successCount === selectedCourses.size) {
+        // All updates successful
+        setSelectedCourses(new Set());
+        fetchRoadmaps(); // Refresh data
+      } else {
+        console.error(`Only ${successCount} out of ${selectedCourses.size} courses were moved`);
+      }
+    } catch (error) {
+      console.error('Error performing bulk semester move:', error);
     } finally {
       setIsPerformingBulkAction(false);
     }
@@ -1506,80 +1649,73 @@ export default function DegreeRoadmapPage() {
 
   const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !selectedRoadmap) return;
-
-    // Check file type
-    if (!file.name.endsWith('.csv')) {
-      alert('Please select a CSV file');
-      return;
-    }
+    if (!file) return;
 
     setIsImporting(true);
+    
     try {
       const text = await file.text();
-      const lines = text.split('\n').filter(line => line.trim());
-      
-      if (lines.length < 2) {
-        alert('CSV file must contain at least a header row and one data row');
-        return;
-      }
-
-      // Parse CSV header
+      const lines = text.split('\n');
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      
+      // Validate required headers
       const requiredHeaders = ['code', 'name', 'credits'];
       const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
       
       if (missingHeaders.length > 0) {
-        alert(`CSV file is missing required columns: ${missingHeaders.join(', ')}`);
+        alert(`Missing required columns: ${missingHeaders.join(', ')}`);
         return;
       }
-
-      // Parse courses
+      
       const coursesToImport = [];
+      
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim());
-        if (values.length < headers.length) continue;
-
-        const course: any = {};
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        const values = line.split(',').map(v => v.trim());
+        const courseData: any = {};
+        
         headers.forEach((header, index) => {
-          course[header] = values[index];
+          courseData[header] = values[index] || '';
         });
-
-        // Validate required fields
-        if (!course.code || !course.name || !course.credits) continue;
-
+        
+        // Validate course data
+        if (!courseData.code || !courseData.name) continue;
+        
         coursesToImport.push({
-          code: course.code.toUpperCase(),
-          name: course.name,
-          credits: parseInt(course.credits) || 3,
-          description: course.description || '',
-          status: course.status || 'planned',
-          grade: course.grade || '',
-          difficulty: parseInt(course.difficulty) || 1,
-          professor: course.professor || ''
+          code: courseData.code,
+          name: courseData.name,
+          credits: parseInt(courseData.credits) || 3,
+          description: courseData.description || '',
+          status: 'planned' as Course['status'],
+          grade: '',
+          difficulty: 1,
+          professor: courseData.professor || ''
         });
       }
-
+      
       if (coursesToImport.length === 0) {
-        alert('No valid courses found in the CSV file');
+        alert('No valid courses found in the file');
         return;
       }
-
-      // Import courses to the first semester (or create one if none exists)
-      let targetSemesterId = selectedRoadmap.semesters[0]?.id;
+      
+      // Get the first semester to add courses to, or create one if none exists
+      let targetSemesterId = selectedRoadmap?.semesters[0]?.id;
       
       if (!targetSemesterId) {
-        // Create a default semester if none exists
-        const semesterResponse = await fetch(`/api/roadmaps/${selectedRoadmap.id}/semesters`, {
+        // Create a default semester first
+        const semesterResponse = await fetch('/api/roadmaps/semesters', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name: 'Fall 2024',
-            year: 2024,
+            roadmap_id: selectedRoadmap?.id,
+            name: 'Imported Courses',
+            year: new Date().getFullYear(),
             season: 'Fall'
           })
         });
-
+        
         if (semesterResponse.ok) {
           const semesterData = await semesterResponse.json();
           targetSemesterId = semesterData.semester.id;
@@ -1588,12 +1724,12 @@ export default function DegreeRoadmapPage() {
           return;
         }
       }
-
-      // Import each course
+      
+      // Import courses one by one
       let successCount = 0;
       for (const course of coursesToImport) {
         try {
-          const response = await fetch(`/api/roadmaps/${selectedRoadmap.id}/courses`, {
+          const response = await fetch('/api/roadmaps/courses', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1625,6 +1761,168 @@ export default function DegreeRoadmapPage() {
         fileInputRef.current.value = '';
       }
     }
+  };
+
+  // Fetch public roadmaps for gallery
+  const fetchPublicRoadmaps = async () => {
+    try {
+      setLoadingPublicRoadmaps(true);
+      const response = await fetch('/api/roadmaps/public');
+      const data = await response.json();
+      
+      if (response.ok) {
+        setPublicRoadmaps(data.roadmaps || []);
+      } else {
+        console.error('Error fetching public roadmaps:', data.error);
+        setPublicRoadmaps([]);
+      }
+    } catch (error) {
+      console.error('Error fetching public roadmaps:', error);
+      setPublicRoadmaps([]);
+    } finally {
+      setLoadingPublicRoadmaps(false);
+    }
+  };
+
+  // Handle flowchart analysis completion
+  const handleAnalysisComplete = (result: any) => {
+    setAnalysisResult(result);
+    setShowAnalysisResults(true);
+  };
+
+  // Handle importing selected courses and pathways from analysis
+  const handleAnalysisImport = async (selectedCourses: any[], selectedPath?: any) => {
+    console.log('Import started with:', { selectedCourses, selectedPath, selectedRoadmap });
+    
+    try {
+      // Check if a roadmap is selected
+      if (!selectedRoadmap) {
+        alert('Please select a roadmap first before importing courses.');
+        return;
+      }
+
+      // Import selected courses to the current roadmap
+      if (selectedCourses.length > 0) {
+        // Get the first semester or create one if none exists
+        let targetSemester: Semester | undefined = selectedRoadmap.semesters[0];
+        if (!targetSemester) {
+          // Create a default semester
+          const semesterData = {
+            name: 'Fall 2024',
+            year: 2024,
+            season: 'Fall'
+          };
+          await handleSaveSemester(semesterData);
+          await fetchRoadmaps(); // Refresh to get the new semester
+          const updatedRoadmap = roadmaps.find(r => r.id === selectedRoadmap.id);
+          targetSemester = updatedRoadmap?.semesters[0];
+        }
+
+        if (targetSemester && targetSemester.id) {
+          // Add each selected course
+          for (const course of selectedCourses) {
+            const courseData = {
+              course_code: course.code,
+              course_name: course.name,
+              credits: course.credits,
+              status: course.status === 'completed' ? 'completed' : 'planned',
+              semester_id: targetSemester.id,
+              description: '',
+              professor: '',
+              difficulty_rating: 3,
+              grade: course.status === 'completed' ? 'A' : undefined
+            };
+
+            console.log('Adding course:', courseData);
+
+            const courseResponse = await fetch(`/api/roadmaps/${selectedRoadmap.id}/courses`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(courseData)
+            });
+
+            if (!courseResponse.ok) {
+              console.error('Failed to add course:', course.code, await courseResponse.text());
+            } else {
+              console.log('Successfully added course:', course.code);
+            }
+          }
+
+          // Refresh roadmaps to show new courses
+          await fetchRoadmaps();
+          
+          alert(`Successfully imported ${selectedCourses.length} course${selectedCourses.length !== 1 ? 's' : ''}${selectedPath ? ` and ${selectedPath.name} pathway` : ''}!`);
+        } else {
+          alert('Unable to find or create a semester for importing courses.');
+        }
+      } else {
+        alert('No courses selected for import.');
+      }
+    } catch (error) {
+      console.error('Error importing analysis results:', error);
+      alert('Error importing courses. Please try again.');
+    }
+    
+    setShowAnalysisResults(false);
+  };
+
+  // Handle flowchart regeneration
+  const handleRegenerateFlowchart = async () => {
+    setIsRegeneratingFlowchart(true);
+    // Add a small delay to show the loading state
+    await new Promise(resolve => setTimeout(resolve, 500));
+    setFlowchartKey(prev => prev + 1);
+    setIsRegeneratingFlowchart(false);
+  };
+
+  // Handle layout change
+  const handleLayoutChange = (newLayout: 'semester' | 'level' | 'department') => {
+    setFlowchartLayout(newLayout);
+    setFlowchartKey(prev => prev + 1);
+  };
+
+  // Import roadmap from public gallery
+  const handleImportPublicRoadmap = async (roadmapId: string) => {
+    try {
+      const response = await fetch(`/api/roadmaps/public/${roadmapId}/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        alert('Roadmap imported successfully!');
+        await fetchRoadmaps(); // Refresh user's roadmaps
+        setActiveTab('roadmap'); // Switch to roadmap tab
+      } else {
+        const error = await response.json();
+        alert(`Failed to import roadmap: ${error.message}`);
+      }
+    } catch (error) {
+      console.error('Error importing roadmap:', error);
+      alert('Error importing roadmap. Please try again.');
+    }
+  };
+
+  // Fetch public roadmaps when gallery tab is accessed
+  useEffect(() => {
+    if (activeTab === 'gallery') {
+      fetchPublicRoadmaps();
+    }
+  }, [activeTab]);
+
+  // Helper function to sort semesters chronologically
+  const sortSemestersChronologically = (semesters: Semester[]) => {
+    return [...semesters].sort((a, b) => {
+      // First sort by year
+      if (a.year !== b.year) {
+        return a.year - b.year;
+      }
+      
+      // Then sort by season within the same year
+      const seasonOrder = { 'Spring': 1, 'Summer': 2, 'Fall': 3 };
+      return seasonOrder[a.season] - seasonOrder[b.season];
+    });
   };
 
   if (loading) {
@@ -1661,14 +1959,13 @@ export default function DegreeRoadmapPage() {
               </p>
             </div>
             <div className="flex items-center gap-2 md:flex-shrink-0">
-              <Button variant="outline" size="sm">
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-              <Button variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
+              {selectedRoadmap && (
+                <ShareRoadmapButton 
+                  roadmapId={selectedRoadmap.id}
+                  roadmapName={selectedRoadmap.name}
+                  roadmapDescription={`${selectedRoadmap.major} degree roadmap at ${selectedRoadmap.university}`}
+                />
+              )}
               <CreateRoadmapDialog
                 onRoadmapCreated={handleRoadmapCreated}
                 trigger={
@@ -1807,15 +2104,43 @@ export default function DegreeRoadmapPage() {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="roadmap">Roadmap</TabsTrigger>
-            <TabsTrigger value="courses">
-              <span className="hidden sm:inline">All Courses</span>
-              <span className="sm:hidden">Courses</span>
-            </TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          </TabsList>
+          {/* Mobile Tabs - only show on mobile */}
+          {isMobile && (
+            <MobileTabs
+              tabs={[
+                { value: "roadmap", label: "Roadmap" },
+                { value: "courses", label: "Courses" },
+                { value: "flowchart", label: "Chart" },
+                { value: "gallery", label: "Gallery" },
+                { value: "analytics", label: "Analytics" },
+                { value: "settings", label: "Settings" }
+              ]}
+              activeTab={activeTab}
+              className="mb-6"
+              onTabChange={setActiveTab}
+            />
+          )}
+
+          {/* Desktop Tabs - only show on desktop */}
+          {!isMobile && (
+            <TabsList className="grid w-full grid-cols-6">
+              <TabsTrigger value="roadmap">Roadmap</TabsTrigger>
+              <TabsTrigger value="courses">
+                <span className="hidden sm:inline">All Courses</span>
+                <span className="sm:hidden">Courses</span>
+              </TabsTrigger>
+              <TabsTrigger value="flowchart">
+                <span className="hidden sm:inline">Flowchart</span>
+                <span className="sm:hidden">Chart</span>
+              </TabsTrigger>
+              <TabsTrigger value="gallery">
+                <span className="hidden sm:inline">Public Gallery</span>
+                <span className="sm:hidden">Gallery</span>
+              </TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+            </TabsList>
+          )}
 
           {/* Roadmap Tab */}
           <TabsContent value="roadmap" className="space-y-6">
@@ -1939,7 +2264,7 @@ export default function DegreeRoadmapPage() {
 
                   return (
                     <>
-                      {selectedRoadmap.semesters.map((semester: Semester) => (
+                      {sortSemestersChronologically(selectedRoadmap.semesters).map((semester: Semester) => (
                         <SemesterSection
                           key={semester.id}
                           semester={semester}
@@ -2045,7 +2370,7 @@ export default function DegreeRoadmapPage() {
                       <div className="flex gap-2">
                         <Select value={filterStatus} onValueChange={setFilterStatus}>
                           <SelectTrigger className="w-40">
-                            <SelectValue placeholder="Filter by status" />
+                            <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All Status</SelectItem>
@@ -2061,7 +2386,7 @@ export default function DegreeRoadmapPage() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All Semesters</SelectItem>
-                            {selectedRoadmap.semesters.map((semester) => (
+                            {sortSemestersChronologically(selectedRoadmap.semesters).map((semester) => (
                               <SelectItem key={semester.id} value={semester.id}>
                                 {semester.name}
                               </SelectItem>
@@ -2398,10 +2723,40 @@ export default function DegreeRoadmapPage() {
                         {isPerformingBulkAction ? (
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         ) : (
-                          <Circle className="h-4 w-4 mr-2" />
+                          <XCircle className="h-4 w-4 mr-2" />
                         )}
                         Mark as Planned
                       </Button>
+                      
+                      {/* Move to Semester Dropdown */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            disabled={selectedCourses.size === 0 || isPerformingBulkAction}
+                          >
+                            {isPerformingBulkAction ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Calendar className="h-4 w-4 mr-2" />
+                            )}
+                            Move to Semester
+                            <ChevronDown className="h-4 w-4 ml-1" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          {sortSemestersChronologically(selectedRoadmap?.semesters || []).map((semester) => (
+                            <DropdownMenuItem
+                              key={semester.id}
+                              onClick={() => handleBulkMoveSemester(semester.id)}
+                            >
+                              {semester.name}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -2410,6 +2765,20 @@ export default function DegreeRoadmapPage() {
                       >
                         <Download className="h-4 w-4 mr-2" />
                         Export Selected
+                      </Button>
+                      
+                      <Button 
+                        variant="destructive" 
+                        size="sm" 
+                        disabled={selectedCourses.size === 0 || isPerformingBulkAction}
+                        onClick={handleBulkDelete}
+                      >
+                        {isPerformingBulkAction ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4 mr-2" />
+                        )}
+                        Delete Selected
                       </Button>
                     </div>
                     {selectedCourses.size === 0 && (
@@ -2441,6 +2810,385 @@ export default function DegreeRoadmapPage() {
                 </p>
               </div>
             )}
+          </TabsContent>
+
+          {/* Flowchart Tab */}
+          <TabsContent value="flowchart" className="space-y-6">
+            {selectedRoadmap ? (
+              <div className="space-y-6">
+                {/* Flowchart Controls */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <BarChart3 className="h-5 w-5" />
+                          Flowchart Controls
+                        </CardTitle>
+                        <CardDescription>
+                          Customize your roadmap visualization
+                        </CardDescription>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Select value={flowchartLayout} onValueChange={handleLayoutChange}>
+                          <SelectTrigger className="w-40">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="semester">By Semester</SelectItem>
+                            <SelectItem value="level">By Course Level</SelectItem>
+                            <SelectItem value="department">By Department</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button 
+                          onClick={handleRegenerateFlowchart}
+                          disabled={isRegeneratingFlowchart}
+                          variant="outline"
+                        >
+                          {isRegeneratingFlowchart ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Regenerating...
+                            </>
+                          ) : (
+                            <>
+                              <BarChart3 className="h-4 w-4 mr-2" />
+                              Regenerate
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                </Card>
+
+                {/* Flowchart Statistics */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-primary">
+                        {selectedRoadmap.semesters.reduce((total, semester) => total + semester.courses.length, 0)}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Total Courses</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {selectedRoadmap.semesters.reduce((total, semester) => 
+                          total + semester.courses.filter(c => c.status === 'completed').length, 0
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Completed</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {selectedRoadmap.semesters.reduce((total, semester) => 
+                          total + semester.courses.filter(c => c.status === 'in-progress').length, 0
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground">In Progress</div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-gray-600">
+                        {selectedRoadmap.semesters.reduce((total, semester) => 
+                          total + semester.courses.filter(c => c.status === 'planned').length, 0
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Planned</div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Flowchart Visualization */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Roadmap Flowchart
+                      <Badge variant="outline" className="ml-2">
+                        {flowchartLayout === 'semester' ? 'Semester View' : 
+                         flowchartLayout === 'level' ? 'Level View' : 'Department View'}
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription>
+                      Visual representation of your degree roadmap with course connections and prerequisites
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <RoadmapThumbnail 
+                      key={flowchartKey}
+                      roadmap={{
+                        ...selectedRoadmap,
+                        courses: selectedRoadmap.semesters.flatMap(s => s.courses.map(c => ({
+                          ...c,
+                          semester_id: s.id
+                        })))
+                      }} 
+                      className="w-full h-full"
+                    />
+                    
+                    {/* Flowchart Legend and Info */}
+                    <div className="mt-4 p-4 bg-muted/30 rounded-lg">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h4 className="font-medium mb-2">Course Status Legend</h4>
+                          <div className="flex flex-wrap gap-4 text-sm">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                              <span>Completed</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                              <span>In Progress</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-gray-500"></div>
+                              <span>Planned</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                              <span>Failed</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="font-medium mb-2">Flowchart Features</h4>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            <li>• Dotted lines show prerequisite connections</li>
+                            <li>• Course positioning based on {flowchartLayout === 'semester' ? 'semester order' : flowchartLayout === 'level' ? 'course level' : 'department grouping'}</li>
+                            <li>• Interactive regeneration with different layouts</li>
+                            <li>• Real-time status updates from your roadmap</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* AI Analysis Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Brain className="h-5 w-5" />
+                      AI Flowchart Analysis
+                    </CardTitle>
+                    <CardDescription>
+                      Upload a flowchart image for AI-powered course extraction and analysis
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <FlowchartUpload 
+                      onAnalysisComplete={handleAnalysisComplete}
+                      userCourses={selectedRoadmap?.semesters.flatMap(s => s.courses) || []}
+                    />
+                    
+                    {showAnalysisResults && analysisResult && (
+                      <FlowchartAnalysisReview 
+                        isOpen={showAnalysisResults}
+                        analysisResult={analysisResult}
+                        onClose={() => setShowAnalysisResults(false)}
+                        onImport={handleAnalysisImport}
+                      />
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Previous Analyses Section */}
+                <PreviousAnalyses onAnalysisImport={handleAnalysisImport} />
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-medium mb-2">No Roadmap Selected</h3>
+                <p className="text-muted-foreground mb-4">
+                  Select a roadmap to view its flowchart visualization
+                </p>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Gallery Tab */}
+          <TabsContent value="gallery" className="space-y-6">
+            {/* Gallery Header */}
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">Public Roadmap Gallery</h3>
+                <p className="text-sm text-muted-foreground">
+                  Discover and import roadmaps shared by other students
+                </p>
+              </div>
+            </div>
+
+            {/* Search and Filter Controls */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex flex-col lg:flex-row gap-4 lg:items-center">
+                  {/* Search Bar - Left Side */}
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search roadmaps by name or major..."
+                        value={gallerySearchQuery}
+                        onChange={(e) => setGallerySearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Filter Controls - Right Side */}
+                  <div className="flex flex-wrap gap-3 lg:flex-nowrap">
+                    <div className="w-48">
+                      <div className="[&_input]:h-9 [&_input]:text-sm [&_input]:py-1">
+                        <UniversitySearch
+                          onSelect={(id, name) => {
+                            setGalleryFilterUniversity(id);
+                            setGalleryFilterUniversityName(name);
+                          }}
+                          placeholder="University"
+                        />
+                      </div>
+                    </div>
+                    
+                    <Select value={galleryFilterGpaMin} onValueChange={setGalleryFilterGpaMin}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue placeholder="Min GPA" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="any">Any</SelectItem>
+                        <SelectItem value="2.0">2.0+</SelectItem>
+                        <SelectItem value="2.5">2.5+</SelectItem>
+                        <SelectItem value="3.0">3.0+</SelectItem>
+                        <SelectItem value="3.5">3.5+</SelectItem>
+                        <SelectItem value="3.8">3.8+</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select value={galleryFilterGradYear} onValueChange={setGalleryFilterGradYear}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue placeholder="Graduation Year" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Years</SelectItem>
+                        <SelectItem value="2024">2024</SelectItem>
+                        <SelectItem value="2025">2025</SelectItem>
+                        <SelectItem value="2026">2026</SelectItem>
+                        <SelectItem value="2027">2027</SelectItem>
+                        <SelectItem value="2028">2028</SelectItem>
+                        <SelectItem value="2029">2029</SelectItem>
+                        <SelectItem value="2030">2030</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Public Roadmaps Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {loadingPublicRoadmaps ? (
+                Array.from({ length: 6 }).map((_, index) => (
+                  <Card key={index}>
+                    <CardHeader>
+                      <div className="h-4 bg-muted rounded w-3/4"></div>
+                      <div className="h-3 bg-muted rounded w-1/2"></div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <div className="h-3 bg-muted rounded"></div>
+                        <div className="h-3 bg-muted rounded w-2/3"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : publicRoadmaps.length === 0 ? (
+                <div className="col-span-full text-center py-12">
+                  <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-medium mb-2">No Public Roadmaps Found</h3>
+                  <p className="text-muted-foreground">
+                    Be the first to share your roadmap with the community!
+                  </p>
+                </div>
+              ) : (
+                publicRoadmaps
+                  .filter(roadmap => {
+                    const matchesSearch = gallerySearchQuery === "" || 
+                      roadmap.name.toLowerCase().includes(gallerySearchQuery.toLowerCase()) ||
+                      roadmap.major.toLowerCase().includes(gallerySearchQuery.toLowerCase());
+                    
+                    const matchesUniversity = !galleryFilterUniversity || 
+                      roadmap.university.toLowerCase().includes(galleryFilterUniversityName.toLowerCase());
+                    
+                    const matchesGpaMin = galleryFilterGpaMin === "any" || !galleryFilterGpaMin || 
+                      (roadmap.showGpa && roadmap.gpa >= parseFloat(galleryFilterGpaMin));
+                    
+                    const matchesGradYear = galleryFilterGradYear === "all" || 
+                      roadmap.expectedGraduation.includes(galleryFilterGradYear);
+                    
+                    return matchesSearch && matchesUniversity && matchesGpaMin && matchesGradYear;
+                  })
+                  .map((roadmap) => (
+                    <Card key={roadmap.id} className="hover:shadow-md transition-shadow">
+                      <CardHeader>
+                        <CardTitle className="text-base">{roadmap.name}</CardTitle>
+                        <CardDescription>
+                          {roadmap.major} • {roadmap.university}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Total Credits:</span>
+                            <span className="font-medium">{roadmap.totalCredits}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">GPA:</span>
+                            <span className="font-medium">
+                              {roadmap.showGpa ? roadmap.gpa.toFixed(2) : "Private"}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Semesters:</span>
+                            <span className="font-medium">{roadmap.semesters.length}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Courses:</span>
+                            <span className="font-medium">
+                              {roadmap.semesters.reduce((total, semester) => total + semester.courses.length, 0)}
+                            </span>
+                          </div>
+                          <div className="pt-2 space-y-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => {
+                                window.open(`/roadmap/${roadmap.id}`, '_blank');
+                              }}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              View
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              className="w-full"
+                              onClick={() => handleImportPublicRoadmap(roadmap.id)}
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Import
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+              )}
+            </div>
           </TabsContent>
 
           {/* Analytics Tab */}
@@ -2866,6 +3614,24 @@ export default function DegreeRoadmapPage() {
                             </SelectContent>
                           </Select>
                         </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-8">
+                            <div className="space-y-0.5 flex-1">
+                              <Label htmlFor="show-gpa">Show GPA in Public Gallery</Label>
+                              <p className="text-xs text-muted-foreground">
+                                Allow others to see your GPA when your roadmap is public
+                              </p>
+                            </div>
+                            <div className="flex-shrink-0">
+                              <Switch
+                                id="show-gpa"
+                                checked={settingsFormData.showGpa}
+                                onCheckedChange={(checked) => setSettingsFormData(prev => ({ ...prev, showGpa: checked }))}
+                                disabled={!settingsFormData.isPublic}
+                              />
+                            </div>
+                          </div>
+                        </div>
                         <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 pb-2">
                           <Button variant="outline" onClick={handleCancelSettings}>
                             Cancel
@@ -2901,6 +3667,12 @@ export default function DegreeRoadmapPage() {
                           <Label className="text-sm font-medium">Visibility</Label>
                           <p className="text-sm text-muted-foreground">
                             {selectedRoadmap.isPublic ? 'Public' : 'Private'}
+                          </p>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium">Show GPA in Gallery</Label>
+                          <p className="text-sm text-muted-foreground">
+                            {selectedRoadmap.showGpa ? 'Yes' : 'No'}
                           </p>
                         </div>
                       </div>

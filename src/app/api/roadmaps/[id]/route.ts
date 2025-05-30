@@ -55,7 +55,9 @@ export async function PUT(
       major,
       expected_graduation,
       total_credits,
-      is_public
+      is_public,
+      show_gpa,
+      current_gpa
     } = body;
 
     // Validate required fields
@@ -86,6 +88,8 @@ export async function PUT(
         expected_graduation,
         total_credits: finalTotalCredits,
         is_public,
+        show_gpa,
+        current_gpa,
         updated_at: new Date().toISOString()
       })
       .eq("id", roadmapId)

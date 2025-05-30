@@ -13,9 +13,10 @@ type University = {
 
 type UniversitySearchProps = {
   onSelect: (id: string, name: string) => void;
+  placeholder?: string;
 };
 
-export default function UniversitySearch({ onSelect }: UniversitySearchProps) {
+export default function UniversitySearch({ onSelect, placeholder = "Search for your university..." }: UniversitySearchProps) {
   const [query, setQuery] = useState("");
   const [universities, setUniversities] = useState<University[]>([]);
   const [loading, setLoading] = useState(false);
@@ -83,11 +84,11 @@ export default function UniversitySearch({ onSelect }: UniversitySearchProps) {
       <div className="relative">
         <input
           type="text"
-          placeholder="Search for your university..."
+          placeholder={placeholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setShowDropdown(true)}
-          className="w-full h-12 pl-10 pr-10 py-2 border border-input bg-background rounded-md"
+          className="w-full h-10 pl-10 pr-10 py-2 border border-input bg-background rounded-md text-sm"
         />
         <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
           <Search className="h-5 w-5" />

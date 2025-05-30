@@ -332,7 +332,7 @@ export default function CreateRoadmapDialog({
                     value={formData.expected_graduation}
                     onValueChange={(value) => handleInputChange("expected_graduation", value)}
                   >
-                    <SelectTrigger className="h-12">
+                    <SelectTrigger className="h-10">
                       <SelectValue placeholder="Select graduation term" />
                     </SelectTrigger>
                     <SelectContent>
@@ -376,14 +376,14 @@ export default function CreateRoadmapDialog({
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Privacy Settings</h3>
               
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] p-4 border rounded-lg gap-3 sm:gap-4 sm:items-start">
-                <div className="space-y-1">
+              <div className="flex items-center justify-between gap-8 p-4 border rounded-lg">
+                <div className="space-y-0.5 flex-1">
                   <Label htmlFor="is_public" className="text-sm font-medium">Make roadmap public</Label>
                   <p className="text-sm text-muted-foreground">
                     Allow other students to view and use your roadmap as a template
                   </p>
                 </div>
-                <div className="justify-self-start sm:justify-self-end sm:mt-1">
+                <div className="flex-shrink-0">
                   <Switch
                     id="is_public"
                     checked={formData.is_public}
