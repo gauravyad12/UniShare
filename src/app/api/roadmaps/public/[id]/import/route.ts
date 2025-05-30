@@ -42,7 +42,7 @@ export async function POST(
             difficulty_rating,
             professor,
             professor_data,
-            rating
+            professor_rating
           )
         )
       `)
@@ -97,6 +97,7 @@ export async function POST(
 
       // Create courses for this semester
       const coursesToInsert = semester.roadmap_courses.map((course: any) => ({
+        roadmap_id: newRoadmap.id,
         semester_id: newSemester.id,
         course_code: course.course_code,
         course_name: course.course_name,
@@ -108,7 +109,7 @@ export async function POST(
         difficulty_rating: course.difficulty_rating,
         professor: course.professor,
         professor_data: course.professor_data,
-        rating: course.rating
+        professor_rating: course.professor_rating
       }));
 
       if (coursesToInsert.length > 0) {

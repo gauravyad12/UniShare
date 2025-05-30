@@ -88,15 +88,15 @@ export default function UniversitySearch({ onSelect, placeholder = "Search for y
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setShowDropdown(true)}
-          className="w-full h-10 pl-10 pr-10 py-2 border border-input bg-background rounded-md text-sm"
+          className="w-full h-12 pl-12 pr-12 py-3 border border-input bg-background rounded-md text-base"
         />
-        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+        <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground">
           <Search className="h-5 w-5" />
         </div>
 
         {query && (
           <button
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
             onClick={() => {
               setQuery('');
               setSelectedUniversity(null);
