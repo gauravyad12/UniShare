@@ -90,14 +90,9 @@ const FlowchartUpload: React.FC<FlowchartUploadProps> = ({ onAnalysisComplete, u
       // Simulate upload progress
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
-          if (prev >= 85 && !isAnalyzing) {
-            // Start analysis display when we reach 85%
-            setIsAnalyzing(true);
-            setAnalysisStep('Preparing analysis...');
-          }
           if (prev >= 90) {
             clearInterval(progressInterval);
-            return 90;
+            return 100;
           }
           return prev + 10;
         });
@@ -108,57 +103,38 @@ const FlowchartUpload: React.FC<FlowchartUploadProps> = ({ onAnalysisComplete, u
       formData.append('flowchart', file);
       formData.append('userCourses', JSON.stringify(userCourses));
 
-      // Create an AbortController with a longer timeout for AI analysis
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
-
       const response = await fetch('/api/flowchart/analyze', {
         method: 'POST',
         body: formData,
-        signal: controller.signal,
       });
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        
-        // Handle specific timeout error (408)
-        if (response.status === 408 || errorData.timeout) {
-          throw new Error('TIMEOUT');
-        }
-        
         throw new Error(errorData.error || 'Upload failed');
       }
 
       setUploadProgress(100);
       clearInterval(progressInterval);
       
-      // Continue with analysis if not already started
-      if (!isAnalyzing) {
-        setIsAnalyzing(true);
+      // Get job ID from response
+      const result = await response.json();
+      if (!result.success || !result.jobId) {
+        throw new Error('Failed to start analysis');
       }
+
+      // Upload is complete, now start analysis phase
+      setIsUploading(false);
+      setUploadProgress(0);
       
-      await analyzeFlowchart(response);
+      // Start polling for job completion
+      await pollJobStatus(result.jobId);
 
     } catch (error) {
       console.error('Upload error:', error);
       
       // Handle different types of errors with specific messaging
       if (error instanceof Error) {
-        if (error.message === 'TIMEOUT' || error.name === 'AbortError') {
-          toast({
-            title: "Analysis Timeout",
-            description: "The analysis is taking longer than expected. This usually happens with complex flowcharts. Try uploading a clearer or smaller image.",
-            variant: "destructive",
-          });
-        } else if (error.message.includes('timeout')) {
-          toast({
-            title: "Processing Timeout", 
-            description: "The image analysis timed out. Please try with a smaller or clearer image.",
-            variant: "destructive",
-          });
-        } else if (error.message.includes('File too large')) {
+        if (error.message.includes('File too large')) {
           toast({
             title: "File Too Large",
             description: "Please compress your image or use a smaller file (max 10MB).",
@@ -187,12 +163,114 @@ const FlowchartUpload: React.FC<FlowchartUploadProps> = ({ onAnalysisComplete, u
       
       // Clear uploaded image on error so user can try again
       setUploadedImage(null);
-    } finally {
-      setIsUploading(false);
+      
+      // Reset all states on error
       setIsAnalyzing(false);
-      setUploadProgress(0);
       setAnalysisStep('');
+      setIsUploading(false);
+      setUploadProgress(0);
     }
+  };
+
+  const pollJobStatus = async (jobId: string) => {
+    setIsAnalyzing(true);
+    
+    const analysisSteps = [
+      'Starting AI analysis...',
+      'Extracting text from flowchart...',
+      'Identifying course codes and names...',
+      'Matching with your completed courses...',
+      'Analyzing prerequisite relationships...',
+      'Generating optimal pathways...',
+      'Finalizing recommendations...'
+    ];
+
+    let stepIndex = 0;
+    let pollCount = 0;
+    const maxPolls = 60; // Maximum 5 minutes (5 second intervals)
+
+    // Set initial step
+    setAnalysisStep(analysisSteps[0]);
+
+    const pollInterval = setInterval(async () => {
+      try {
+        pollCount++;
+        
+        // Update analysis step for better UX - advance every 1 poll (5 seconds)
+        if (stepIndex < analysisSteps.length - 1 && pollCount % 1 === 0) {
+          stepIndex++;
+          setAnalysisStep(analysisSteps[stepIndex]);
+        }
+
+        const statusResponse = await fetch(`/api/flowchart/status/${jobId}`);
+        
+        if (!statusResponse.ok) {
+          throw new Error('Failed to check analysis status');
+        }
+
+        const statusData = await statusResponse.json();
+
+        if (statusData.status === 'completed' && statusData.analysis) {
+          clearInterval(pollInterval);
+          setAnalysisStep('Analysis complete!');
+          
+          // Show completion message briefly before clearing
+          setTimeout(() => {
+            onAnalysisComplete(statusData.analysis);
+            toast({
+              title: "Success",
+              description: "Flowchart analysis completed successfully!",
+              variant: "default",
+            });
+            
+            setIsAnalyzing(false);
+            setAnalysisStep('');
+          }, 1000);
+          return;
+        }
+
+        if (statusData.status === 'failed') {
+          clearInterval(pollInterval);
+          throw new Error(statusData.error || 'Analysis failed');
+        }
+
+        // Check for timeout
+        if (pollCount >= maxPolls) {
+          clearInterval(pollInterval);
+          throw new Error('Analysis timeout - please try again with a clearer image');
+        }
+
+      } catch (error) {
+        clearInterval(pollInterval);
+        console.error('Polling error:', error);
+        
+        if (error instanceof Error) {
+          toast({
+            title: "Analysis Error",
+            description: error.message || "Failed to analyze flowchart. Please try again.",
+            variant: "destructive",
+          });
+        }
+
+        // Create error result
+        const errorResult: AnalysisResult = {
+          courses: [],
+          suggestedPaths: [],
+          insights: {
+            totalCoursesFound: 0,
+            completedCourses: 0,
+            remainingCourses: 0,
+            estimatedGraduationDate: 'Unable to determine',
+            recommendations: ['Please try uploading a clearer image of your flowchart']
+          },
+          error: error instanceof Error ? error.message : 'Failed to analyze flowchart'
+        };
+        
+        onAnalysisComplete(errorResult);
+        setIsAnalyzing(false);
+        setAnalysisStep('');
+      }
+    }, 5000); // Poll every 5 seconds
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -223,104 +301,6 @@ const FlowchartUpload: React.FC<FlowchartUploadProps> = ({ onAnalysisComplete, u
 
     const file = files[0];
     await processFile(file);
-  };
-
-  const analyzeFlowchart = async (uploadResponse: Response) => {
-    // Don't set isAnalyzing here since it might already be true from the progress handler
-    
-    try {
-      const analysisSteps = [
-        'Extracting text from flowchart...',
-        'Identifying course codes and names...',
-        'Matching with your completed courses...',
-        'Analyzing prerequisite relationships...',
-        'Generating optimal pathways...',
-        'Finalizing recommendations...'
-      ];
-
-      // Start from the appropriate step if we already started analysis
-      const startStep = analysisStep === 'Preparing analysis...' ? 0 : 1;
-      
-      // Simulate analysis steps for better UX
-      for (let i = startStep; i < analysisSteps.length; i++) {
-        setAnalysisStep(analysisSteps[i]);
-        await new Promise(resolve => setTimeout(resolve, 800));
-      }
-
-      // Get the real analysis result from the API
-      const result = await uploadResponse.json();
-      
-      if (result.success && result.analysis) {
-        onAnalysisComplete(result.analysis);
-        toast({
-          title: "Success",
-          description: "Flowchart analysis completed successfully!",
-          variant: "default",
-        });
-      } else if (result.error) {
-        // Handle specific error cases
-        if (result.error.includes('timeout') || result.error.includes('taking longer')) {
-          throw new Error('TIMEOUT');
-        } else if (result.error.includes('Unauthorized') || result.error.includes('No valid session')) {
-          throw new Error('AUTH_ERROR');
-        } else {
-          throw new Error(result.error);
-        }
-      } else {
-        throw new Error('Analysis failed - no result returned');
-      }
-
-    } catch (error) {
-      console.error('Analysis error:', error);
-      
-      // Handle different error types with specific messaging
-      if (error instanceof Error) {
-        if (error.message === 'TIMEOUT') {
-          toast({
-            title: "Analysis Timeout",
-            description: "The analysis is taking longer than expected. The Edge Function is processing your request - this may take a few minutes for complex flowcharts.",
-            variant: "destructive",
-          });
-        } else if (error.message === 'AUTH_ERROR') {
-          toast({
-            title: "Authentication Error",
-            description: "Your session has expired. Please refresh the page and try again.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Analysis Error",
-            description: error.message || "Failed to analyze flowchart. Please try again.",
-            variant: "destructive",
-          });
-        }
-      } else {
-        toast({
-          title: "Error",
-          description: "An unexpected error occurred during analysis. Please try again.",
-          variant: "destructive",
-        });
-      }
-      
-      // Create error result
-      const errorResult: AnalysisResult = {
-        courses: [],
-        suggestedPaths: [],
-        insights: {
-          totalCoursesFound: 0,
-          completedCourses: 0,
-          remainingCourses: 0,
-          estimatedGraduationDate: 'Unable to determine',
-          recommendations: ['Please try uploading a clearer image of your flowchart']
-        },
-        error: error instanceof Error ? error.message : 'Failed to analyze flowchart'
-      };
-      
-      onAnalysisComplete(errorResult);
-    } finally {
-      // Don't set isAnalyzing to false here since it's handled in processFile
-      setAnalysisStep('');
-    }
   };
 
   const triggerFileUpload = () => {
@@ -371,6 +351,9 @@ const FlowchartUpload: React.FC<FlowchartUploadProps> = ({ onAnalysisComplete, u
                     : 'Drag and drop or click to browse • PNG or JPG up to 10MB'
                   }
                 </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  💡 Tip: For faster analysis, use clear, high-contrast images under 2MB
+                </p>
               </div>
               <Button 
                 onClick={(e) => {
@@ -397,7 +380,7 @@ const FlowchartUpload: React.FC<FlowchartUploadProps> = ({ onAnalysisComplete, u
         </div>
 
         {/* Upload Progress */}
-        {isUploading && !isAnalyzing && (
+        {isUploading && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Uploading flowchart...</span>
@@ -414,9 +397,11 @@ const FlowchartUpload: React.FC<FlowchartUploadProps> = ({ onAnalysisComplete, u
               <Loader2 className="h-4 w-4 animate-spin" />
               <span className="font-medium">Analyzing flowchart with AI...</span>
             </div>
-            <div className="bg-blue-600/10 border border-blue-300 rounded-lg p-4">
-              <p className="text-sm text-foreground">{analysisStep}</p>
-            </div>
+            {analysisStep && (
+              <div className="bg-blue-600/10 border border-blue-600/20 rounded-lg p-4">
+                <p className="text-sm font-medium">{analysisStep}</p>
+              </div>
+            )}
           </div>
         )}
       </div>

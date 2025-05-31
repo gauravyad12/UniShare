@@ -15,9 +15,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // If productId is not provided, we'll need to determine it from the code or default to monthly
-    // In a real implementation, you might encode the product info in the code or have a mapping
-    const finalProductId = productId || "com.unishare.app.scholarplusonemonth";
+    // Use environment variables with fallbacks
+    const monthlyProductId = process.env.NEXT_PUBLIC_APPILIX_MONTHLY_PRODUCT_ID;
+    const yearlyProductId = process.env.NEXT_PUBLIC_APPILIX_YEARLY_PRODUCT_ID;
+    
+    if (!monthlyProductId || !yearlyProductId) {
+      console.error("Missing Appilix product IDs in environment variables");
+      return NextResponse.json(
+        { error: "Server configuration error: Missing product IDs" },
+        { status: 500 }
+      );
+    }
+    
+    const finalProductId = productId || monthlyProductId;
 
     // Verify the security code against the environment variable
     const expectedCode = process.env.APPILIX_PRODUCT_PURCHASE_CODE;
@@ -87,19 +97,33 @@ export async function POST(request: NextRequest) {
     }
 
     // Determine subscription details based on product ID
-    let interval: string;
-    let amount: number;
-
-    if (finalProductId === "com.unishare.app.scholarplusonemonth") {
+    let interval = "month";
+    let amount = 299; // Default to monthly amount
+    let priceId = process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID;
+    
+    if (!priceId) {
+      console.error("Missing Stripe price IDs in environment variables");
+      return NextResponse.json(
+        { error: "Server configuration error: Missing Stripe price IDs" },
+        { status: 500 }
+      );
+    }
+    
+    if (finalProductId === monthlyProductId) {
       interval = "month";
       amount = 299; // $2.99 in cents
-    } else if (finalProductId === "com.unishare.app.scholarplusoneyear") {
+      priceId = process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID;
+    } else if (finalProductId === yearlyProductId) {
       interval = "year";
       amount = 2499; // $24.99 in cents
-    } else {
+      priceId = process.env.NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID;
+    }
+    
+    if (!priceId) {
+      console.error("Missing Stripe price ID for selected interval");
       return NextResponse.json(
-        { error: "Invalid product ID" },
-        { status: 400 }
+        { error: "Server configuration error: Missing price ID" },
+        { status: 500 }
       );
     }
 
@@ -136,6 +160,7 @@ export async function POST(request: NextRequest) {
           amount: amount,
           interval: interval,
           currency: "usd",
+          updated_at: new Date().toISOString(),
           metadata: JSON.stringify({
             source: "appilix",
             product_id: finalProductId,
@@ -171,6 +196,7 @@ export async function POST(request: NextRequest) {
           amount: amount,
           interval: interval,
           currency: "usd",
+          updated_at: new Date().toISOString(),
           metadata: JSON.stringify({
             source: "appilix",
             product_id: finalProductId,

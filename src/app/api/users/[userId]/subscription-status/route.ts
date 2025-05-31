@@ -6,8 +6,8 @@ export const dynamic = "force-dynamic";
 // Direct database connection for admin access
 // Using SUPABASE_SERVICE_KEY instead of SUPABASE_SERVICE_ROLE_KEY
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ncvinrzllkqlypnyluco.supabase.co",
-  process.env.SUPABASE_SERVICE_KEY || "",
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_KEY!,
   {
     auth: {
       persistSession: false,

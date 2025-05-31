@@ -8,6 +8,7 @@ interface AnalysisRequest {
   userId: string;
   filename: string;
   fileSize: number;
+  jobId?: string;
 }
 
 interface AnalyzedCourse {
@@ -90,7 +91,26 @@ Deno.serve(async (req: Request) => {
 
     // Parse request body
     const requestData: AnalysisRequest = await req.json();
-    const { base64Image, mimeType, userCourses, userId, filename, fileSize } = requestData;
+    const { base64Image, mimeType, userCourses, userId, filename, fileSize, jobId } = requestData;
+
+    // Determine image detail level based on file size (optimize for speed)
+    const imageDetail = fileSize > 2 * 1024 * 1024 ? 'low' : 'high'; // Use low detail for files > 2MB
+    console.log(`Image size: ${fileSize} bytes, using detail level: ${imageDetail}`);
+
+    // Update job status to processing if jobId is provided
+    if (jobId) {
+      try {
+        await supabase
+          .from('flowchart_analysis_jobs')
+          .update({ 
+            status: 'processing',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', jobId);
+      } catch (error) {
+        console.error('Failed to update job status to processing:', error);
+      }
+    }
 
     // Validate required fields
     if (!base64Image || !mimeType) {
@@ -116,7 +136,7 @@ Deno.serve(async (req: Request) => {
 
     // Create OpenAI client with timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout (increased from 25)
 
     try {
       // Call OpenAI Vision API
@@ -181,7 +201,7 @@ Rules:
                   type: 'image_url',
                   image_url: {
                     url: `data:${mimeType};base64,${base64Image}`,
-                    detail: 'high'
+                    detail: imageDetail
                   }
                 }
               ]
@@ -265,6 +285,23 @@ Rules:
         // Don't fail the request if we can't save to DB
       }
 
+      // Update job status to completed if jobId is provided
+      if (jobId) {
+        try {
+          await supabase
+            .from('flowchart_analysis_jobs')
+            .update({ 
+              status: 'completed',
+              analysis_result: analysisResult,
+              completed_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', jobId);
+        } catch (error) {
+          console.error('Failed to update job status to completed:', error);
+        }
+      }
+
       // Return the response in the format expected by the frontend
       return new Response(
         JSON.stringify({
@@ -296,6 +333,22 @@ Rules:
 
   } catch (error) {
     console.error('Edge function error:', error);
+    
+    // Update job status to failed if jobId is provided
+    if (jobId) {
+      try {
+        await supabase
+          .from('flowchart_analysis_jobs')
+          .update({ 
+            status: 'failed',
+            error_message: error instanceof Error ? error.message : 'Internal server error',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', jobId);
+      } catch (updateError) {
+        console.error('Failed to update job status to failed:', updateError);
+      }
+    }
     
     return new Response(
       JSON.stringify({ 

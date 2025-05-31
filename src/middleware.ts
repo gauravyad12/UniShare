@@ -225,9 +225,10 @@ export async function middleware(req: NextRequest) {
       response.headers.set("X-XSS-Protection", "1; mode=block");
 
       // Content Security Policy to prevent XSS attacks
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://*.supabase.co';
       response.headers.set(
         "Content-Security-Policy",
-        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://js.stripe.com https://appilix.com https://va.vercel-scripts.com https://*.vercel-insights.com https://*.vercel-analytics.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src * data: blob:; font-src 'self' data:; connect-src * 'self'; frame-src 'self' https://js.stripe.com https://*.supabase.co https://ncvinrzllkqlypnyluco.supabase.co https://yadi.sk https://*.yadi.sk https://*.yandex.ru https://*.yandex.com https://*.litsolutions.org https://*.litsolutions.net https://*.litsolutions.info; object-src 'self' https://*.supabase.co https://ncvinrzllkqlypnyluco.supabase.co; media-src 'self' https://*.supabase.co https://ncvinrzllkqlypnyluco.supabase.co;"
+        `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://js.stripe.com https://appilix.com https://va.vercel-scripts.com https://*.vercel-insights.com https://*.vercel-analytics.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src * data: blob:; font-src 'self' data:; connect-src * 'self'; frame-src 'self' https://js.stripe.com https://*.supabase.co ${supabaseUrl} https://yadi.sk https://*.yadi.sk https://*.yandex.ru https://*.yandex.com https://*.litsolutions.org https://*.litsolutions.net https://*.litsolutions.info; object-src 'self' https://*.supabase.co ${supabaseUrl}; media-src 'self' https://*.supabase.co ${supabaseUrl};`
       );
 
       // Referrer Policy

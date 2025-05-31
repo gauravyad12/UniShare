@@ -274,7 +274,7 @@ export default function PricingCard({
                 __html: `
                   <button
                     class="inline-flex items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 px-4 w-full h-auto py-3 text-base md:text-lg font-medium appilix-upgrade-button"
-                    onclick="localStorage.setItem('appilix_product_id', '${billingInterval === "yearly" ? "com.unishare.app.scholarplusoneyear" : "com.unishare.app.scholarplusonemonth"}'); appilixPurchaseProduct('${billingInterval === "yearly" ? "com.unishare.app.scholarplusoneyear" : "com.unishare.app.scholarplusonemonth"}', 'consumable', window.location.origin + '/dashboard/success')"
+                    onclick="localStorage.setItem('appilix_product_id', '${billingInterval === "yearly" ? process.env.NEXT_PUBLIC_APPILIX_YEARLY_PRODUCT_ID : process.env.NEXT_PUBLIC_APPILIX_MONTHLY_PRODUCT_ID}'); appilixPurchaseProduct('${billingInterval === "yearly" ? process.env.NEXT_PUBLIC_APPILIX_YEARLY_PRODUCT_ID : process.env.NEXT_PUBLIC_APPILIX_MONTHLY_PRODUCT_ID}', 'consumable', window.location.origin + '/dashboard/success')"
                   >
                     Upgrade to Scholar+
                   </button>
@@ -285,9 +285,15 @@ export default function PricingCard({
             {/* Regular React button - hidden when showing Appilix button */}
             <Button
               onClick={async () => {
-                // Use Stripe checkout
-                const monthlyPriceId = "price_1RPHHtDcATCY5VhWO6vyle1i"; // Your existing monthly price ID
-                const yearlyPriceId = "price_1RPHnIDcATCY5VhWM5Tyceq6"; // Replace with your actual yearly price ID from Stripe
+                // Use Stripe checkout with environment variables
+                const monthlyPriceId = process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID;
+                const yearlyPriceId = process.env.NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID;
+
+                if (!monthlyPriceId || !yearlyPriceId) {
+                  console.error("Missing Stripe price IDs in environment variables");
+                  alert("Configuration error. Please contact support.");
+                  return;
+                }
 
                 // Use the appropriate price ID based on the selected billing interval
                 const selectedPriceId = billingInterval === "yearly" ? yearlyPriceId : monthlyPriceId;

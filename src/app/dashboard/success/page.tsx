@@ -63,7 +63,7 @@ export default function SuccessPage() {
 
       // Get product ID from localStorage (stored before purchase) or URL parameter or default to monthly
       const storedProductId = localStorage.getItem('appilix_product_id');
-      const finalProductId = storedProductId || productId || "com.unishare.app.scholarplusonemonth";
+      const finalProductId = storedProductId || productId || process.env.NEXT_PUBLIC_APPILIX_MONTHLY_PRODUCT_ID;
 
       // Clear the stored product ID after use
       if (storedProductId) {
