@@ -110,7 +110,7 @@ const FlowchartUpload: React.FC<FlowchartUploadProps> = ({ onAnalysisComplete, u
 
       // Create an AbortController with a longer timeout for AI analysis
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
 
       const response = await fetch('/api/flowchart/analyze', {
         method: 'POST',
@@ -121,7 +121,14 @@ const FlowchartUpload: React.FC<FlowchartUploadProps> = ({ onAnalysisComplete, u
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error('Upload failed');
+        const errorData = await response.json().catch(() => ({}));
+        
+        // Handle specific timeout error (408)
+        if (response.status === 408 || errorData.timeout) {
+          throw new Error('TIMEOUT');
+        }
+        
+        throw new Error(errorData.error || 'Upload failed');
       }
 
       setUploadProgress(100);
@@ -137,23 +144,54 @@ const FlowchartUpload: React.FC<FlowchartUploadProps> = ({ onAnalysisComplete, u
     } catch (error) {
       console.error('Upload error:', error);
       
-      // Check if this is a timeout error and the analysis might still be processing
-      if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('timeout'))) {
-        toast({
-          title: "Analysis Taking Longer Than Expected",
-          description: "The analysis is still processing. Please check the Previous Analyses section in a few moments.",
-          variant: "default",
-        });
+      // Handle different types of errors with specific messaging
+      if (error instanceof Error) {
+        if (error.message === 'TIMEOUT' || error.name === 'AbortError') {
+          toast({
+            title: "Analysis Timeout",
+            description: "The analysis is taking longer than expected. This usually happens with complex flowcharts. Try uploading a clearer or smaller image.",
+            variant: "destructive",
+          });
+        } else if (error.message.includes('timeout')) {
+          toast({
+            title: "Processing Timeout", 
+            description: "The image analysis timed out. Please try with a smaller or clearer image.",
+            variant: "destructive",
+          });
+        } else if (error.message.includes('File too large')) {
+          toast({
+            title: "File Too Large",
+            description: "Please compress your image or use a smaller file (max 10MB).",
+            variant: "destructive",
+          });
+        } else if (error.message.includes('Invalid file type')) {
+          toast({
+            title: "Invalid File Type",
+            description: "Please upload a PNG or JPG image file.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Upload Error",
+            description: error.message || "Failed to upload flowchart. Please try again.",
+            variant: "destructive",
+          });
+        }
       } else {
         toast({
           title: "Error",
-          description: "Failed to upload flowchart. Please try again.",
+          description: "An unexpected error occurred. Please try again.",
           variant: "destructive",
         });
       }
+      
+      // Clear uploaded image on error so user can try again
+      setUploadedImage(null);
     } finally {
       setIsUploading(false);
       setIsAnalyzing(false);
+      setUploadProgress(0);
+      setAnalysisStep('');
     }
   };
 
@@ -219,12 +257,50 @@ const FlowchartUpload: React.FC<FlowchartUploadProps> = ({ onAnalysisComplete, u
           description: "Flowchart analysis completed successfully!",
           variant: "default",
         });
+      } else if (result.error) {
+        // Handle specific error cases
+        if (result.error.includes('timeout') || result.error.includes('taking longer')) {
+          throw new Error('TIMEOUT');
+        } else if (result.error.includes('Unauthorized') || result.error.includes('No valid session')) {
+          throw new Error('AUTH_ERROR');
+        } else {
+          throw new Error(result.error);
+        }
       } else {
-        throw new Error(result.error || 'Analysis failed');
+        throw new Error('Analysis failed - no result returned');
       }
 
     } catch (error) {
       console.error('Analysis error:', error);
+      
+      // Handle different error types with specific messaging
+      if (error instanceof Error) {
+        if (error.message === 'TIMEOUT') {
+          toast({
+            title: "Analysis Timeout",
+            description: "The analysis is taking longer than expected. The Edge Function is processing your request - this may take a few minutes for complex flowcharts.",
+            variant: "destructive",
+          });
+        } else if (error.message === 'AUTH_ERROR') {
+          toast({
+            title: "Authentication Error",
+            description: "Your session has expired. Please refresh the page and try again.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Analysis Error",
+            description: error.message || "Failed to analyze flowchart. Please try again.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred during analysis. Please try again.",
+          variant: "destructive",
+        });
+      }
       
       // Create error result
       const errorResult: AnalysisResult = {
@@ -241,12 +317,6 @@ const FlowchartUpload: React.FC<FlowchartUploadProps> = ({ onAnalysisComplete, u
       };
       
       onAnalysisComplete(errorResult);
-      
-      toast({
-        title: "Error",
-        description: "Failed to analyze flowchart. Please try again.",
-        variant: "destructive",
-      });
     } finally {
       // Don't set isAnalyzing to false here since it's handled in processFile
       setAnalysisStep('');

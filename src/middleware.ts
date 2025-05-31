@@ -2,6 +2,53 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createClient } from "./utils/supabase/middleware";
 
+// Helper function to clear auth cookies when session is invalid
+function clearAuthCookies(response: NextResponse) {
+  // Clear common Supabase auth cookie patterns
+  const authCookiePatterns = [
+    'sb-access-token',
+    'sb-refresh-token', 
+    'supabase-auth-token',
+    'supabase.auth.token'
+  ];
+  
+  authCookiePatterns.forEach(pattern => {
+    response.cookies.delete(pattern);
+  });
+  
+  return response;
+}
+
+// Helper function to handle authentication errors gracefully
+function handleAuthError(error: any, pathname: string, isProtectedRoute: boolean) {
+  const isRefreshTokenError = error?.message?.includes('refresh_token_not_found') || 
+                             error?.message?.includes('Invalid Refresh Token') ||
+                             error?.code === 'refresh_token_not_found';
+  
+  if (isRefreshTokenError) {
+    console.warn('Invalid refresh token detected, clearing auth cookies');
+    
+    if (isProtectedRoute) {
+      // For protected routes, redirect to sign-in and clear cookies
+      const response = NextResponse.redirect(new URL('/sign-in?error=Session expired. Please sign in again.', 'https://unishare.app'));
+      return clearAuthCookies(response);
+    } else {
+      // For non-protected routes, just clear cookies and continue
+      const response = NextResponse.next();
+      response.headers.set("x-middleware-cache", "no-cache");
+      response.headers.set("Cache-Control", "no-store, max-age=0");
+      return clearAuthCookies(response);
+    }
+  }
+  
+  // For other auth errors, log and continue
+  console.error("Authentication error:", error);
+  const response = NextResponse.next();
+  response.headers.set("x-middleware-cache", "no-cache");
+  response.headers.set("Cache-Control", "no-store, max-age=0");
+  return response;
+}
+
 export async function middleware(req: NextRequest) {
   try {
     // SECURITY FIX: Block requests with x-middleware-subrequest header to prevent authorization bypass
@@ -91,18 +138,6 @@ export async function middleware(req: NextRequest) {
       return response;
     }
 
-    // Refresh session if it exists
-    try {
-      await supabase.auth.getSession();
-    } catch (sessionError) {
-      console.error("Failed to get session:", sessionError);
-      // Just proceed without auth checks if session refresh fails
-      const response = NextResponse.next();
-      response.headers.set("x-middleware-cache", "no-cache");
-      response.headers.set("Cache-Control", "no-store, max-age=0");
-      return response;
-    }
-
     const url = req.nextUrl;
 
     // Define protected and auth routes
@@ -111,52 +146,58 @@ export async function middleware(req: NextRequest) {
       (route) => pathname.startsWith(route),
     );
 
-    // Get user with enhanced validation
+    // Get user with enhanced validation and proper error handling
     let user;
     try {
-      const { data } = await supabase.auth.getUser();
-      user = data.user;
+      // First try to get the session - this is where refresh token errors typically occur
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        return handleAuthError(sessionError, pathname, isProtectedRoute);
+      }
 
-      // Get session for additional validation
-      const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData.session;
 
-      // Enhanced user validation
-      if (user && session) {
+      // If we have a session, validate it
+      if (session) {
         // Check if session is expired
         const currentTime = Math.floor(Date.now() / 1000);
         if (session.expires_at && session.expires_at < currentTime) {
-          console.warn("Session expired, redirecting to sign-in");
+          console.warn("Session expired, clearing cookies and redirecting");
           if (isProtectedRoute) {
-            url.pathname = "/sign-in";
-            url.searchParams.set("error", "Your session has expired. Please sign in again.");
-            return NextResponse.redirect(url);
+            const redirectResponse = NextResponse.redirect(new URL('/sign-in?error=Your session has expired. Please sign in again.', url));
+            return clearAuthCookies(redirectResponse);
+          } else {
+            const response = NextResponse.next();
+            response.headers.set("x-middleware-cache", "no-cache");
+            response.headers.set("Cache-Control", "no-store, max-age=0");
+            return clearAuthCookies(response);
           }
         }
 
-        // Check for suspicious activity (IP mismatch)
+        // Get user data
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) {
+          return handleAuthError(userError, pathname, isProtectedRoute);
+        }
+        
+        user = userData.user;
+
+        // Additional validation for user and session consistency
+        if (user && session) {
+          // Check for suspicious activity (IP mismatch) - optional security check
         const clientIP = req.ip || req.headers.get("x-forwarded-for")?.split(",")[0].trim();
-        // Use user_metadata for IP info as it's not in the standard User type
         const sessionIP = user.user_metadata?.last_sign_in_ip;
 
         if (sessionIP && clientIP && sessionIP !== clientIP) {
           console.warn(`IP mismatch detected: session IP ${sessionIP} vs current IP ${clientIP}`);
           // Log suspicious activity but don't block (could be legitimate IP change)
-          // You could implement additional checks here if needed
+          }
         }
       }
-    } catch (sessionError) {
-      console.error("Failed to get session data:", sessionError);
-      if (isProtectedRoute) {
-        url.pathname = "/sign-in";
-        url.searchParams.set("error", "Authentication service unavailable");
-        return NextResponse.redirect(url);
-      }
-      // For non-protected routes, just proceed without auth checks
-      const response = NextResponse.next();
-      response.headers.set("x-middleware-cache", "no-cache");
-      response.headers.set("Cache-Control", "no-store, max-age=0");
-      return response;
+    } catch (authError) {
+      return handleAuthError(authError, pathname, isProtectedRoute);
     }
 
     // Handle protected routes
@@ -210,3 +251,4 @@ export const config = {
     "/((?!_next/static|_next/image|favicon.ico|og-assets|public|api/payments/webhook|api/proxy|api/debug|api/restart|api/healthcheck|api/og|opengraph-image|twitter-image|sitemap.xml|robots.txt|covers.openlibrary.org|upload.wikimedia.org|cloud-api.yandex.net).*)",
   ],
 };
+

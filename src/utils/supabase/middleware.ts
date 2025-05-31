@@ -57,7 +57,9 @@ export function createClient(request: NextRequest) {
               ...options,
             });
           } catch (cookieError) {
-            console.error("Error setting cookie in middleware:", cookieError);
+            if (isDebug) {
+              console.debug("Error setting cookie in middleware:", cookieError);
+            }
             // Continue without setting cookies if there's an error
           }
         },
@@ -77,13 +79,13 @@ export function createClient(request: NextRequest) {
               ...options,
             });
           } catch (cookieError) {
-            console.error("Error removing cookie in middleware:", cookieError);
+            if (isDebug) {
+              console.debug("Error removing cookie in middleware:", cookieError);
+            }
             // Continue without removing cookies if there's an error
           }
         },
       },
-      // Add debug logs for auth state
-      debug: isDebug,
     });
 
     return { supabase, response };
@@ -91,4 +93,24 @@ export function createClient(request: NextRequest) {
     console.error("Error creating Supabase client in middleware:", error);
     return null;
   }
+}
+
+// Helper function to clear all Supabase auth cookies
+export function clearAuthCookies(response: NextResponse) {
+  const authCookieNames = [
+    'sb-access-token',
+    'sb-refresh-token',
+    'supabase-auth-token',
+    'supabase.auth.token',
+    // Add any other auth cookie patterns your app might use
+  ];
+
+  authCookieNames.forEach(cookieName => {
+    response.cookies.delete({
+      name: cookieName,
+      path: '/',
+    });
+  });
+
+  return response;
 }

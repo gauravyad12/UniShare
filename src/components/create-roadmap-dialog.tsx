@@ -102,7 +102,7 @@ export default function CreateRoadmapDialog({
     }
   };
 
-  const validateForm = () => {
+  const validateForm = async () => {
     const newErrors: { [key: string]: string } = {};
 
     if (!formData.name.trim()) {
@@ -125,6 +125,24 @@ export default function CreateRoadmapDialog({
       newErrors.total_credits = "Total credits must be between 30 and 200";
     }
 
+    // Check for bad words in text fields
+    const { containsBadWords } = await import('@/utils/badWords');
+
+    // Check roadmap name for bad words
+    if (formData.name && await containsBadWords(formData.name)) {
+      newErrors.name = "Roadmap name contains inappropriate language";
+    }
+
+    // Check major for bad words
+    if (formData.major && await containsBadWords(formData.major)) {
+      newErrors.major = "Major contains inappropriate language";
+    }
+
+    // Check description for bad words
+    if (formData.description && await containsBadWords(formData.description)) {
+      newErrors.description = "Description contains inappropriate language";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -132,7 +150,7 @@ export default function CreateRoadmapDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    if (!await validateForm()) {
       return;
     }
 
@@ -217,10 +235,18 @@ export default function CreateRoadmapDialog({
                     id="name"
                     placeholder="e.g., Computer Science Degree Plan"
                     value={formData.name}
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const value = e.target.value;
                       if (value.length <= charLimits.name) {
                         handleInputChange("name", value);
+                        
+                        // Check for bad words in real-time
+                        if (value.trim()) {
+                          const { containsBadWords } = await import('@/utils/badWords');
+                          if (await containsBadWords(value)) {
+                            setErrors(prev => ({ ...prev, name: "Roadmap name contains inappropriate language" }));
+                          }
+                        }
                       }
                     }}
                     maxLength={charLimits.name}
@@ -286,10 +312,18 @@ export default function CreateRoadmapDialog({
                     id="major"
                     placeholder="Enter your major"
                     value={formData.major}
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const value = e.target.value;
                       if (value.length <= charLimits.major) {
                         handleInputChange("major", value);
+                        
+                        // Check for bad words in real-time
+                        if (value.trim()) {
+                          const { containsBadWords } = await import('@/utils/badWords');
+                          if (await containsBadWords(value)) {
+                            setErrors(prev => ({ ...prev, major: "Major contains inappropriate language" }));
+                          }
+                        }
                       }
                     }}
                     maxLength={charLimits.major}
@@ -321,9 +355,11 @@ export default function CreateRoadmapDialog({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>University</Label>
-                  <UniversitySearch
-                    onSelect={(id, name) => handleInputChange("university_id", id)}
-                  />
+                  <div className="[&_input]:h-9 [&_input]:text-sm [&_input]:py-1">
+                    <UniversitySearch
+                      onSelect={(id, name) => handleInputChange("university_id", id)}
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -332,10 +368,10 @@ export default function CreateRoadmapDialog({
                     value={formData.expected_graduation}
                     onValueChange={(value) => handleInputChange("expected_graduation", value)}
                   >
-                    <SelectTrigger className="h-10">
+                    <SelectTrigger className="h-9 py-1 text-sm">
                       <SelectValue placeholder="Select graduation term" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                       {graduationYears.map((term) => (
                         <SelectItem key={term} value={term}>
                           {term}
@@ -355,10 +391,18 @@ export default function CreateRoadmapDialog({
                   id="description"
                   placeholder="Add a description for your roadmap..."
                   value={formData.description}
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const value = e.target.value;
                     if (value.length <= charLimits.description) {
                       handleInputChange("description", value);
+                      
+                      // Check for bad words in real-time
+                      if (value.trim()) {
+                        const { containsBadWords } = await import('@/utils/badWords');
+                        if (await containsBadWords(value)) {
+                          setErrors(prev => ({ ...prev, description: "Description contains inappropriate language" }));
+                        }
+                      }
                     }
                   }}
                   maxLength={charLimits.description}

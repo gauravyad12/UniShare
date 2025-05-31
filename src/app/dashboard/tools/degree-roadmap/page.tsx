@@ -67,6 +67,7 @@ import ShareRoadmapButton from "@/components/share-roadmap-button";
 import { createClient } from "@/utils/supabase/client";
 import { type Professor } from "@/utils/rateMyProfessor";
 import { useMobileDetection } from "@/hooks/use-mobile-detection";
+import { isAppilixOrDevelopment } from "@/utils/appilix-detection";
 
 // Types
 interface Course {
@@ -550,7 +551,7 @@ const SemesterSection = ({
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
         <div className="relative">
           <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors group pr-12">
+            <CardHeader className={`cursor-pointer hover:bg-muted/50 transition-colors group pr-12 ${isExpanded ? 'rounded-t-lg' : 'rounded-lg'}`}>
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-3">
                   <div className="flex items-center gap-2">
@@ -591,7 +592,7 @@ const SemesterSection = ({
           <Button
             variant="ghost"
             size="sm"
-            className="absolute top-4 right-4 h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 z-10"
+            className="absolute top-4 right-4 lg:top-1/2 lg:-translate-y-1/2 lg:right-2 h-8 w-8 p-0 opacity-60 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-500/10 z-10"
             onClick={(e) => {
               e.stopPropagation();
               onDeleteSemester(semester.id);
@@ -869,6 +870,9 @@ export default function DegreeRoadmapPage() {
   // Mobile detection
   const isMobile = useMobileDetection();
 
+  // Appilix detection
+  const [isAppilixEnv, setIsAppilixEnv] = useState(false);
+
   // Character limits for course form fields
   const courseCharLimits = {
     code: 10,
@@ -884,6 +888,11 @@ export default function DegreeRoadmapPage() {
   useEffect(() => {
     fetchRoadmaps();
     fetchCanvasGpa();
+  }, []);
+
+  // Detect Appilix environment
+  useEffect(() => {
+    setIsAppilixEnv(isAppilixOrDevelopment());
   }, []);
 
   // Clear selected courses when filters change
@@ -1120,7 +1129,7 @@ export default function DegreeRoadmapPage() {
     if (!selectedRoadmap) return;
 
     // Validate form before saving
-    if (!validateCourseForm()) {
+    if (!(await validateCourseForm())) {
       return;
     }
 
@@ -1571,7 +1580,7 @@ export default function DegreeRoadmapPage() {
   };
 
   // Validate course form
-  const validateCourseForm = (): boolean => {
+  const validateCourseForm = async (): Promise<boolean> => {
     const newErrors: { [key: string]: string } = {};
 
     // Validate course code
@@ -1593,6 +1602,24 @@ export default function DegreeRoadmapPage() {
     // Validate credits
     if (courseFormData.credits <= 0 || courseFormData.credits > 12) {
       newErrors.credits = "Credits must be between 1 and 12";
+    }
+
+    // Check for bad words in text fields
+    const { containsBadWords } = await import('@/utils/badWords');
+
+    // Check course name for bad words
+    if (courseFormData.name && await containsBadWords(courseFormData.name)) {
+      newErrors.name = "Course name contains inappropriate language";
+    }
+
+    // Check description for bad words
+    if (courseFormData.description && await containsBadWords(courseFormData.description)) {
+      newErrors.description = "Description contains inappropriate language";
+    }
+
+    // Check professor name for bad words
+    if (courseFormData.professor && await containsBadWords(courseFormData.professor)) {
+      newErrors.professor = "Professor name contains inappropriate language";
     }
 
     setCourseFormErrors(newErrors);
@@ -3033,7 +3060,7 @@ export default function DegreeRoadmapPage() {
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
-                        placeholder="Search roadmaps by name or major..."
+                        placeholder="Search roadmaps by name, major, or university..."
                         value={gallerySearchQuery}
                         onChange={(e) => setGallerySearchQuery(e.target.value)}
                         className="pl-10"
@@ -3043,7 +3070,8 @@ export default function DegreeRoadmapPage() {
                   
                   {/* Filter Controls - Right Side */}
                   <div className="flex flex-wrap gap-3 lg:flex-nowrap">
-                    <div className="w-48">
+                    {/* University Search - Hidden on Mobile */}
+                    <div className="w-48 hidden md:block">
                       <div className="[&_input]:h-9 [&_input]:text-sm [&_input]:py-1">
                         <UniversitySearch
                           onSelect={(id, name) => {
@@ -3051,16 +3079,18 @@ export default function DegreeRoadmapPage() {
                             setGalleryFilterUniversityName(name);
                           }}
                           placeholder="University"
+                          icon={GraduationCap}
+                          iconSize="h-4 w-4"
                         />
                       </div>
                     </div>
                     
                     <Select value={galleryFilterGpaMin} onValueChange={setGalleryFilterGpaMin}>
-                      <SelectTrigger className="w-32">
-                        <SelectValue placeholder="Min GPA" />
+                      <SelectTrigger className="w-full sm:w-32">
+                        <SelectValue placeholder="Any GPA" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="any">Any</SelectItem>
+                        <SelectItem value="any">Any GPA</SelectItem>
                         <SelectItem value="2.0">2.0+</SelectItem>
                         <SelectItem value="2.5">2.5+</SelectItem>
                         <SelectItem value="3.0">3.0+</SelectItem>
@@ -3070,7 +3100,7 @@ export default function DegreeRoadmapPage() {
                     </Select>
                     
                     <Select value={galleryFilterGradYear} onValueChange={setGalleryFilterGradYear}>
-                      <SelectTrigger className="w-40">
+                      <SelectTrigger className="w-full sm:w-40">
                         <SelectValue placeholder="Graduation Year" />
                       </SelectTrigger>
                       <SelectContent>
@@ -3115,11 +3145,12 @@ export default function DegreeRoadmapPage() {
                   </p>
                 </div>
               ) : (
-                publicRoadmaps
-                  .filter(roadmap => {
+                (() => {
+                  const filteredRoadmaps = publicRoadmaps.filter(roadmap => {
                     const matchesSearch = gallerySearchQuery === "" || 
                       roadmap.name.toLowerCase().includes(gallerySearchQuery.toLowerCase()) ||
-                      roadmap.major.toLowerCase().includes(gallerySearchQuery.toLowerCase());
+                      roadmap.major.toLowerCase().includes(gallerySearchQuery.toLowerCase()) ||
+                      roadmap.university.toLowerCase().includes(gallerySearchQuery.toLowerCase());
                     
                     const matchesUniversity = !galleryFilterUniversity || 
                       roadmap.university.toLowerCase().includes(galleryFilterUniversityName.toLowerCase());
@@ -3131,8 +3162,35 @@ export default function DegreeRoadmapPage() {
                       roadmap.expectedGraduation.includes(galleryFilterGradYear);
                     
                     return matchesSearch && matchesUniversity && matchesGpaMin && matchesGradYear;
-                  })
-                  .map((roadmap) => (
+                  });
+
+                  if (filteredRoadmaps.length === 0) {
+                    return (
+                      <div className="col-span-full text-center py-12">
+                        <Search className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                        <h3 className="text-lg font-medium mb-2">No Roadmaps Match Your Search</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Try adjusting your search terms or filters to find more roadmaps.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => {
+                              setGallerySearchQuery("");
+                              setGalleryFilterUniversity("");
+                              setGalleryFilterUniversityName("");
+                              setGalleryFilterGpaMin("any");
+                              setGalleryFilterGradYear("all");
+                            }}
+                          >
+                            Clear All Filters
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return filteredRoadmaps.map((roadmap) => (
                     <Card key={roadmap.id} className="hover:shadow-md transition-shadow">
                       <CardHeader>
                         <CardTitle className="text-base">{roadmap.name}</CardTitle>
@@ -3168,7 +3226,13 @@ export default function DegreeRoadmapPage() {
                               variant="outline"
                               className="w-full"
                               onClick={() => {
-                                window.open(`/roadmap/${roadmap.id}`, '_blank');
+                                if (isAppilixEnv) {
+                                  // Open in same tab for Appilix or development environment
+                                  window.location.href = `/roadmap/${roadmap.id}`;
+                                } else {
+                                  // Open in new tab for regular web browsers
+                                  window.open(`/roadmap/${roadmap.id}`, '_blank');
+                                }
                               }}
                             >
                               <Eye className="h-4 w-4 mr-2" />
@@ -3186,7 +3250,8 @@ export default function DegreeRoadmapPage() {
                         </div>
                       </CardContent>
                     </Card>
-                  ))
+                  ));
+                })()
               )}
             </div>
           </TabsContent>
@@ -3497,7 +3562,7 @@ export default function DegreeRoadmapPage() {
                   <CardContent className="space-y-4">
                     {/* Global error message */}
                     {settingsErrors.submit && (
-                      <div className="bg-red-100 text-red-600 font-medium px-4 py-2 rounded-md text-sm">
+                      <div className="bg-red-500/20 font-medium px-4 py-2 rounded-md text-sm border border-red-200 dark:border-red-800">
                         {settingsErrors.submit}
                       </div>
                     )}
@@ -3802,13 +3867,21 @@ export default function DegreeRoadmapPage() {
                   id="course-name"
                   placeholder="e.g., Computer Science I"
                   value={courseFormData.name}
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const value = e.target.value;
                     if (value.length <= courseCharLimits.name) {
                       setCourseFormData(prev => ({ ...prev, name: value }));
                       // Clear error when user starts typing
                       if (courseFormErrors.name) {
                         setCourseFormErrors(prev => ({ ...prev, name: "" }));
+                      }
+                      
+                      // Check for bad words in real-time
+                      if (value.trim()) {
+                        const { containsBadWords } = await import('@/utils/badWords');
+                        if (await containsBadWords(value)) {
+                          setCourseFormErrors(prev => ({ ...prev, name: "Course name contains inappropriate language" }));
+                        }
                       }
                     }
                   }}
@@ -3829,15 +3902,32 @@ export default function DegreeRoadmapPage() {
                   id="course-description"
                   placeholder="Course description..."
                   value={courseFormData.description}
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const value = e.target.value;
                     if (value.length <= courseCharLimits.description) {
                       setCourseFormData(prev => ({ ...prev, description: value }));
+                      
+                      // Clear error when user starts typing
+                      if (courseFormErrors.description) {
+                        setCourseFormErrors(prev => ({ ...prev, description: "" }));
+                      }
+                      
+                      // Check for bad words in real-time
+                      if (value.trim()) {
+                        const { containsBadWords } = await import('@/utils/badWords');
+                        if (await containsBadWords(value)) {
+                          setCourseFormErrors(prev => ({ ...prev, description: "Description contains inappropriate language" }));
+                        }
+                      }
                     }
                   }}
                   maxLength={courseCharLimits.description}
+                  className={courseFormErrors.description ? "border-red-500" : ""}
                   autoFocus={false}
                 />
+                {courseFormErrors.description && (
+                  <p className="text-sm text-red-500">{courseFormErrors.description}</p>
+                )}
               </div>
               <ProfessorSearch
                 value={selectedProfessor}

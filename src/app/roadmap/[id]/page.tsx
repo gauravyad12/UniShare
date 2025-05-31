@@ -5,7 +5,9 @@ import RoadmapThumbnail from '@/components/roadmap-thumbnail';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { BarChart3, GraduationCap, BookOpen, CheckCircle, Target, Calendar } from 'lucide-react';
+import { BarChart3, GraduationCap, BookOpen, CheckCircle, Target, Calendar, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import BackButton from '@/components/back-button';
 
 interface RoadmapPageProps {
   params: { id: string };
@@ -151,6 +153,9 @@ export default async function RoadmapPage({ params }: RoadmapPageProps) {
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       {/* Header */}
       <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <BackButton />
+        </div>
         <div className="flex items-center gap-2 mb-2">
           <BarChart3 className="h-6 w-6 text-primary" />
           <h1 className="text-3xl font-bold truncate">{transformedRoadmap.name}</h1>
@@ -308,7 +313,7 @@ export default async function RoadmapPage({ params }: RoadmapPageProps) {
             .map((semester: any) => (
             <Card key={semester.id}>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
                     <CardTitle className="flex items-center gap-2 mb-2">
                       <Calendar className="h-5 w-5" />
@@ -319,7 +324,7 @@ export default async function RoadmapPage({ params }: RoadmapPageProps) {
                     </CardDescription>
                   </div>
                   {transformedRoadmap.showGpa && (
-                    <div className="text-right">
+                    <div className="text-left sm:text-right">
                       <div className="text-sm text-muted-foreground">Semester GPA</div>
                       <div className="text-lg font-semibold">
                         {semester.courses.filter((c: any) => c.status === 'completed' && c.grade).length > 0
@@ -343,30 +348,33 @@ export default async function RoadmapPage({ params }: RoadmapPageProps) {
               <CardContent>
                 <div className="grid gap-3">
                   {semester.courses.map((course: any) => (
-                    <div key={course.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${
+                    <div key={course.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg border bg-card gap-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
                           course.status === 'completed' ? 'bg-green-500' :
                           course.status === 'in-progress' ? 'bg-blue-500' :
                           course.status === 'failed' ? 'bg-red-500' :
                           'bg-gray-400'
                         }`} />
-                        <div>
-                          <div className="font-medium">{course.code}</div>
-                          <div className="text-sm text-muted-foreground">{course.name}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-sm sm:text-base">{course.code}</div>
+                          <div className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{course.name}</div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4 text-sm">
-                        <span className="text-muted-foreground">{course.credits} credits</span>
+                      <div className="flex flex-wrap items-center gap-2 text-sm ml-6 sm:ml-0 sm:flex-shrink-0">
+                        <span className="text-muted-foreground whitespace-nowrap">{course.credits} credits</span>
                         {transformedRoadmap.showGpa && course.grade && (
-                          <Badge variant="outline">{course.grade}</Badge>
+                          <Badge variant="outline" className="text-xs">{course.grade}</Badge>
                         )}
-                        <Badge variant={
-                          course.status === 'completed' ? 'default' :
-                          course.status === 'in-progress' ? 'secondary' :
-                          course.status === 'failed' ? 'destructive' :
-                          'outline'
-                        }>
+                        <Badge 
+                          variant={
+                            course.status === 'completed' ? 'default' :
+                            course.status === 'in-progress' ? 'secondary' :
+                            course.status === 'failed' ? 'destructive' :
+                            'outline'
+                          }
+                          className="text-xs whitespace-nowrap"
+                        >
                           {course.status === 'in-progress' ? 'In Progress' : 
                            course.status === 'completed' ? 'Completed' :
                            course.status === 'failed' ? 'Failed' : 'Planned'}

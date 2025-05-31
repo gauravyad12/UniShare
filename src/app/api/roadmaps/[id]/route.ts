@@ -71,6 +71,25 @@ export async function PUT(
       );
     }
 
+    // Check for bad words in text fields
+    const { containsBadWords } = await import('@/utils/badWords');
+
+    // Check roadmap name for bad words
+    if (name && await containsBadWords(name)) {
+      return NextResponse.json(
+        { error: "Roadmap name contains inappropriate language" },
+        { status: 400 }
+      );
+    }
+
+    // Check major for bad words
+    if (major && await containsBadWords(major)) {
+      return NextResponse.json(
+        { error: "Major contains inappropriate language" },
+        { status: 400 }
+      );
+    }
+
     // Validate total_credits - only validate if it's provided and not 0
     if (total_credits !== undefined && total_credits !== null && total_credits > 0 && (total_credits < 30 || total_credits > 200)) {
       return NextResponse.json(

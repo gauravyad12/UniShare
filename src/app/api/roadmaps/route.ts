@@ -101,13 +101,41 @@ export async function POST(request: NextRequest) {
       university_id,
       total_credits = 120,
       expected_graduation,
-      is_public = false
+      is_public = false,
+      description
     } = body;
 
     // Validate required fields
     if (!name || !major) {
       return NextResponse.json(
         { error: "Name and major are required" },
+        { status: 400 }
+      );
+    }
+
+    // Check for bad words in text fields
+    const { containsBadWords } = await import('@/utils/badWords');
+
+    // Check roadmap name for bad words
+    if (name && await containsBadWords(name)) {
+      return NextResponse.json(
+        { error: "Roadmap name contains inappropriate language" },
+        { status: 400 }
+      );
+    }
+
+    // Check major for bad words
+    if (major && await containsBadWords(major)) {
+      return NextResponse.json(
+        { error: "Major contains inappropriate language" },
+        { status: 400 }
+      );
+    }
+
+    // Check description for bad words
+    if (description && await containsBadWords(description)) {
+      return NextResponse.json(
+        { error: "Description contains inappropriate language" },
         { status: 400 }
       );
     }
@@ -122,7 +150,8 @@ export async function POST(request: NextRequest) {
         university_id,
         total_credits,
         expected_graduation,
-        is_public
+        is_public,
+        description
       })
       .select()
       .single();

@@ -14,9 +14,16 @@ type University = {
 type UniversitySearchProps = {
   onSelect: (id: string, name: string) => void;
   placeholder?: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  iconSize?: string;
 };
 
-export default function UniversitySearch({ onSelect, placeholder = "Search for your university..." }: UniversitySearchProps) {
+export default function UniversitySearch({ 
+  onSelect, 
+  placeholder = "Search for your university...", 
+  icon: Icon = Search,
+  iconSize = "h-5 w-5"
+}: UniversitySearchProps) {
   const [query, setQuery] = useState("");
   const [universities, setUniversities] = useState<University[]>([]);
   const [loading, setLoading] = useState(false);
@@ -91,7 +98,7 @@ export default function UniversitySearch({ onSelect, placeholder = "Search for y
           className="w-full h-12 pl-12 pr-12 py-3 border border-input bg-background rounded-md text-base"
         />
         <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-          <Search className="h-5 w-5" />
+          <Icon className={iconSize} />
         </div>
 
         {query && (

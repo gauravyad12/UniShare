@@ -154,6 +154,33 @@ export async function POST(
       );
     }
 
+    // Check for bad words in text fields
+    const { containsBadWords } = await import('@/utils/badWords');
+
+    // Check course name for bad words
+    if (course_name && await containsBadWords(course_name)) {
+      return NextResponse.json(
+        { error: "Course name contains inappropriate language" },
+        { status: 400 }
+      );
+    }
+
+    // Check description for bad words
+    if (description && await containsBadWords(description)) {
+      return NextResponse.json(
+        { error: "Description contains inappropriate language" },
+        { status: 400 }
+      );
+    }
+
+    // Check professor name for bad words
+    if (professor && await containsBadWords(professor)) {
+      return NextResponse.json(
+        { error: "Professor name contains inappropriate language" },
+        { status: 400 }
+      );
+    }
+
     // Verify the semester belongs to this roadmap
     const { data: semester } = await supabase
       .from("roadmap_semesters")
@@ -284,6 +311,33 @@ export async function PUT(
     if (!courseId || !semester_id || !course_code || !course_name) {
       return NextResponse.json(
         { error: "Course ID, semester ID, course code, and course name are required" },
+        { status: 400 }
+      );
+    }
+
+    // Check for bad words in text fields
+    const { containsBadWords } = await import('@/utils/badWords');
+
+    // Check course name for bad words
+    if (course_name && await containsBadWords(course_name)) {
+      return NextResponse.json(
+        { error: "Course name contains inappropriate language" },
+        { status: 400 }
+      );
+    }
+
+    // Check description for bad words
+    if (description && await containsBadWords(description)) {
+      return NextResponse.json(
+        { error: "Description contains inappropriate language" },
+        { status: 400 }
+      );
+    }
+
+    // Check professor name for bad words
+    if (professor && await containsBadWords(professor)) {
+      return NextResponse.json(
+        { error: "Professor name contains inappropriate language" },
         { status: 400 }
       );
     }
