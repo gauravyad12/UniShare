@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, GraduationCap, Calendar, BookOpen, Target } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogScrollableContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -208,9 +208,9 @@ export default function CreateRoadmapDialog({
       <DialogTrigger asChild>
         {trigger || defaultTrigger}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col" onOpenAutoFocus={(e) => e.preventDefault()}>
-        <DialogHeader className="flex-shrink-0 text-center">
-          <DialogTitle className="flex items-center justify-center gap-2">
+      <DialogContent className="max-w-2xl" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DialogHeader className="text-center sm:text-left">
+          <DialogTitle className="flex items-center justify-center sm:justify-start gap-2">
             <GraduationCap className="h-5 w-5 text-primary" />
             Create Degree Roadmap
           </DialogTitle>
@@ -219,7 +219,7 @@ export default function CreateRoadmapDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-1">
+        <DialogScrollableContent>
           <form onSubmit={handleSubmit} className="space-y-6 pb-4">
             {/* Basic Information */}
             <div className="space-y-4">
@@ -446,10 +446,10 @@ export default function CreateRoadmapDialog({
               </div>
             )}
           </form>
-        </div>
+        </DialogScrollableContent>
 
         {/* Actions - Fixed at bottom */}
-        <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t bg-background">
+        <DialogFooter>
           <Button
             type="button"
             variant="outline"
@@ -473,7 +473,7 @@ export default function CreateRoadmapDialog({
             )}
             Create Roadmap
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

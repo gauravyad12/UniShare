@@ -254,7 +254,7 @@ export default function PDFViewer({ fileUrl, title, onDownload }: PDFViewerProps
             <div id="pdf-viewer-dialog-description" className="sr-only">
               Full screen PDF viewer for {title || 'document'}
             </div>
-            <DialogHeader className="flex flex-row items-center justify-between p-2 bg-background border-b space-y-0 mb-0">
+            <DialogHeader className="!pl-4 !pr-2 flex flex-row items-center justify-between p-2 bg-background border-b space-y-0 mb-0 flex-shrink-0">
               <div className="flex items-center">
                 <DialogTitle className="text-lg font-medium">{title || 'PDF Viewer'}</DialogTitle>
                 <DialogDescription className="sr-only">

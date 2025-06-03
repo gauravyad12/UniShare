@@ -34,22 +34,16 @@ export default function ResourceTabContent({
   resources,
   activeTab,
 }: ResourceTabContentProps) {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Reset loading state when tab or resources change
+  // Only show loading state if resources are actually being fetched
+  // Since we're using server-side rendering, resources are immediately available
   useEffect(() => {
-    // Show loading state briefly when tab or resources change
-    setIsLoading(true);
-
-    // Use a shorter timeout for a snappier experience
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 150);
-
-    return () => clearTimeout(timer);
+    // No artificial delay - resources are already available from server-side rendering
+    setIsLoading(false);
   }, [activeTab, resources]);
 
   if (isLoading) {

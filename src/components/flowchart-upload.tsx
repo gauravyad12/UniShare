@@ -215,7 +215,15 @@ const FlowchartUpload: React.FC<FlowchartUploadProps> = ({ onAnalysisComplete, u
           setAnalysisStep('Analysis complete!');
           
           // Show completion message briefly before clearing
-          setTimeout(() => {
+          setTimeout(async () => {
+            // Clean up the job after successful completion
+            try {
+              await cleanupJob(jobId);
+            } catch (cleanupError) {
+              console.warn('Failed to cleanup job:', cleanupError);
+              // Don't fail the entire process if cleanup fails
+            }
+
             onAnalysisComplete(statusData.analysis);
             toast({
               title: "Success",
@@ -231,12 +239,28 @@ const FlowchartUpload: React.FC<FlowchartUploadProps> = ({ onAnalysisComplete, u
 
         if (statusData.status === 'failed') {
           clearInterval(pollInterval);
+          
+          // Clean up failed job as well
+          try {
+            await cleanupJob(jobId);
+          } catch (cleanupError) {
+            console.warn('Failed to cleanup failed job:', cleanupError);
+          }
+          
           throw new Error(statusData.error || 'Analysis failed');
         }
 
         // Check for timeout
         if (pollCount >= maxPolls) {
           clearInterval(pollInterval);
+          
+          // Clean up timed out job
+          try {
+            await cleanupJob(jobId);
+          } catch (cleanupError) {
+            console.warn('Failed to cleanup timed out job:', cleanupError);
+          }
+          
           throw new Error('Analysis timeout - please try again with a clearer image');
         }
 
@@ -271,6 +295,50 @@ const FlowchartUpload: React.FC<FlowchartUploadProps> = ({ onAnalysisComplete, u
         setAnalysisStep('');
       }
     }, 5000); // Poll every 5 seconds
+  };
+
+  // Helper function to clean up completed/failed jobs
+  const cleanupJob = async (jobId: string) => {
+    try {
+      console.log(`Attempting to cleanup job: ${jobId}`);
+      
+      const response = await fetch(`/api/flowchart/status/${jobId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || `HTTP ${response.status}: ${response.statusText}`;
+        console.error(`Job cleanup failed for ${jobId}:`, {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+          url: response.url
+        });
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json().catch(() => ({}));
+      console.log(`Job cleaned up successfully: ${jobId}`, result);
+    } catch (error) {
+      console.error(`Job cleanup error for ${jobId}:`, {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        jobId,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Log additional context for debugging
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.error('Network error during job cleanup - possible connectivity issue');
+      } else if (error instanceof Error && error.message.includes('401')) {
+        console.error('Authentication error during job cleanup - user may be logged out');
+      } else if (error instanceof Error && error.message.includes('404')) {
+        console.error('Job not found during cleanup - may have been already deleted or never existed');
+      }
+      
+      throw error;
+    }
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {

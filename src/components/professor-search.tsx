@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogScrollableContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -261,104 +261,106 @@ export default function ProfessorSearch({
               Search by name to find and attach a professor to this resource
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 mt-2">
-            <div className="flex flex-col space-y-3">
-              <Label htmlFor="professor-search" className="text-sm font-medium">Search Professors</Label>
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="professor-search"
-                  placeholder="Enter professor name..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="pl-8"
-                  autoFocus={false}
-                  ref={searchInputRef}
-                  tabIndex={-1} /* Prevent tab focus */
-                />
-              </div>
-            </div>
-            {userUniversity && (
-              <div className="mb-3">
-                <div className="flex items-center h-5">
-                  <Checkbox
-                    id="filter-university"
-                    checked={filterByUniversity}
-                    onCheckedChange={(checked) => setFilterByUniversity(checked === true)}
-                    className="professor-filter-checkbox !h-4 !min-h-0"
+          <DialogScrollableContent>
+            <div className="space-y-4">
+              <div className="flex flex-col space-y-3">
+                <Label htmlFor="professor-search" className="text-sm font-medium">Search Professors</Label>
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="professor-search"
+                    placeholder="Enter professor name..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="pl-8"
+                    autoFocus={false}
+                    ref={searchInputRef}
+                    tabIndex={-1} /* Prevent tab focus */
                   />
-                  <label
-                    htmlFor="filter-university"
-                    className="text-sm text-muted-foreground cursor-pointer ml-2 whitespace-nowrap overflow-hidden text-ellipsis"
-                    style={{ maxWidth: "calc(100% - 24px)" }}
-                  >
-                    {getUniversityAbbreviation(userUniversity)} professors only
-                  </label>
                 </div>
               </div>
-            )}
-
-            <div className="border rounded-lg p-3 max-h-[300px] overflow-y-auto">
-              {isLoading ? (
-                <div className="flex justify-center items-center h-20">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                </div>
-              ) : query.length < 2 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Enter at least 2 characters to search
-                </div>
-              ) : professors.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  No professors found
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {professors.map((professor) => (
-                    <div
-                      key={professor.id}
-                      className="flex items-start space-x-3 p-3 hover:bg-muted rounded-lg border border-muted/40 transition-colors cursor-pointer"
-                      onClick={() => handleSelect(professor)}
+              {userUniversity && (
+                <div className="mb-3">
+                  <div className="flex items-center h-5">
+                    <Checkbox
+                      id="filter-university"
+                      checked={filterByUniversity}
+                      onCheckedChange={(checked) => setFilterByUniversity(checked === true)}
+                      className="professor-filter-checkbox !h-4 !min-h-0"
+                    />
+                    <label
+                      htmlFor="filter-university"
+                      className="text-sm text-muted-foreground cursor-pointer ml-2 whitespace-nowrap overflow-hidden text-ellipsis"
+                      style={{ maxWidth: "calc(100% - 24px)" }}
                     >
-                      <div className="flex-shrink-0 mt-1 relative w-4 h-4 rounded-sm border border-primary">
-                        {value?.id === professor.id && (
-                          <div className="absolute inset-0 bg-primary flex items-center justify-center">
-                            <Check className="h-3 w-3 text-primary-foreground" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium cursor-pointer line-clamp-1 block">
-                          {professor.firstName} {professor.lastName}
-                        </div>
-                        {professor.department && (
-                          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                            {professor.department}
-                          </p>
-                        )}
-                        <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                          {professor.school?.name && (
-                            <span className="text-xs text-muted-foreground bg-primary/10 px-1.5 py-0.5 rounded-sm">
-                              {professor.school.name}
-                            </span>
-                          )}
-                          {professor.rating !== null && professor.rating !== undefined && (
-                            <span className="text-xs text-muted-foreground inline-flex items-center">
-                              <Star className="h-3 w-3 text-yellow-500 mr-1 fill-yellow-500" />
-                              {typeof professor.rating === 'number' ? professor.rating.toFixed(1) : professor.rating}
-                              {professor.numRatings && (
-                                <span className="ml-1">({professor.numRatings})</span>
-                              )}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                      {getUniversityAbbreviation(userUniversity)} professors only
+                    </label>
+                  </div>
                 </div>
               )}
+
+              <div className="border rounded-lg p-3 max-h-[300px] overflow-y-auto">
+                {isLoading ? (
+                  <div className="flex justify-center items-center h-20">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                  </div>
+                ) : query.length < 2 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Enter at least 2 characters to search
+                  </div>
+                ) : professors.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No professors found
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {professors.map((professor) => (
+                      <div
+                        key={professor.id}
+                        className="flex items-start space-x-3 p-3 hover:bg-muted rounded-lg border border-muted/40 transition-colors cursor-pointer"
+                        onClick={() => handleSelect(professor)}
+                      >
+                        <div className="flex-shrink-0 mt-1 relative w-4 h-4 rounded-sm border border-primary">
+                          {value?.id === professor.id && (
+                            <div className="absolute inset-0 bg-primary flex items-center justify-center">
+                              <Check className="h-3 w-3 text-primary-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium cursor-pointer line-clamp-1 block">
+                            {professor.firstName} {professor.lastName}
+                          </div>
+                          {professor.department && (
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                              {professor.department}
+                            </p>
+                          )}
+                          <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                            {professor.school?.name && (
+                              <span className="text-xs text-muted-foreground bg-primary/10 px-1.5 py-0.5 rounded-sm">
+                                {professor.school.name}
+                              </span>
+                            )}
+                            {professor.rating !== null && professor.rating !== undefined && (
+                              <span className="text-xs text-muted-foreground inline-flex items-center">
+                                <Star className="h-3 w-3 text-yellow-500 mr-1 fill-yellow-500" />
+                                {typeof professor.rating === 'number' ? professor.rating.toFixed(1) : professor.rating}
+                                {professor.numRatings && (
+                                  <span className="ml-1">({professor.numRatings})</span>
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-3 pt-6">
+          </DialogScrollableContent>
+          <DialogFooter>
             <Button
               variant="outline"
               onClick={() => {

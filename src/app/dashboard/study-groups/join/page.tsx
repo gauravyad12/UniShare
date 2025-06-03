@@ -66,7 +66,7 @@ export default function JoinStudyGroupPage() {
         <CardContent>
           <div className="grid gap-4">
             <div className="grid gap-2">
-              <label htmlFor="inviteCode">Invitation Code</label>
+              <label htmlFor="inviteCode">Invite Code</label>
               <Input
                 id="inviteCode"
                 placeholder="Enter code"

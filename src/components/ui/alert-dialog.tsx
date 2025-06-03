@@ -53,8 +53,10 @@ const AlertDialogContent = React.forwardRef<
           "md:data-[state=closed]:zoom-out-95 md:data-[state=open]:zoom-in-95",
           "md:data-[state=closed]:slide-out-to-left-1/2 md:data-[state=closed]:slide-out-to-top-[48%]",
           "md:data-[state=open]:slide-in-from-left-1/2 md:data-[state=open]:slide-in-from-top-[48%]",
+          // Desktop: Better height management for shorter viewports
+          "md:max-h-[calc(100vh-4rem)] md:overflow-hidden md:flex md:flex-col",
           // Mobile-specific styles
-          "max-h-[calc(100vh-2rem)] overflow-y-auto overflow-x-hidden",
+          "max-md:max-h-[calc(100vh-2rem)] max-md:overflow-y-auto max-md:overflow-x-hidden",
           "max-md:rounded-t-lg max-md:rounded-b-none max-md:top-auto max-md:bottom-0 max-md:left-0 max-md:right-0 max-md:m-0 max-md:w-full",
           // Use the mobile-slide-up animation for mobile
           "max-md:data-[state=open]:animate-in max-md:data-[state=closed]:animate-out",
@@ -68,7 +70,7 @@ const AlertDialogContent = React.forwardRef<
         <div id={descriptionId} className="sr-only">
           Alert dialog content description
         </div>
-        <div className="max-md:w-full max-md:overflow-x-hidden">
+        <div className="max-md:w-full max-md:overflow-x-hidden md:flex md:flex-col md:min-h-0 md:flex-1">
           {children}
         </div>
       </AlertDialogPrimitive.Content>
@@ -85,6 +87,8 @@ const AlertDialogHeader = ({
     className={cn(
       "flex flex-col space-y-2 text-center sm:text-left mb-4",
       "max-md:pb-3 max-md:mb-4 max-md:pt-1 max-md:w-full",
+      // Desktop: Prevent header from shrinking when content overflows
+      "md:flex-shrink-0",
       className,
     )}
     {...props}
@@ -100,6 +104,8 @@ const AlertDialogFooter = ({
     className={cn(
       "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
       "max-md:sticky max-md:bottom-0 max-md:pb-4 max-md:pt-2 max-md:bg-background max-md:border-t max-md:mt-4",
+      // Desktop: Prevent footer from shrinking when content overflows
+      "md:flex-shrink-0 md:mt-4",
       className,
     )}
     {...props}

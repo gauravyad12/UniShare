@@ -87,7 +87,7 @@ export default function JoinStudyGroup({ code: initialCode }: JoinStudyGroupProp
       <CardContent>
         <div className="grid w-full items-center gap-4">
           <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="code">Invitation Code</Label>
+            <Label htmlFor="code">Invite Code</Label>
             <Input
               id="code"
               placeholder="Enter invitation code"

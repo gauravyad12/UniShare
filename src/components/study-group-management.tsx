@@ -14,6 +14,9 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogScrollableContent,
+  DialogHeaderNoBorder,
+  DialogFooterNoBorder,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, UserPlus, UserMinus, Shield, Trash2 } from "lucide-react";
@@ -204,22 +207,19 @@ export default function StudyGroupManagement({
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] p-6">
-          <div id="delete-study-group-description" className="sr-only">Delete study group confirmation dialog</div>
-          <DialogHeader className="space-y-2 text-center sm:text-left">
-            <DialogTitle className="text-lg font-semibold">Delete Study Group</DialogTitle>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeaderNoBorder>
+            <DialogTitle>Delete Study Group</DialogTitle>
             <DialogDescription>
               This action cannot be undone. This will permanently delete the study group
               and all of its data, including messages, resources, and member information.
             </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 space-y-1 space-y-reverse sm:space-y-0">
+          </DialogHeaderNoBorder>
+          <DialogFooterNoBorder>
             <Button
               variant="outline"
               onClick={() => setIsDeleteDialogOpen(false)}
               disabled={isDeleting}
-              className="sm:mt-0 mt-1 h-8 sm:h-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
-              tabIndex={-1}
             >
               Cancel
             </Button>
@@ -227,11 +227,11 @@ export default function StudyGroupManagement({
               variant="outline"
               onClick={handleDeleteGroup}
               disabled={isDeleting}
-              className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30 h-8 sm:h-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
+              className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30"
             >
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>
-          </div>
+          </DialogFooterNoBorder>
         </DialogContent>
       </Dialog>
 
@@ -245,7 +245,7 @@ export default function StudyGroupManagement({
               Promote members to admins, demote admins to members, or remove members from the group.
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-[60vh] overflow-y-auto py-4">
+          <DialogScrollableContent>
             {members.map((member) => (
               <div key={member.user_id} className="mb-3">
                 <div className="flex items-center justify-between py-2">
@@ -319,7 +319,7 @@ export default function StudyGroupManagement({
                 )}
               </div>
             ))}
-          </div>
+          </DialogScrollableContent>
         </DialogContent>
       </Dialog>
     </>

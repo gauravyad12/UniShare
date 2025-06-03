@@ -1,7 +1,5 @@
 "use client";
 
-export const dynamic = "force-dynamic";
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +12,7 @@ import { AlertCircle, CheckCircle } from "lucide-react";
 import LoadingSpinner from "@/components/loading-spinner";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
+import AdminAccessGuard from "@/components/admin-access-guard";
 
 export default function PushNotificationsPage() {
   const [title, setTitle] = useState("");
@@ -124,123 +123,120 @@ export default function PushNotificationsPage() {
   };
 
   if (isLoading) {
-    return <LoadingSpinner />;
+    return (
+      <AdminAccessGuard>
+        <LoadingSpinner />
+      </AdminAccessGuard>
+    );
   }
 
   if (!isAdmin) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Access Denied</AlertTitle>
-          <AlertDescription>
-            You do not have permission to access this page. This page is
-            restricted to administrators only.
-          </AlertDescription>
-        </Alert>
-      </div>
+      <AdminAccessGuard>
+        <div className="container mx-auto px-4 py-8">
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Access Denied</AlertTitle>
+            <AlertDescription>
+              You do not have permission to access this page. This page is
+              restricted to administrators only.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </AdminAccessGuard>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Push Notifications</h1>
-      </div>
-
-      {result && (
-        <Alert
-          variant={result.success ? "success" : "destructive"}
-          className="mb-6"
-        >
-          {result.success ? (
-            <CheckCircle className="h-4 w-4" />
-          ) : (
-            <AlertCircle className="h-4 w-4" />
-          )}
-          <AlertTitle>{result.success ? "Success" : "Error"}</AlertTitle>
-          <AlertDescription>{result.message}</AlertDescription>
-        </Alert>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Send Push Notifications</CardTitle>
-          <CardDescription>
-            Send push notifications to users via Appilix
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Notification Title</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter notification title"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="message">Notification Message</Label>
-              <Textarea
-                id="message"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Enter notification message"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="link">Link (Optional)</Label>
-              <Input
-                id="link"
-                value={link}
-                onChange={(e) => setLink(e.target.value)}
-                placeholder="https://unishare.app/dashboard"
-              />
-              <p className="text-xs text-muted-foreground">
-                URL to open when the notification is clicked
-              </p>
-            </div>
-
-            <div className="flex items-center space-x-2 pt-2">
-              <Checkbox
-                id="sendToAll"
-                checked={sendToAll}
-                onCheckedChange={(checked) => setSendToAll(checked === true)}
-              />
-              <Label htmlFor="sendToAll" className="cursor-pointer">
-                Send to all users
-              </Label>
-            </div>
-
-            {!sendToAll && (
+    <AdminAccessGuard>
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-6">Push Notifications</h1>
+        
+        <Card className="max-w-2xl">
+          <CardHeader>
+            <CardTitle>Send Push Notification</CardTitle>
+            <CardDescription>
+              Send a push notification to users who have enabled notifications
+            </CardDescription>
+          </CardHeader>
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="userEmail">User Email</Label>
+                <Label htmlFor="title">Title</Label>
                 <Input
-                  id="userEmail"
-                  value={userEmail}
-                  onChange={(e) => setUserEmail(e.target.value)}
-                  placeholder="user@example.com"
-                  required={!sendToAll}
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Notification title"
+                  required
                 />
-                <p className="text-xs text-muted-foreground">
-                  Email of the specific user to send the notification to
-                </p>
               </div>
-            )}
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" disabled={isSending}>
-              {isSending ? "Sending..." : "Send Notification"}
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
-    </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="message">Message</Label>
+                <Textarea
+                  id="message"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Notification message"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="link">Link (Optional)</Label>
+                <Input
+                  id="link"
+                  type="url"
+                  value={link}
+                  onChange={(e) => setLink(e.target.value)}
+                  placeholder="https://example.com"
+                />
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="sendToAll"
+                  checked={sendToAll}
+                  onCheckedChange={(checked) => setSendToAll(checked as boolean)}
+                />
+                <Label htmlFor="sendToAll">Send to all users</Label>
+              </div>
+              
+              {!sendToAll && (
+                <div className="space-y-2">
+                  <Label htmlFor="userEmail">User Email</Label>
+                  <Input
+                    id="userEmail"
+                    type="email"
+                    value={userEmail}
+                    onChange={(e) => setUserEmail(e.target.value)}
+                    placeholder="user@example.com"
+                    required={!sendToAll}
+                  />
+                </div>
+              )}
+              
+              {result && (
+                <Alert variant={result.success ? "default" : "destructive"}>
+                  {result.success ? (
+                    <CheckCircle className="h-4 w-4" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4" />
+                  )}
+                  <AlertTitle>{result.success ? "Success" : "Error"}</AlertTitle>
+                  <AlertDescription>{result.message}</AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+            <CardFooter>
+              <Button type="submit" disabled={isSending}>
+                {isSending ? "Sending..." : "Send Notification"}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
+    </AdminAccessGuard>
   );
 }

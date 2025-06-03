@@ -499,51 +499,30 @@
   .pb-safe {
     padding-bottom: calc(env(safe-area-inset-bottom, 16px) + 16px);
   }
-}
 
-/* Hide default close button in PDF fullscreen dialog - applied globally */
-.pdf-fullscreen-dialog > .absolute.right-4.top-4.rounded-full {
-  display: none !important;
-}
-
-/* Prevent PDF viewer from changing body background color */
-body.pdf-viewer-open {
-  background-color: var(--background) !important;
-}
-
-/* Additional isolation for PDF iframe container */
-.pdf-iframe-container {
-  isolation: isolate !important;
-  contain: content !important;
-}
-
-.pdf-iframe-container iframe {
-  background-color: white !important;
-}
-
-/* Ensure dialog content doesn't inherit unwanted styles */
-.pdf-fullscreen-dialog {
-  background-color: var(--background) !important;
-  color: var(--foreground) !important;
-}
-
-/* Make PDF viewer dialog header completely opaque */
-.pdf-fullscreen-dialog [class*="DialogHeader"] {
-  background-color: hsl(var(--background)) !important;
-  opacity: 1 !important;
-  backdrop-filter: none !important;
-}
-
-@media (max-width: 768px) {
   /* Dialog button enhancements for mobile */
   [role="dialog"] button {
     min-height: 44px;
+  }
+
+  /* Exception for checkboxes in dialogs */
+  [role="dialog"] button[role="checkbox"],
+  [role="dialog"] button[data-state][role="checkbox"] {
+    min-height: 20px !important;
+    height: 20px !important;
+    width: 20px !important;
   }
 
   /* Exception for professor filter checkbox */
   [role="dialog"] button.professor-filter-checkbox {
     min-height: 16px !important;
     height: 16px !important;
+  }
+
+  /* Exception for PDF fullscreen dialog X button */
+  .pdf-fullscreen-dialog [role="dialog"] button,
+  .pdf-fullscreen-dialog button {
+    min-height: auto !important;
   }
 
   [role="dialog"] button:active {
@@ -595,20 +574,20 @@ body.pdf-viewer-open {
       width: 100% !important;
     }
 
-    [role="dialog"]:not(.share-resource-popover) > div,
-    [role="alertdialog"] > div {
+    [role="dialog"]:not(.share-resource-popover) > div:not([class*="DialogHeader"]):not([class*="DialogFooter"]),
+    [role="alertdialog"] > div:not([class*="DialogHeader"]):not([class*="DialogFooter"]) {
       max-width: 100% !important;
       width: 100% !important;
-      padding-left: 16px !important;
-      padding-right: 16px !important;
       box-sizing: border-box !important;
     }
 
-    /* Fix for nested content that might cause horizontal scroll */
-    [role="dialog"]:not(.share-resource-popover) *,
-    [role="alertdialog"] * {
-      max-width: 100%;
-      box-sizing: border-box;
+    /* Ensure dialog headers maintain proper spacing from close button */
+    [role="dialog"] > div > div[class*="DialogHeader"],
+    [role="alertdialog"] > div > div[class*="DialogHeader"],
+    [role="dialog"] div[class*="DialogHeader"],
+    [role="alertdialog"] div[class*="DialogHeader"] {
+      padding-right: 5rem !important;
+      max-width: calc(100% - 3rem) !important;
     }
 
     /* Specific positioning for share resource popover */
@@ -652,28 +631,6 @@ body.pdf-viewer-open {
       flex-direction: column !important;
     }
 
-    /* Fix for duplicate borders in dialogs */
-    [role="dialog"] div[class*="border-b"] + div,
-    [role="alertdialog"] div[class*="border-b"] + div {
-      border-top: none !important;
-    }
-
-    [role="dialog"] div + div[class*="border-t"],
-    [role="alertdialog"] div + div[class*="border-t"] {
-      border-top: 1px solid var(--border) !important;
-    }
-
-    /* Ensure only one border is visible */
-    [role="dialog"] div[class*="border-b"] + div[class*="border-t"],
-    [role="alertdialog"] div[class*="border-b"] + div[class*="border-t"] {
-      border-top: none !important;
-    }
-
-    /* Hide default close button in schedule meeting dialog */
-    .schedule-meeting-dialog [role="dialog"] > button[aria-label="Close"] {
-      display: none !important;
-    }
-
     /* Remove outlines and background highlight from buttons in dialogs */
     @media (max-width: 768px) {
       [role="dialog"] button[aria-label="Close"],
@@ -699,7 +656,6 @@ body.pdf-viewer-open {
       button[data-state]:not([role="tab"]):not([role="switch"]):hover,
       button[data-state]:not([role="tab"]):not([role="switch"]):focus,
       button[data-state]:not([role="tab"]):not([role="switch"]):active {
-        /*background-color: transparent !important; */
         outline: none !important;
         box-shadow: none !important;
       }
@@ -851,5 +807,84 @@ body.pdf-viewer-open {
     height: 48px !important;
     min-height: 48px !important;
     max-height: 48px !important;
+  }
+}
+
+/* Hide default close button in PDF fullscreen dialog - applied globally */
+.pdf-fullscreen-dialog > .absolute.right-4.top-4.rounded-full {
+  display: none !important;
+}
+
+/* Prevent PDF viewer from changing body background color */
+body.pdf-viewer-open {
+  background-color: var(--background) !important;
+}
+
+/* Additional isolation for PDF iframe container */
+.pdf-iframe-container {
+  isolation: isolate !important;
+  contain: content !important;
+}
+
+.pdf-iframe-container iframe {
+  background-color: white !important;
+}
+
+/* Ensure dialog content doesn't inherit unwanted styles */
+.pdf-fullscreen-dialog {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+/* Make PDF viewer dialog header completely opaque */
+.pdf-fullscreen-dialog [class*="DialogHeader"] {
+  background-color: hsl(var(--background)) !important;
+  opacity: 1 !important;
+  backdrop-filter: none !important;
+  /* Override default dialog header padding with stronger selectors */
+  padding-left: 16px !important;
+}
+
+/* Override mobile padding for PDF fullscreen dialog header with stronger specificity */
+.pdf-fullscreen-dialog div[class*="DialogHeader"],
+.pdf-fullscreen-dialog .flex.flex-row.items-center.justify-between {
+  padding-left: 16px !important;
+}
+
+@media (max-width: 768px) {
+  /* Dialog button enhancements for mobile */
+  [role="dialog"] button {
+    min-height: 44px;
+  }
+
+  /* Exception for checkboxes in dialogs */
+  [role="dialog"] button[role="checkbox"],
+  [role="dialog"] button[data-state][role="checkbox"] {
+    min-height: 20px !important;
+    height: 20px !important;
+    width: 20px !important;
+  }
+
+  /* Exception for professor filter checkbox */
+  [role="dialog"] button.professor-filter-checkbox {
+    min-height: 16px !important;
+    height: 16px !important;
+  }
+
+  /* Exception for PDF fullscreen dialog X button */
+  .pdf-fullscreen-dialog [role="dialog"] button,
+  .pdf-fullscreen-dialog button {
+    min-height: auto !important;
+  }
+
+  /* Override PDF dialog header padding on mobile */
+  .pdf-fullscreen-dialog [class*="DialogHeader"],
+  .pdf-fullscreen-dialog div[class*="DialogHeader"],
+  .pdf-fullscreen-dialog .flex.flex-row.items-center.justify-between {
+    padding-left: 16px !important;
+  }
+
+  [role="dialog"] button:active {
+    transform: scale(0.98);
   }
 }

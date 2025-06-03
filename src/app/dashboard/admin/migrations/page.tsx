@@ -17,6 +17,8 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle, Play, RefreshCw } from "lucide-react";
 import LoadingSpinner from "@/components/loading-spinner";
+import AdminAccessGuard from "@/components/admin-access-guard";
+
 interface Migration {
   filename: string;
   path: string;
@@ -131,104 +133,112 @@ export default function MigrationsPage() {
   };
 
   if (loading) {
-    return <LoadingSpinner />;
+    return (
+      <AdminAccessGuard>
+        <LoadingSpinner />
+      </AdminAccessGuard>
+    );
   }
 
   if (!isAdmin) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Access Denied</AlertTitle>
-          <AlertDescription>
-            You do not have permission to access this page. This page is
-            restricted to administrators only.
-          </AlertDescription>
-        </Alert>
-      </div>
+      <AdminAccessGuard>
+        <div className="container mx-auto px-4 py-8">
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Access Denied</AlertTitle>
+            <AlertDescription>
+              You do not have permission to access this page. This page is
+              restricted to administrators only.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </AdminAccessGuard>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Database Migrations</h1>
-        <Button onClick={fetchMigrations} variant="outline">
-          Refresh
-        </Button>
-      </div>
+    <AdminAccessGuard>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Database Migrations</h1>
+          <Button onClick={fetchMigrations} variant="outline">
+            Refresh
+          </Button>
+        </div>
 
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {result && (
-        <Alert
-          variant={result.success ? "default" : "destructive"}
-          className="mb-6"
-        >
-          {result.success ? (
-            <CheckCircle className="h-4 w-4" />
-          ) : (
+        {error && (
+          <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
-          )}
-          <AlertTitle>{result.success ? "Success" : "Failed"}</AlertTitle>
-          <AlertDescription>{result.message}</AlertDescription>
-        </Alert>
-      )}
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Available Migrations</CardTitle>
-          <CardDescription>
-            Run database migrations directly from the dashboard
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {migrations.length === 0 ? (
-            <p className="text-center py-4 text-muted-foreground">
-              No migration files found
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {migrations.map((migration) => (
-                <div
-                  key={migration.path}
-                  className="flex items-center justify-between p-3 bg-muted/40 rounded-md"
-                >
-                  <div className="overflow-hidden">
-                    <p className="font-medium truncate">{migration.filename}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {migration.path}
-                    </p>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={() => runMigration(migration.path)}
-                    disabled={runningMigration === migration.path}
+        {result && (
+          <Alert
+            variant={result.success ? "default" : "destructive"}
+            className="mb-6"
+          >
+            {result.success ? (
+              <CheckCircle className="h-4 w-4" />
+            ) : (
+              <AlertCircle className="h-4 w-4" />
+            )}
+            <AlertTitle>{result.success ? "Success" : "Failed"}</AlertTitle>
+            <AlertDescription>{result.message}</AlertDescription>
+          </Alert>
+        )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Available Migrations</CardTitle>
+            <CardDescription>
+              Run database migrations directly from the dashboard
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {migrations.length === 0 ? (
+              <p className="text-center py-4 text-muted-foreground">
+                No migration files found
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {migrations.map((migration) => (
+                  <div
+                    key={migration.path}
+                    className="flex items-center justify-between p-3 bg-muted/40 rounded-md"
                   >
-                    {runningMigration === migration.path ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                        Running...
-                      </>
-                    ) : (
-                      <>
-                        <Play className="h-4 w-4 mr-2" />
-                        Run
-                      </>
-                    )}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                    <div className="overflow-hidden">
+                      <p className="font-medium truncate">{migration.filename}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {migration.path}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => runMigration(migration.path)}
+                      disabled={runningMigration === migration.path}
+                    >
+                      {runningMigration === migration.path ? (
+                        <>
+                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                          Running...
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4 mr-2" />
+                          Run
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </AdminAccessGuard>
   );
 }

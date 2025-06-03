@@ -9,6 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogScrollableContent,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -154,85 +155,87 @@ export default function UpdateMeetingTime({
             Change the start and end time for this meeting.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          {/* Date/time selector - different for mobile and desktop */}
+        <DialogScrollableContent>
           <div className="space-y-4">
-            {isMobile ? (
-              // Mobile custom date/time picker
-              <>
-                <MobileDateTimePicker
-                  label="Start Date & Time"
-                  value={startDateTime}
-                  onChange={(date) => setStartDateTime(date)}
-                  icon="calendar"
-                />
+            {/* Date/time selector - different for mobile and desktop */}
+            <div className="space-y-4">
+              {isMobile ? (
+                // Mobile custom date/time picker
+                <>
+                  <MobileDateTimePicker
+                    label="Start Date & Time"
+                    value={startDateTime}
+                    onChange={(date) => setStartDateTime(date)}
+                    icon="calendar"
+                  />
 
-                <MobileDateTimePicker
-                  label="End Date & Time"
-                  value={endDateTime}
-                  onChange={(date) => setEndDateTime(date)}
-                  icon="clock"
-                />
-              </>
-            ) : (
-              // Desktop standard date/time inputs
-              <>
-                <div className="grid gap-2">
-                  <Label htmlFor="start-datetime">Start Date & Time</Label>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <div className="relative flex-1">
-                      <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="start-date"
-                        type="date"
-                        className="pl-8 w-full"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                      />
-                    </div>
-                    <div className="relative flex-1">
-                      <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="start-time"
-                        type="time"
-                        className="pl-8 w-full"
-                        value={startTime}
-                        onChange={(e) => setStartTime(e.target.value)}
-                      />
+                  <MobileDateTimePicker
+                    label="End Date & Time"
+                    value={endDateTime}
+                    onChange={(date) => setEndDateTime(date)}
+                    icon="clock"
+                  />
+                </>
+              ) : (
+                // Desktop standard date/time inputs
+                <>
+                  <div className="grid gap-2">
+                    <Label htmlFor="start-datetime">Start Date & Time</Label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="relative flex-1">
+                        <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="start-date"
+                          type="date"
+                          className="pl-8 w-full"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                        />
+                      </div>
+                      <div className="relative flex-1">
+                        <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="start-time"
+                          type="time"
+                          className="pl-8 w-full"
+                          value={startTime}
+                          onChange={(e) => setStartTime(e.target.value)}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="end-datetime">End Date & Time</Label>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <div className="relative flex-1">
-                      <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="end-date"
-                        type="date"
-                        className="pl-8 w-full"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                      />
-                    </div>
-                    <div className="relative flex-1">
-                      <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="end-time"
-                        type="time"
-                        className="pl-8 w-full"
-                        value={endTime}
-                        onChange={(e) => setEndTime(e.target.value)}
-                      />
+                  <div className="grid gap-2">
+                    <Label htmlFor="end-datetime">End Date & Time</Label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="relative flex-1">
+                        <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="end-date"
+                          type="date"
+                          className="pl-8 w-full"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                        />
+                      </div>
+                      <div className="relative flex-1">
+                        <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="end-time"
+                          type="time"
+                          className="pl-8 w-full"
+                          value={endTime}
+                          onChange={(e) => setEndTime(e.target.value)}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              </>
-            )}
+                </>
+              )}
+            </div>
           </div>
-        </div>
-        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+        </DialogScrollableContent>
+        <DialogFooter>
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}

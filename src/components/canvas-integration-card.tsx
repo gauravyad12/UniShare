@@ -8,6 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogScrollableContent,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -990,7 +992,7 @@ export default function CanvasIntegrationCard() {
                   <HelpCircle className="h-4 w-4" />
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[550px] pb-6">
+              <DialogContent className="sm:max-w-[550px]">
                 <DialogHeader>
                   <DialogTitle>How to Get a Canvas Access Token</DialogTitle>
                   <DialogDescription>
@@ -998,35 +1000,38 @@ export default function CanvasIntegrationCard() {
                   </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4 mt-2">
-                  <ol className="list-decimal pl-5 space-y-3">
-                    <li className="text-sm">
-                      <span className="font-medium">Log in to Canvas:</span> Access your Canvas account through your institution's Canvas login page.
-                    </li>
-                    <li className="text-sm">
-                      <span className="font-medium">Navigate to Account Settings:</span> In the Global Navigation menu on the left, click on "Account" and then "Settings".
-                    </li>
-                    <li className="text-sm">
-                      <span className="font-medium">Find Approved Integrations:</span> Scroll down to the "Approved Integrations" section.
-                    </li>
-                    <li className="text-sm">
-                      <span className="font-medium">Generate a New Token:</span> Click the "+ New Access Token" button.
-                    </li>
-                    <li className="text-sm">
-                      <span className="font-medium">Specify Purpose and Expiry:</span> Fill out the form, including the purpose of the token (e.g., "UniShare GPA Integration") and an optional expiry date. Adding an expiry date increases security.
-                    </li>
-                    <li className="text-sm">
-                      <span className="font-medium">Generate the Token:</span> Click the "Generate Token" button.
-                    </li>
-                    <li className="text-sm">
-                      <span className="font-medium">Save the Token Securely:</span> Copy the generated token and save it in a secure location, as it will only be displayed once.
-                    </li>
-                    <li className="text-sm">
-                      <span className="font-medium">Paste it into UniShare:</span> Copy the token and paste it into the Access Token field in the Canvas integration form.
-                    </li>
-                  </ol>
-
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pt-3 pb-2 border-t">
+                <DialogScrollableContent>
+                  <div className="space-y-4">
+                    <ol className="list-decimal pl-5 space-y-3">
+                      <li className="text-sm">
+                        <span className="font-medium">Log in to Canvas:</span> Access your Canvas account through your institution's Canvas login page.
+                      </li>
+                      <li className="text-sm">
+                        <span className="font-medium">Navigate to Account Settings:</span> In the Global Navigation menu on the left, click on "Account" and then "Settings".
+                      </li>
+                      <li className="text-sm">
+                        <span className="font-medium">Find Approved Integrations:</span> Scroll down to the "Approved Integrations" section.
+                      </li>
+                      <li className="text-sm">
+                        <span className="font-medium">Generate a New Token:</span> Click the "+ New Access Token" button.
+                      </li>
+                      <li className="text-sm">
+                        <span className="font-medium">Specify Purpose and Expiry:</span> Fill out the form, including the purpose of the token (e.g., "UniShare GPA Integration") and an optional expiry date. Adding an expiry date increases security.
+                      </li>
+                      <li className="text-sm">
+                        <span className="font-medium">Generate the Token:</span> Click the "Generate Token" button.
+                      </li>
+                      <li className="text-sm">
+                        <span className="font-medium">Save the Token Securely:</span> Copy the generated token and save it in a secure location, as it will only be displayed once.
+                      </li>
+                      <li className="text-sm">
+                        <span className="font-medium">Paste it into UniShare:</span> Copy the token and paste it into the Access Token field in the Canvas integration form.
+                      </li>
+                    </ol>
+                  </div>
+                </DialogScrollableContent>
+                <DialogFooter>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 w-full">
                     <p className="text-xs text-muted-foreground">For more detailed instructions, visit Canvas documentation</p>
                     <a
                       href="https://community.canvaslms.com/t5/Canvas-Basics-Guide/How-do-I-manage-API-access-tokens-in-my-user-account/ta-p/615312"
@@ -1038,7 +1043,7 @@ export default function CanvasIntegrationCard() {
                       Canvas Documentation
                     </a>
                   </div>
-                </div>
+                </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>

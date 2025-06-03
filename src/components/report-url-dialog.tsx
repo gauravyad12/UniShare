@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogScrollableContent,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Flag, Loader2 } from "lucide-react";
@@ -92,23 +93,25 @@ export default function ReportUrlDialog({
             If you believe this URL is malicious, harmful, or contains inappropriate content, please let us know.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <p className="text-sm font-medium">URL</p>
-            <p className="text-sm break-all bg-muted p-2 rounded">{url}</p>
+        <DialogScrollableContent>
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <p className="text-sm font-medium">URL</p>
+              <p className="text-sm break-all bg-muted p-2 rounded">{url}</p>
+            </div>
+            <div className="grid gap-2">
+              <p className="text-sm font-medium">Reason for reporting (optional)</p>
+              <Textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Please provide details about why you're reporting this URL"
+                className="resize-none"
+                rows={3}
+              />
+            </div>
           </div>
-          <div className="grid gap-2">
-            <p className="text-sm font-medium">Reason for reporting (optional)</p>
-            <Textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Please provide details about why you're reporting this URL"
-              className="resize-none"
-              rows={3}
-            />
-          </div>
-        </div>
-        <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-4 gap-2">
+        </DialogScrollableContent>
+        <DialogFooter>
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting}

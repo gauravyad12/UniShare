@@ -93,9 +93,9 @@ Deno.serve(async (req: Request) => {
     const requestData: AnalysisRequest = await req.json();
     const { base64Image, mimeType, userCourses, userId, filename, fileSize, jobId } = requestData;
 
-    // Determine image detail level based on file size (optimize for speed)
-    const imageDetail = fileSize > 2 * 1024 * 1024 ? 'low' : 'high'; // Use low detail for files > 2MB
-    console.log(`Image size: ${fileSize} bytes, using detail level: ${imageDetail}`);
+    // Determine image detail level - always use high for better accuracy
+    const imageDetail = 'high'; // Always use high detail for best results
+    console.log(`Image size: ${fileSize} bytes, using detail level: ${imageDetail} (always high for accuracy)`);
 
     // Update job status to processing if jobId is provided
     if (jobId) {
@@ -136,7 +136,7 @@ Deno.serve(async (req: Request) => {
 
     // Create OpenAI client with timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout (increased from 25)
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
 
     try {
       // Call OpenAI Vision API
@@ -148,14 +148,16 @@ Deno.serve(async (req: Request) => {
         },
         signal: controller.signal,
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           messages: [
             {
               role: 'user',
               content: [
                 {
                   type: 'text',
-                  text: `Analyze this degree flowchart image and extract course information. ${userCoursesContext}
+                  text: `Analyze this degree flowchart image and extract ALL course information visible in the image. ${userCoursesContext}
+
+IMPORTANT: Please read the ENTIRE flowchart carefully and extract ALL courses you can see, not just a subset. Look at every section, box, and text element in the image.
 
 Please return a JSON response with this exact structure:
 {
@@ -189,13 +191,17 @@ Please return a JSON response with this exact structure:
 }
 
 Rules:
+- Extract ALL courses visible in the flowchart, not just a sample
 - Set status to "completed" for courses the user has already taken
 - Set status to "missing" for required courses not yet taken
 - Set status to "suggested" for elective or optional courses
 - Confidence should be 0.0-1.0 based on how clearly the course is visible/readable
-- Include realistic semester names and credit hours
-- Provide 2-3 suggested graduation pathways
-- Give practical recommendations`
+- Include realistic semester names and credit hours (typically 3-4 credits per course)
+- Provide 2-3 suggested graduation pathways based on the flowchart structure
+- Give practical recommendations based on the degree requirements shown
+- Pay special attention to course codes, names, and any prerequisite arrows or connections
+- If text is unclear, still include the course with lower confidence rather than omitting it
+- Look for courses in all areas of the image including headers, footers, and side panels`
                 },
                 {
                   type: 'image_url',
@@ -207,7 +213,7 @@ Rules:
               ]
             }
           ],
-          max_tokens: 3000,
+          max_tokens: 4000,
           temperature: 0.1
         })
       });

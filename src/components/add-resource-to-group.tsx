@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogScrollableContent,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -357,143 +358,145 @@ export default function AddResourceToGroup({
             Search for resources to add to this study group.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 mt-2">
-          <div className="flex flex-col space-y-3">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-              <Label htmlFor="resource-search" className="text-sm font-medium">Search Resources</Label>
-              <div className="flex border rounded-full overflow-hidden w-full sm:w-auto" style={{ minHeight: '36px'}}>
-                <button
-                  className={`px-4 text-sm flex-1 sm:flex-none transition-colors h-full flex items-center justify-center ${activeTab === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
-                  onClick={() => setActiveTab('all')}
-                  style={{ minHeight: '36px'}}
-                >
-                  All Resources
-                </button>
-                <button
-                  className={`px-4 text-sm flex-1 sm:flex-none transition-colors h-full flex items-center justify-center ${activeTab === 'my' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
-                  onClick={() => setActiveTab('my')}
-                  style={{ minHeight: '36px'}}
-                >
-                  My Resources
-                </button>
+        <DialogScrollableContent>
+          <div className="space-y-4">
+            <div className="flex flex-col space-y-3">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                <Label htmlFor="resource-search" className="text-sm font-medium">Search Resources</Label>
+                <div className="flex border rounded-full overflow-hidden w-full sm:w-auto" style={{ minHeight: '36px'}}>
+                  <button
+                    className={`px-4 text-sm flex-1 sm:flex-none transition-colors h-full flex items-center justify-center ${activeTab === 'all' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
+                    onClick={() => setActiveTab('all')}
+                    style={{ minHeight: '36px'}}
+                  >
+                    All Resources
+                  </button>
+                  <button
+                    className={`px-4 text-sm flex-1 sm:flex-none transition-colors h-full flex items-center justify-center ${activeTab === 'my' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}
+                    onClick={() => setActiveTab('my')}
+                    style={{ minHeight: '36px'}}
+                  >
+                    My Resources
+                  </button>
+                </div>
+              </div>
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="resource-search"
+                  placeholder="Search by title..."
+                  className="pl-10 pr-10 py-2 rounded-full h-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                {searchTerm && (
+                  <button
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground hover:text-foreground rounded-full flex items-center justify-center"
+                    onClick={() => setSearchTerm("")}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </div>
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="resource-search"
-                placeholder="Search by title..."
-                className="pl-10 pr-10 py-2 rounded-full h-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              {searchTerm && (
-                <button
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground hover:text-foreground rounded-full flex items-center justify-center"
-                  onClick={() => setSearchTerm("")}
-                >
-                  <X className="h-4 w-4" />
-                </button>
+
+            <div className="border rounded-lg p-3 max-h-[300px] overflow-y-auto">
+              {loading ? (
+                <div className="flex justify-center items-center h-20">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                </div>
+              ) : resources.length > 0 ? (
+                <div className="space-y-3">
+                  {resources.map((resource) => (
+                    <div
+                      key={resource.id}
+                      className="flex items-start space-x-3 p-3 hover:bg-muted rounded-lg border border-muted/40 transition-colors"
+                    >
+                      <div
+                        className="flex-shrink-0 mt-1 relative w-4 h-4 rounded-sm border border-primary"
+                        onClick={() => toggleResourceSelection(resource.id)}
+                      >
+                        {selectedResources.includes(resource.id) && (
+                          <div className="absolute inset-0 bg-primary flex items-center justify-center">
+                            <Check className="h-3 w-3 text-primary-foreground" />
+                          </div>
+                        )}
+                        <input
+                          type="checkbox"
+                          id={`resource-${resource.id}`}
+                          checked={selectedResources.includes(resource.id)}
+                          onChange={() => toggleResourceSelection(resource.id)}
+                          className="sr-only"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <label
+                          htmlFor={`resource-${resource.id}`}
+                          className="text-sm font-medium cursor-pointer line-clamp-1 block"
+                        >
+                          {resource.title}
+                        </label>
+                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                          {resource.description || "No description"}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                          <span className="text-xs text-muted-foreground inline-flex items-center">
+                            {activeTab === "my" ? "Your resource" :
+                              (() => {
+                                // Try to get the creator name from user_profiles
+                                const supabase = createClient();
+
+                                // Use a direct approach to get the creator name
+                                if (resource.author_id) {
+                                  // We'll fetch the creator info directly here
+                                  supabase
+                                    .from('user_profiles')
+                                    .select('username, full_name')
+                                    .eq('id', resource.author_id)
+                                    .single()
+                                    .then(({ data }: { data: any }) => {
+                                      if (data) {
+                                        // Update the DOM directly since we're in a render function
+                                        const creatorElement = document.getElementById(`creator-${resource.id}`);
+                                        if (creatorElement) {
+                                          creatorElement.textContent = `By ${data.full_name || data.username || 'Unknown'}`;
+                                        }
+                                      }
+                                    })
+                                    .catch((err: Error) => console.error('Error fetching creator:', err));
+
+                                  // Return a placeholder with an ID we can update
+                                  return <span id={`creator-${resource.id}`}>Loading creator...</span>;
+                                } else if (resource.creator_info) {
+                                  return `By ${resource.creator_info.full_name || resource.creator_info.username || "Unknown"}`;
+                                } else {
+                                  return "By resource creator";
+                                }
+                              })()
+                            }
+                          </span>
+                          <span className="inline-flex items-center text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                            <FileText className="h-3 w-3 mr-1" />
+                            {resource.resource_type}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : searchTerm.length > 1 ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  No resources found
+                </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  Type at least 2 characters to search
+                </div>
               )}
             </div>
           </div>
-
-          <div className="border rounded-lg p-3 max-h-[300px] overflow-y-auto">
-            {loading ? (
-              <div className="flex justify-center items-center h-20">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-              </div>
-            ) : resources.length > 0 ? (
-              <div className="space-y-3">
-                {resources.map((resource) => (
-                  <div
-                    key={resource.id}
-                    className="flex items-start space-x-3 p-3 hover:bg-muted rounded-lg border border-muted/40 transition-colors"
-                  >
-                    <div
-                      className="flex-shrink-0 mt-1 relative w-4 h-4 rounded-sm border border-primary"
-                      onClick={() => toggleResourceSelection(resource.id)}
-                    >
-                      {selectedResources.includes(resource.id) && (
-                        <div className="absolute inset-0 bg-primary flex items-center justify-center">
-                          <Check className="h-3 w-3 text-primary-foreground" />
-                        </div>
-                      )}
-                      <input
-                        type="checkbox"
-                        id={`resource-${resource.id}`}
-                        checked={selectedResources.includes(resource.id)}
-                        onChange={() => toggleResourceSelection(resource.id)}
-                        className="sr-only"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <label
-                        htmlFor={`resource-${resource.id}`}
-                        className="text-sm font-medium cursor-pointer line-clamp-1 block"
-                      >
-                        {resource.title}
-                      </label>
-                      <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                        {resource.description || "No description"}
-                      </p>
-                      <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                        <span className="text-xs text-muted-foreground inline-flex items-center">
-                          {activeTab === "my" ? "Your resource" :
-                            (() => {
-                              // Try to get the creator name from user_profiles
-                              const supabase = createClient();
-
-                              // Use a direct approach to get the creator name
-                              if (resource.author_id) {
-                                // We'll fetch the creator info directly here
-                                supabase
-                                  .from('user_profiles')
-                                  .select('username, full_name')
-                                  .eq('id', resource.author_id)
-                                  .single()
-                                  .then(({ data }: { data: any }) => {
-                                    if (data) {
-                                      // Update the DOM directly since we're in a render function
-                                      const creatorElement = document.getElementById(`creator-${resource.id}`);
-                                      if (creatorElement) {
-                                        creatorElement.textContent = `By ${data.full_name || data.username || 'Unknown'}`;
-                                      }
-                                    }
-                                  })
-                                  .catch((err: Error) => console.error('Error fetching creator:', err));
-
-                                // Return a placeholder with an ID we can update
-                                return <span id={`creator-${resource.id}`}>Loading creator...</span>;
-                              } else if (resource.creator_info) {
-                                return `By ${resource.creator_info.full_name || resource.creator_info.username || "Unknown"}`;
-                              } else {
-                                return "By resource creator";
-                              }
-                            })()
-                          }
-                        </span>
-                        <span className="inline-flex items-center text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
-                          <FileText className="h-3 w-3 mr-1" />
-                          {resource.resource_type}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : searchTerm.length > 1 ? (
-              <div className="text-center py-6 text-muted-foreground">
-                No resources found
-              </div>
-            ) : (
-              <div className="text-center py-6 text-muted-foreground">
-                Type at least 2 characters to search
-              </div>
-            )}
-          </div>
-        </div>
-        <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 sm:mt-6">
+        </DialogScrollableContent>
+        <DialogFooter>
           <Button
             variant="outline"
             onClick={() => {

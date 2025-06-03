@@ -32,8 +32,8 @@ import {
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
-import ResourceEditForm from "./resource-edit-form";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogHeaderNoBorder, DialogTitle, DialogScrollableContent, DialogFooter, DialogFooterNoBorder } from "@/components/ui/dialog";
+import ResourceEditForm, { ResourceEditFormRef } from "./resource-edit-form";
 import { Textarea } from "./ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { checkUrlSafety } from "@/utils/urlSafety";
@@ -56,6 +56,7 @@ interface Resource {
   professor?: string;
   file_url?: string;
   external_link?: string;
+  thumbnail_url?: string;
   author_id: string;
   created_at: string;
   view_count: number;
@@ -120,8 +121,8 @@ export default function ResourceView({
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [creatorInfo, setCreatorInfo] = useState<{ id?: string; username?: string; fullName?: string } | null>(null);
-
-
+  const [isFormLoading, setIsFormLoading] = useState(false);
+  const formRef = useRef<ResourceEditFormRef>(null);
 
   // Function to copy to clipboard
   const copyToClipboard = (text: string) => {
@@ -748,6 +749,16 @@ export default function ResourceView({
     }
   };
 
+  const handleFormSubmit = () => {
+    if (formRef.current?.handleSubmit) {
+      formRef.current.handleSubmit();
+    }
+  };
+
+  const handleFormCancel = () => {
+    setShowEditDialog(false);
+  };
+
   return (
     <>
       <Card className="w-full">
@@ -1099,30 +1110,50 @@ export default function ResourceView({
               Update the details of your resource
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-2">
-            <ResourceEditForm resource={resource} />
-          </div>
+          <DialogScrollableContent>
+            <ResourceEditForm 
+              ref={formRef}
+              resource={resource} 
+              onSubmit={setIsFormLoading}
+              onCancel={handleFormCancel}
+            />
+          </DialogScrollableContent>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleFormCancel}
+              disabled={isFormLoading}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="button"
+              onClick={handleFormSubmit}
+              disabled={isFormLoading}
+            >
+              {isFormLoading ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent className="sm:max-w-[425px] p-6">
+        <DialogContent className="sm:max-w-[425px]">
           <div id="delete-resource-description" className="sr-only">Delete resource confirmation dialog</div>
-          <DialogHeader className="space-y-2 text-center sm:text-left">
+          <DialogHeaderNoBorder>
             <DialogTitle className="text-lg font-semibold">Delete Resource</DialogTitle>
             <DialogDescription>
               This action cannot be undone. This will permanently delete the resource
               and all of its data.
             </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 space-y-1 space-y-reverse sm:space-y-0">
+          </DialogHeaderNoBorder>
+          <DialogFooterNoBorder>
             <Button
               variant="outline"
               onClick={() => setShowDeleteDialog(false)}
               disabled={isLoading}
-              className="sm:mt-0 mt-1 h-8 sm:h-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
-              tabIndex={-1}
             >
               Cancel
             </Button>
@@ -1130,11 +1161,11 @@ export default function ResourceView({
               variant="outline"
               onClick={handleDelete}
               disabled={isLoading}
-              className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30 h-8 sm:h-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
+              className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30"
             >
               {isLoading ? "Deleting..." : "Delete"}
             </Button>
-          </div>
+          </DialogFooterNoBorder>
         </DialogContent>
       </Dialog>
     </>

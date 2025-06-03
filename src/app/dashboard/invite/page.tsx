@@ -37,7 +37,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogScrollableContent,
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 
@@ -590,41 +590,43 @@ export default function InvitePage() {
                   Send an invitation email to a friend with your invite code.
                 </DialogDescription>
               </DialogHeader>
-              <form
-                id="invite-email-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  sendInviteEmail();
-                }}
-                className="space-y-4 py-4"
-              >
-                <div className="space-y-2">
-                  <Label htmlFor="email">Friend's Email</Label>
-                  <Input
-                    id="email"
-                    placeholder="friend@university.edu"
-                    type="email"
-                    value={emailInput}
-                    onChange={(e) => {
-                      setEmailInput(e.target.value);
-                      setEmailError("");
-                    }}
-                    autoFocus={false}
-                    className={emailError ? "border-red-500" : ""}
-                    required
-                  />
-                  {emailError && (
-                    <p className="text-red-500 text-sm mt-1">{emailError}</p>
-                  )}
-                </div>
-                <div className="bg-muted p-3 rounded-md text-sm">
-                  <p>
-                    We'll send an email with your invite code and a link to sign
-                    up.
-                  </p>
-                </div>
-              </form>
-              <DialogFooter className="flex-col space-y-2 sm:space-y-0">
+              <DialogScrollableContent>
+                <form
+                  id="invite-email-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    sendInviteEmail();
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Friend's Email</Label>
+                    <Input
+                      id="email"
+                      placeholder="friend@university.edu"
+                      type="email"
+                      value={emailInput}
+                      onChange={(e) => {
+                        setEmailInput(e.target.value);
+                        setEmailError("");
+                      }}
+                      autoFocus={false}
+                      className={emailError ? "border-red-500" : ""}
+                      required
+                    />
+                    {emailError && (
+                      <p className="text-red-500 text-sm mt-1">{emailError}</p>
+                    )}
+                  </div>
+                  <div className="bg-muted p-3 rounded-md text-sm">
+                    <p>
+                      We'll send an email with your invite code and a link to sign
+                      up.
+                    </p>
+                  </div>
+                </form>
+              </DialogScrollableContent>
+              <DialogFooter>
                 <Button
                   type="button"
                   variant="outline"

@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogScrollableContent,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
@@ -94,27 +95,29 @@ export default function ResponsiveJoinButton({ variant = "outline" }: Responsive
             <LinkIcon className="mr-2 h-4 w-4" /> Join with Code
           </Button>
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Join Private Study Group</DialogTitle>
             <DialogDescription>
               Enter an invitation code to join a private study group.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid sm:grid-cols-4 items-center gap-4">
-              <label htmlFor="inviteCode" className="sm:text-right">
-                Invitation Code
-              </label>
-              <Input
-                id="inviteCode"
-                placeholder="Enter code"
-                className="sm:col-span-3"
-                value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value)}
-              />
+          <DialogScrollableContent>
+            <div className="grid gap-4">
+              <div className="grid sm:grid-cols-4 items-center gap-4">
+                <label htmlFor="inviteCode" className="sm:text-right">
+                  Invite Code
+                </label>
+                <Input
+                  id="inviteCode"
+                  placeholder="Enter code"
+                  className="sm:col-span-3"
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
+          </DialogScrollableContent>
           <DialogFooter>
             <Button onClick={handleJoinGroup} disabled={joiningGroup || !inviteCode.trim()}>
               {joiningGroup ? (

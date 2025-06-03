@@ -301,7 +301,7 @@ export default function StudyGroupsClient({ tab = "all" }: { tab?: string }) {
                   <LinkIcon className="mr-2 h-4 w-4" /> Join with Code
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
                 <DialogHeader>
                   <DialogTitle>Join Private Study Group</DialogTitle>
                   <DialogDescription>

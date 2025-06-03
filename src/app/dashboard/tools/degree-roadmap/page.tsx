@@ -48,7 +48,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogHeaderNoBorder, DialogTitle, DialogTrigger, DialogFooter, DialogScrollableContent, DialogFooterNoBorder } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -413,7 +413,7 @@ const CourseCard = ({ course, onEdit, onDelete }: {
               <Badge className={`text-xs ${getStatusColor(course.status)}`}>
                 <div className="flex items-center gap-1">
                   {getStatusIcon(course.status)}
-                  {course.status}
+                  <span className="hidden sm:inline">{course.status}</span>
                 </div>
               </Badge>
             </div>
@@ -592,13 +592,13 @@ const SemesterSection = ({
           <Button
             variant="ghost"
             size="sm"
-            className="absolute top-4 right-4 lg:top-1/2 lg:-translate-y-1/2 lg:right-2 h-8 w-8 p-0 opacity-60 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-500/10 z-10"
+            className="absolute top-4 right-4 lg:top-1/2 lg:-translate-y-1/2 lg:right-2 h-8 w-8 p-0 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-500/10 z-10"
             onClick={(e) => {
               e.stopPropagation();
               onDeleteSemester(semester.id);
             }}
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3 w-3" />
           </Button>
         </div>
         
@@ -670,7 +670,7 @@ const AddSemesterForm = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" id="add-semester-form">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="season">Season</Label>
@@ -2067,7 +2067,7 @@ export default function DegreeRoadmapPage() {
                 )}
                 {canvasChecked && canvasGpa === '0.0' && (
                   <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
-                    Not Connected
+                    Disconnected
                   </Badge>
                 )}
               </CardTitle>
@@ -3802,227 +3802,229 @@ export default function DegreeRoadmapPage() {
                 }
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 px-1">
-              <div className="grid grid-cols-2 gap-4">
+            <DialogScrollableContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <Label htmlFor="course-code">Course Code</Label>
+                      <span className="text-xs text-muted-foreground">{courseFormData.code.length}/{courseCharLimits.code}</span>
+                    </div>
+                    <Input
+                      id="course-code"
+                      placeholder="e.g., COP3502"
+                      value={courseFormData.code}
+                      onChange={(e) => {
+                        const value = e.target.value.toUpperCase();
+                        if (value.length <= courseCharLimits.code) {
+                          setCourseFormData(prev => ({ ...prev, code: value }));
+                          // Clear error when user starts typing
+                          if (courseFormErrors.code) {
+                            setCourseFormErrors(prev => ({ ...prev, code: "" }));
+                          }
+                        }
+                      }}
+                      maxLength={courseCharLimits.code}
+                      className={courseFormErrors.code ? "border-red-500" : ""}
+                      autoFocus={false}
+                    />
+                    {courseFormErrors.code && (
+                      <p className="text-sm text-red-500">{courseFormErrors.code}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <Label htmlFor="course-credits">Credits</Label>
+                      <span className="text-xs text-muted-foreground invisible">0/0</span>
+                    </div>
+                    <Input
+                      id="course-credits"
+                      type="number"
+                      placeholder="3"
+                      min="0"
+                      max="12"
+                      value={courseFormData.credits === 0 ? "" : courseFormData.credits}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === "") {
+                          setCourseFormData(prev => ({ ...prev, credits: 0 }));
+                        } else {
+                          const numValue = parseInt(value);
+                          if (!isNaN(numValue) && numValue >= 0 && numValue <= 12) {
+                            setCourseFormData(prev => ({ ...prev, credits: numValue }));
+                          }
+                        }
+                      }}
+                      autoFocus={false}
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <Label htmlFor="course-code">Course Code</Label>
-                    <span className="text-xs text-muted-foreground">{courseFormData.code.length}/{courseCharLimits.code}</span>
+                    <Label htmlFor="course-name">Course Name</Label>
+                    <span className="text-xs text-muted-foreground">{courseFormData.name.length}/{courseCharLimits.name}</span>
                   </div>
                   <Input
-                    id="course-code"
-                    placeholder="e.g., COP3502"
-                    value={courseFormData.code}
-                    onChange={(e) => {
-                      const value = e.target.value.toUpperCase();
-                      if (value.length <= courseCharLimits.code) {
-                        setCourseFormData(prev => ({ ...prev, code: value }));
+                    id="course-name"
+                    placeholder="e.g., Computer Science I"
+                    value={courseFormData.name}
+                    onChange={async (e) => {
+                      const value = e.target.value;
+                      if (value.length <= courseCharLimits.name) {
+                        setCourseFormData(prev => ({ ...prev, name: value }));
                         // Clear error when user starts typing
-                        if (courseFormErrors.code) {
-                          setCourseFormErrors(prev => ({ ...prev, code: "" }));
+                        if (courseFormErrors.name) {
+                          setCourseFormErrors(prev => ({ ...prev, name: "" }));
+                        }
+                        
+                        // Check for bad words in real-time
+                        if (value.trim()) {
+                          const { containsBadWords } = await import('@/utils/badWords');
+                          if (await containsBadWords(value)) {
+                            setCourseFormErrors(prev => ({ ...prev, name: "Course name contains inappropriate language" }));
+                          }
                         }
                       }
                     }}
-                    maxLength={courseCharLimits.code}
-                    className={courseFormErrors.code ? "border-red-500" : ""}
+                    maxLength={courseCharLimits.name}
+                    className={courseFormErrors.name ? "border-red-500" : ""}
                     autoFocus={false}
                   />
-                  {courseFormErrors.code && (
-                    <p className="text-sm text-red-500">{courseFormErrors.code}</p>
+                  {courseFormErrors.name && (
+                    <p className="text-sm text-red-500">{courseFormErrors.name}</p>
                   )}
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <Label htmlFor="course-credits">Credits</Label>
-                    <span className="text-xs text-muted-foreground invisible">0/0</span>
+                    <Label htmlFor="course-description">Description</Label>
+                    <span className="text-xs text-muted-foreground">{courseFormData.description.length}/{courseCharLimits.description}</span>
                   </div>
-                  <Input
-                    id="course-credits"
-                    type="number"
-                    placeholder="3"
-                    min="0"
-                    max="12"
-                    value={courseFormData.credits === 0 ? "" : courseFormData.credits}
-                    onChange={(e) => {
+                  <Textarea
+                    id="course-description"
+                    placeholder="Course description..."
+                    value={courseFormData.description}
+                    onChange={async (e) => {
                       const value = e.target.value;
-                      if (value === "") {
-                        setCourseFormData(prev => ({ ...prev, credits: 0 }));
-                      } else {
-                        const numValue = parseInt(value);
-                        if (!isNaN(numValue) && numValue >= 0 && numValue <= 12) {
-                          setCourseFormData(prev => ({ ...prev, credits: numValue }));
+                      if (value.length <= courseCharLimits.description) {
+                        setCourseFormData(prev => ({ ...prev, description: value }));
+                        
+                        // Clear error when user starts typing
+                        if (courseFormErrors.description) {
+                          setCourseFormErrors(prev => ({ ...prev, description: "" }));
+                        }
+                        
+                        // Check for bad words in real-time
+                        if (value.trim()) {
+                          const { containsBadWords } = await import('@/utils/badWords');
+                          if (await containsBadWords(value)) {
+                            setCourseFormErrors(prev => ({ ...prev, description: "Description contains inappropriate language" }));
+                          }
                         }
                       }
                     }}
+                    maxLength={courseCharLimits.description}
+                    className={courseFormErrors.description ? "border-red-500" : ""}
                     autoFocus={false}
                   />
+                  {courseFormErrors.description && (
+                    <p className="text-sm text-red-500">{courseFormErrors.description}</p>
+                  )}
                 </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <Label htmlFor="course-name">Course Name</Label>
-                  <span className="text-xs text-muted-foreground">{courseFormData.name.length}/{courseCharLimits.name}</span>
-                </div>
-                <Input
-                  id="course-name"
-                  placeholder="e.g., Computer Science I"
-                  value={courseFormData.name}
-                  onChange={async (e) => {
-                    const value = e.target.value;
-                    if (value.length <= courseCharLimits.name) {
-                      setCourseFormData(prev => ({ ...prev, name: value }));
-                      // Clear error when user starts typing
-                      if (courseFormErrors.name) {
-                        setCourseFormErrors(prev => ({ ...prev, name: "" }));
-                      }
-                      
-                      // Check for bad words in real-time
-                      if (value.trim()) {
-                        const { containsBadWords } = await import('@/utils/badWords');
-                        if (await containsBadWords(value)) {
-                          setCourseFormErrors(prev => ({ ...prev, name: "Course name contains inappropriate language" }));
-                        }
-                      }
-                    }
-                  }}
-                  maxLength={courseCharLimits.name}
-                  className={courseFormErrors.name ? "border-red-500" : ""}
-                  autoFocus={false}
+                <ProfessorSearch
+                  value={selectedProfessor}
+                  onChange={setSelectedProfessor}
                 />
-                {courseFormErrors.name && (
-                  <p className="text-sm text-red-500">{courseFormErrors.name}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <Label htmlFor="course-description">Description</Label>
-                  <span className="text-xs text-muted-foreground">{courseFormData.description.length}/{courseCharLimits.description}</span>
-                </div>
-                <Textarea
-                  id="course-description"
-                  placeholder="Course description..."
-                  value={courseFormData.description}
-                  onChange={async (e) => {
-                    const value = e.target.value;
-                    if (value.length <= courseCharLimits.description) {
-                      setCourseFormData(prev => ({ ...prev, description: value }));
-                      
-                      // Clear error when user starts typing
-                      if (courseFormErrors.description) {
-                        setCourseFormErrors(prev => ({ ...prev, description: "" }));
-                      }
-                      
-                      // Check for bad words in real-time
-                      if (value.trim()) {
-                        const { containsBadWords } = await import('@/utils/badWords');
-                        if (await containsBadWords(value)) {
-                          setCourseFormErrors(prev => ({ ...prev, description: "Description contains inappropriate language" }));
-                        }
-                      }
-                    }
-                  }}
-                  maxLength={courseCharLimits.description}
-                  className={courseFormErrors.description ? "border-red-500" : ""}
-                  autoFocus={false}
-                />
-                {courseFormErrors.description && (
-                  <p className="text-sm text-red-500">{courseFormErrors.description}</p>
-                )}
-              </div>
-              <ProfessorSearch
-                value={selectedProfessor}
-                onChange={setSelectedProfessor}
-              />
-              <div className="space-y-2">
-                <Label htmlFor="course-difficulty">Difficulty Rating</Label>
-                <Select 
-                  value={courseFormData.difficulty.toString()} 
-                  onValueChange={(value) => setCourseFormData(prev => ({ ...prev, difficulty: parseInt(value) }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">⭐ Very Easy</SelectItem>
-                    <SelectItem value="2">⭐⭐ Easy</SelectItem>
-                    <SelectItem value="3">⭐⭐⭐ Moderate</SelectItem>
-                    <SelectItem value="4">⭐⭐⭐⭐ Hard</SelectItem>
-                    <SelectItem value="5">⭐⭐⭐⭐⭐ Very Hard</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="course-status">Status</Label>
+                  <Label htmlFor="course-difficulty">Difficulty Rating</Label>
                   <Select 
-                    value={courseFormData.status} 
-                    onValueChange={(value) => setCourseFormData(prev => ({ ...prev, status: value as Course['status'] }))}
+                    value={courseFormData.difficulty.toString()} 
+                    onValueChange={(value) => setCourseFormData(prev => ({ ...prev, difficulty: parseInt(value) }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="planned">Planned</SelectItem>
-                      <SelectItem value="in-progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="failed">Failed</SelectItem>
+                      <SelectItem value="1">⭐ Very Easy</SelectItem>
+                      <SelectItem value="2">⭐⭐ Easy</SelectItem>
+                      <SelectItem value="3">⭐⭐⭐ Moderate</SelectItem>
+                      <SelectItem value="4">⭐⭐⭐⭐ Hard</SelectItem>
+                      <SelectItem value="5">⭐⭐⭐⭐⭐ Very Hard</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="course-grade">Grade</Label>
-                  <Select 
-                    value={courseFormData.grade || "none"} 
-                    onValueChange={(value) => setCourseFormData(prev => ({ ...prev, grade: value === "none" ? "" : value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select grade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No Grade</SelectItem>
-                      <SelectItem value="A+">A+</SelectItem>
-                      <SelectItem value="A">A</SelectItem>
-                      <SelectItem value="A-">A-</SelectItem>
-                      <SelectItem value="B+">B+</SelectItem>
-                      <SelectItem value="B">B</SelectItem>
-                      <SelectItem value="B-">B-</SelectItem>
-                      <SelectItem value="C+">C+</SelectItem>
-                      <SelectItem value="C">C</SelectItem>
-                      <SelectItem value="C-">C-</SelectItem>
-                      <SelectItem value="D+">D+</SelectItem>
-                      <SelectItem value="D">D</SelectItem>
-                      <SelectItem value="D-">D-</SelectItem>
-                      <SelectItem value="F">F</SelectItem>
-                      <SelectItem value="W">W (Withdrawn)</SelectItem>
-                      <SelectItem value="I">I (Incomplete)</SelectItem>
-                      <SelectItem value="P">P (Pass)</SelectItem>
-                      <SelectItem value="NP">NP (No Pass)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="course-status">Status</Label>
+                    <Select 
+                      value={courseFormData.status} 
+                      onValueChange={(value) => setCourseFormData(prev => ({ ...prev, status: value as Course['status'] }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="planned">Planned</SelectItem>
+                        <SelectItem value="in-progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="failed">Failed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="course-grade">Grade</Label>
+                    <Select 
+                      value={courseFormData.grade || "none"} 
+                      onValueChange={(value) => setCourseFormData(prev => ({ ...prev, grade: value === "none" ? "" : value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select grade" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No Grade</SelectItem>
+                        <SelectItem value="A+">A+</SelectItem>
+                        <SelectItem value="A">A</SelectItem>
+                        <SelectItem value="A-">A-</SelectItem>
+                        <SelectItem value="B+">B+</SelectItem>
+                        <SelectItem value="B">B</SelectItem>
+                        <SelectItem value="B-">B-</SelectItem>
+                        <SelectItem value="C+">C+</SelectItem>
+                        <SelectItem value="C">C</SelectItem>
+                        <SelectItem value="C-">C-</SelectItem>
+                        <SelectItem value="D+">D+</SelectItem>
+                        <SelectItem value="D">D</SelectItem>
+                        <SelectItem value="D-">D-</SelectItem>
+                        <SelectItem value="F">F</SelectItem>
+                        <SelectItem value="W">W (Withdrawn)</SelectItem>
+                        <SelectItem value="I">I (Incomplete)</SelectItem>
+                        <SelectItem value="P">P (Pass)</SelectItem>
+                        <SelectItem value="NP">NP (No Pass)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 pb-2">
+            </DialogScrollableContent>
+            <DialogFooter>
               <Button variant="outline" onClick={() => setIsEditingCourse(false)}>
                 Cancel
               </Button>
               <Button onClick={handleSaveCourse}>
                 {selectedCourse ? 'Update' : 'Add'} Course
               </Button>
-            </div>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 
         {/* Delete Roadmap Confirmation Dialog */}
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <DialogContent className="max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
-            <DialogHeader>
+            <DialogHeaderNoBorder>
               <DialogTitle>Delete Roadmap</DialogTitle>
               <DialogDescription>
                 Are you sure you want to delete "{selectedRoadmap?.name}"? This action cannot be undone and will permanently remove all courses and semesters.
               </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-6 pb-2">
+            </DialogHeaderNoBorder>
+            <DialogFooterNoBorder>
               <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
                 Cancel
               </Button>
@@ -4043,7 +4045,7 @@ export default function DegreeRoadmapPage() {
                   </>
                 )}
               </Button>
-            </div>
+            </DialogFooterNoBorder>
           </DialogContent>
         </Dialog>
 
@@ -4056,12 +4058,12 @@ export default function DegreeRoadmapPage() {
                 Add a new semester to your degree roadmap
               </DialogDescription>
             </DialogHeader>
-            <div className="px-1">
+            <DialogScrollableContent>
               <AddSemesterForm 
                 onSave={handleSaveSemester}
                 onCancel={() => setIsAddingSemester(false)}
               />
-            </div>
+            </DialogScrollableContent>
           </DialogContent>
         </Dialog>
 

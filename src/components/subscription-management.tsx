@@ -13,6 +13,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogHeaderNoBorder,
+  DialogFooterNoBorder,
 } from "@/components/ui/dialog";
 
 interface SubscriptionManagementProps {
@@ -455,21 +457,18 @@ export default function SubscriptionManagement({
 
                     {/* Cancel Confirmation Dialog */}
                     <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-                      <DialogContent className="sm:max-w-[425px] p-6">
-                        <div id="cancel-subscription-description" className="sr-only">Cancel subscription confirmation dialog</div>
-                        <DialogHeader className="space-y-2 text-center sm:text-left">
-                          <DialogTitle className="text-lg font-semibold">Cancel Subscription</DialogTitle>
+                      <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeaderNoBorder>
+                          <DialogTitle>Cancel Subscription</DialogTitle>
                           <DialogDescription>
                             Are you sure you want to cancel your Scholar+ subscription? You'll still have access to all Scholar+ features until the end of your current billing period.
                           </DialogDescription>
-                        </DialogHeader>
-                        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 space-y-1 space-y-reverse sm:space-y-0">
+                        </DialogHeaderNoBorder>
+                        <DialogFooterNoBorder>
                           <Button
                             variant="outline"
                             onClick={() => setShowCancelDialog(false)}
                             disabled={cancelLoading}
-                            className="sm:mt-0 mt-1 h-8 sm:h-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
-                            tabIndex={-1}
                           >
                             Cancel
                           </Button>
@@ -480,7 +479,7 @@ export default function SubscriptionManagement({
                               setShowCancelDialog(false);
                             }}
                             disabled={cancelLoading}
-                            className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30 h-8 sm:h-9 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none"
+                            className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30"
                           >
                             {cancelLoading ? (
                               <>
@@ -491,7 +490,7 @@ export default function SubscriptionManagement({
                               "Cancel Subscription"
                             )}
                           </Button>
-                        </div>
+                        </DialogFooterNoBorder>
                       </DialogContent>
                     </Dialog>
                   </>

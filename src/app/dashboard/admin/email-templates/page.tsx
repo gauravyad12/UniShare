@@ -26,7 +26,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogScrollableContent,
 } from "@/components/ui/dialog";
+import AdminAccessGuard from "@/components/admin-access-guard";
 
 interface EmailTemplate {
   id: string;
@@ -337,380 +339,388 @@ export default function EmailTemplatesPage() {
   };
 
   if (loading) {
-    return <LoadingSpinner />;
+    return (
+      <AdminAccessGuard>
+        <LoadingSpinner />
+      </AdminAccessGuard>
+    );
   }
 
   if (!isAdmin) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Access Denied</AlertTitle>
-          <AlertDescription>
-            You do not have permission to access this page. This page is
-            restricted to administrators only.
-          </AlertDescription>
-        </Alert>
-      </div>
+      <AdminAccessGuard>
+        <div className="container mx-auto px-4 py-8">
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Access Denied</AlertTitle>
+            <AlertDescription>
+              You do not have permission to access this page. This page is
+              restricted to administrators only.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </AdminAccessGuard>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Email Templates</h1>
-        <Button onClick={fetchTemplates} variant="outline">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
-      </div>
-
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {saveResult && (
-        <Alert
-          variant={saveResult.success ? "default" : "destructive"}
-          className="mb-6"
-        >
-          {saveResult.success ? (
-            <CheckCircle className="h-4 w-4" />
-          ) : (
-            <AlertCircle className="h-4 w-4" />
-          )}
-          <AlertTitle>{saveResult.success ? "Success" : "Failed"}</AlertTitle>
-          <AlertDescription>{saveResult.message}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Templates</CardTitle>
-              <CardDescription>
-                Select a template to view or edit
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {templates.length === 0 ? (
-                  <p className="text-center py-4 text-muted-foreground">
-                    No templates found
-                  </p>
-                ) : (
-                  templates.map((template) => (
-                    <div
-                      key={template.id}
-                      className={`p-3 rounded-md cursor-pointer ${
-                        selectedTemplate?.id === template.id
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted/40 hover:bg-muted"
-                      }`}
-                      onClick={() => handleSelectTemplate(template)}
-                    >
-                      <p className="font-medium">{template.name}</p>
-                      <p className="text-xs truncate">
-                        {template.description || "No description"}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
+    <AdminAccessGuard>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Email Templates</h1>
+          <Button onClick={fetchTemplates} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
         </div>
 
-        <div className="md:col-span-3">
-          {selectedTemplate ? (
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {saveResult && (
+          <Alert
+            variant={saveResult.success ? "default" : "destructive"}
+            className="mb-6"
+          >
+            {saveResult.success ? (
+              <CheckCircle className="h-4 w-4" />
+            ) : (
+              <AlertCircle className="h-4 w-4" />
+            )}
+            <AlertTitle>{saveResult.success ? "Success" : "Failed"}</AlertTitle>
+            <AlertDescription>{saveResult.message}</AlertDescription>
+          </Alert>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="md:col-span-1">
             <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>{selectedTemplate.name}</CardTitle>
-                    <CardDescription>
-                      {selectedTemplate.description || "No description"}
-                    </CardDescription>
-                  </div>
-                  <div className="flex space-x-2">
-                    {!isEditing ? (
-                      <>
-                        <Button onClick={handleOpenTestDialog} variant="outline">
-                          <Send className="h-4 w-4 mr-2" />
-                          Test
-                        </Button>
-                        <Button onClick={handleEditClick}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button onClick={handleCancelEdit} variant="outline">
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={handleSaveTemplate}
-                          disabled={isSaving}
-                        >
-                          {isSaving ? (
-                            <>
-                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                              Saving...
-                            </>
-                          ) : (
-                            "Save Changes"
-                          )}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
+                <CardTitle>Templates</CardTitle>
+                <CardDescription>
+                  Select a template to view or edit
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                {isEditing ? (
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="subject">Subject</Label>
-                      <Input
-                        id="subject"
-                        value={editedTemplate.subject || ""}
-                        onChange={(e) => handleInputChange("subject", e.target.value)}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="description">Description</Label>
-                      <Input
-                        id="description"
-                        value={editedTemplate.description || ""}
-                        onChange={(e) => handleInputChange("description", e.target.value)}
-                      />
-                    </div>
-
-                    <Tabs defaultValue="html">
-                      <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="html">HTML Content</TabsTrigger>
-                        <TabsTrigger value="text">Text Content</TabsTrigger>
-                      </TabsList>
-                      <TabsContent value="html" className="space-y-2">
-                        <Label htmlFor="html_content">HTML Content</Label>
-                        <Textarea
-                          id="html_content"
-                          value={editedTemplate.html_content || ""}
-                          onChange={(e) => handleInputChange("html_content", e.target.value)}
-                          className="min-h-[400px] font-mono text-sm"
-                        />
-                      </TabsContent>
-                      <TabsContent value="text" className="space-y-2">
-                        <Label htmlFor="text_content">Text Content</Label>
-                        <Textarea
-                          id="text_content"
-                          value={editedTemplate.text_content || ""}
-                          onChange={(e) => handleInputChange("text_content", e.target.value)}
-                          className="min-h-[400px] font-mono text-sm"
-                        />
-                      </TabsContent>
-                    </Tabs>
-
-                    <div className="bg-muted p-4 rounded-md">
-                      <h3 className="font-medium mb-2">Available Variables</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedTemplate.variables &&
-                         selectedTemplate.variables.variables &&
-                         selectedTemplate.variables.variables.map((variable) => (
-                          <div key={variable} className="bg-primary/10 px-2 py-1 rounded text-sm">
-                            {`{{${variable}}}`}
-                          </div>
-                        ))}
+                <div className="space-y-2">
+                  {templates.length === 0 ? (
+                    <p className="text-center py-4 text-muted-foreground">
+                      No templates found
+                    </p>
+                  ) : (
+                    templates.map((template) => (
+                      <div
+                        key={template.id}
+                        className={`p-3 rounded-md cursor-pointer ${
+                          selectedTemplate?.id === template.id
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted/40 hover:bg-muted"
+                        }`}
+                        onClick={() => handleSelectTemplate(template)}
+                      >
+                        <p className="font-medium">{template.name}</p>
+                        <p className="text-xs truncate">
+                          {template.description || "No description"}
+                        </p>
                       </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="font-medium mb-1">Subject</h3>
-                      <p className="p-3 bg-muted/40 rounded-md">
-                        {selectedTemplate.subject}
-                      </p>
-                    </div>
-
-                    <Tabs defaultValue="preview">
-                      <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="preview">
-                          <Eye className="h-4 w-4 mr-2" />
-                          Preview
-                        </TabsTrigger>
-                        <TabsTrigger value="html">HTML Content</TabsTrigger>
-                        <TabsTrigger value="text">Text Content</TabsTrigger>
-                      </TabsList>
-
-                      <TabsContent value="preview" className="space-y-4">
-                        <div className="space-y-4 mt-4">
-                          <h3 className="font-medium">Preview Variables</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {selectedTemplate.variables &&
-                             selectedTemplate.variables.variables &&
-                             selectedTemplate.variables.variables.map((variable) => (
-                              <div key={variable} className="space-y-1">
-                                <Label htmlFor={`preview-${variable}`}>{`{{${variable}}}`}</Label>
-                                <Input
-                                  id={`preview-${variable}`}
-                                  placeholder={variable}
-                                  value={previewVariables[variable] || ''}
-                                  onChange={(e) => handlePreviewVariableChange(variable, e.target.value)}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="border rounded-md mt-4 overflow-hidden">
-                          <div className="bg-muted p-2 border-b flex justify-between items-center">
-                            <span className="text-sm font-medium">Email Preview</span>
-                          </div>
-                          <iframe
-                            ref={previewIframeRef}
-                            srcDoc={previewHtml}
-                            className="w-full h-[500px] border-0"
-                            title="Email Preview"
-                          />
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="html">
-                        <div className="border rounded-md p-4 mt-2 overflow-auto max-h-[400px]">
-                          <pre className="text-sm whitespace-pre-wrap font-mono">
-                            {selectedTemplate.html_content}
-                          </pre>
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="text">
-                        <div className="border rounded-md p-4 mt-2 overflow-auto max-h-[400px]">
-                          <pre className="text-sm whitespace-pre-wrap font-mono">
-                            {selectedTemplate.text_content}
-                          </pre>
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-
-                    <div className="bg-muted p-4 rounded-md">
-                      <h3 className="font-medium mb-2">Available Variables</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedTemplate.variables &&
-                         selectedTemplate.variables.variables &&
-                         selectedTemplate.variables.variables.map((variable) => (
-                          <div key={variable} className="bg-primary/10 px-2 py-1 rounded text-sm">
-                            {`{{${variable}}}`}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
+                    ))
+                  )}
+                </div>
               </CardContent>
             </Card>
-          ) : (
-            <Card>
-              <CardContent className="p-6">
-                <p className="text-center text-muted-foreground">
-                  Select a template from the list to view or edit
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-
-      {/* Test Email Dialog */}
-      <Dialog open={isTestDialogOpen} onOpenChange={setIsTestDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Send Test Email</DialogTitle>
-            <DialogDescription>
-              Fill in the variables and recipient email to send a test email
-            </DialogDescription>
-          </DialogHeader>
-
-          {testResult && (
-            <Alert
-              variant={testResult.success ? "default" : "destructive"}
-              className="mb-4"
-            >
-              {testResult.success ? (
-                <CheckCircle className="h-4 w-4" />
-              ) : (
-                <AlertCircle className="h-4 w-4" />
-              )}
-              <AlertTitle>{testResult.success ? "Success" : "Failed"}</AlertTitle>
-              <AlertDescription>{testResult.message}</AlertDescription>
-            </Alert>
-          )}
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="recipient">Recipient Email</Label>
-              <Input
-                id="recipient"
-                type="email"
-                placeholder="test@example.com"
-                value={testEmailData.recipient}
-                onChange={(e) => setTestEmailData(prev => ({...prev, recipient: e.target.value}))}
-              />
-            </div>
-
-            <Separator />
-
-            <div>
-              <h3 className="font-medium mb-2">Template Variables</h3>
-              <div className="space-y-3">
-                {Object.keys(testEmailData.variables).map((variable) => (
-                  <div key={variable} className="space-y-1">
-                    <Label htmlFor={`var-${variable}`}>{`{{${variable}}}`}</Label>
-                    <Input
-                      id={`var-${variable}`}
-                      placeholder={variable}
-                      value={testEmailData.variables[variable]}
-                      onChange={(e) => handleTestVariableChange(variable, e.target.value)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
 
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsTestDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSendTestEmail}
-              disabled={isSendingTest || !testEmailData.recipient}
-            >
-              {isSendingTest ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Send Test
-                </>
+          <div className="md:col-span-3">
+            {selectedTemplate ? (
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>{selectedTemplate.name}</CardTitle>
+                      <CardDescription>
+                        {selectedTemplate.description || "No description"}
+                      </CardDescription>
+                    </div>
+                    <div className="flex space-x-2">
+                      {!isEditing ? (
+                        <>
+                          <Button onClick={handleOpenTestDialog} variant="outline">
+                            <Send className="h-4 w-4 mr-2" />
+                            Test
+                          </Button>
+                          <Button onClick={handleEditClick}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <Button onClick={handleCancelEdit} variant="outline">
+                            Cancel
+                          </Button>
+                          <Button
+                            onClick={handleSaveTemplate}
+                            disabled={isSaving}
+                          >
+                            {isSaving ? (
+                              <>
+                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              "Save Changes"
+                            )}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {isEditing ? (
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="subject">Subject</Label>
+                        <Input
+                          id="subject"
+                          value={editedTemplate.subject || ""}
+                          onChange={(e) => handleInputChange("subject", e.target.value)}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="description">Description</Label>
+                        <Input
+                          id="description"
+                          value={editedTemplate.description || ""}
+                          onChange={(e) => handleInputChange("description", e.target.value)}
+                        />
+                      </div>
+
+                      <Tabs defaultValue="html">
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="html">HTML Content</TabsTrigger>
+                          <TabsTrigger value="text">Text Content</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="html" className="space-y-2">
+                          <Label htmlFor="html_content">HTML Content</Label>
+                          <Textarea
+                            id="html_content"
+                            value={editedTemplate.html_content || ""}
+                            onChange={(e) => handleInputChange("html_content", e.target.value)}
+                            className="min-h-[400px] font-mono text-sm"
+                          />
+                        </TabsContent>
+                        <TabsContent value="text" className="space-y-2">
+                          <Label htmlFor="text_content">Text Content</Label>
+                          <Textarea
+                            id="text_content"
+                            value={editedTemplate.text_content || ""}
+                            onChange={(e) => handleInputChange("text_content", e.target.value)}
+                            className="min-h-[400px] font-mono text-sm"
+                          />
+                        </TabsContent>
+                      </Tabs>
+
+                      <div className="bg-muted p-4 rounded-md">
+                        <h3 className="font-medium mb-2">Available Variables</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedTemplate.variables &&
+                           selectedTemplate.variables.variables &&
+                           selectedTemplate.variables.variables.map((variable) => (
+                            <div key={variable} className="bg-primary/10 px-2 py-1 rounded text-sm">
+                              {`{{${variable}}}`}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="font-medium mb-1">Subject</h3>
+                        <p className="p-3 bg-muted/40 rounded-md">
+                          {selectedTemplate.subject}
+                        </p>
+                      </div>
+
+                      <Tabs defaultValue="preview">
+                        <TabsList className="grid w-full grid-cols-3">
+                          <TabsTrigger value="preview">
+                            <Eye className="h-4 w-4 mr-2" />
+                            Preview
+                          </TabsTrigger>
+                          <TabsTrigger value="html">HTML Content</TabsTrigger>
+                          <TabsTrigger value="text">Text Content</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="preview" className="space-y-4">
+                          <div className="space-y-4 mt-4">
+                            <h3 className="font-medium">Preview Variables</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {selectedTemplate.variables &&
+                               selectedTemplate.variables.variables &&
+                               selectedTemplate.variables.variables.map((variable) => (
+                                <div key={variable} className="space-y-1">
+                                  <Label htmlFor={`preview-${variable}`}>{`{{${variable}}}`}</Label>
+                                  <Input
+                                    id={`preview-${variable}`}
+                                    placeholder={variable}
+                                    value={previewVariables[variable] || ''}
+                                    onChange={(e) => handlePreviewVariableChange(variable, e.target.value)}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="border rounded-md mt-4 overflow-hidden">
+                            <div className="bg-muted p-2 border-b flex justify-between items-center">
+                              <span className="text-sm font-medium">Email Preview</span>
+                            </div>
+                            <iframe
+                              ref={previewIframeRef}
+                              srcDoc={previewHtml}
+                              className="w-full h-[500px] border-0"
+                              title="Email Preview"
+                            />
+                          </div>
+                        </TabsContent>
+
+                        <TabsContent value="html">
+                          <div className="border rounded-md p-4 mt-2 overflow-auto max-h-[400px]">
+                            <pre className="text-sm whitespace-pre-wrap font-mono">
+                              {selectedTemplate.html_content}
+                            </pre>
+                          </div>
+                        </TabsContent>
+
+                        <TabsContent value="text">
+                          <div className="border rounded-md p-4 mt-2 overflow-auto max-h-[400px]">
+                            <pre className="text-sm whitespace-pre-wrap font-mono">
+                              {selectedTemplate.text_content}
+                            </pre>
+                          </div>
+                        </TabsContent>
+                      </Tabs>
+
+                      <div className="bg-muted p-4 rounded-md">
+                        <h3 className="font-medium mb-2">Available Variables</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedTemplate.variables &&
+                           selectedTemplate.variables.variables &&
+                           selectedTemplate.variables.variables.map((variable) => (
+                            <div key={variable} className="bg-primary/10 px-2 py-1 rounded text-sm">
+                              {`{{${variable}}}`}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="p-6">
+                  <p className="text-center text-muted-foreground">
+                    Select a template from the list to view or edit
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+
+        {/* Test Email Dialog */}
+        <Dialog open={isTestDialogOpen} onOpenChange={setIsTestDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Send Test Email</DialogTitle>
+              <DialogDescription>
+                Fill in the variables and recipient email to send a test email
+              </DialogDescription>
+            </DialogHeader>
+            <DialogScrollableContent>
+              {testResult && (
+                <Alert
+                  variant={testResult.success ? "default" : "destructive"}
+                  className="mb-4"
+                >
+                  {testResult.success ? (
+                    <CheckCircle className="h-4 w-4" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4" />
+                  )}
+                  <AlertTitle>{testResult.success ? "Success" : "Failed"}</AlertTitle>
+                  <AlertDescription>{testResult.message}</AlertDescription>
+                </Alert>
               )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="recipient">Recipient Email</Label>
+                  <Input
+                    id="recipient"
+                    type="email"
+                    placeholder="test@example.com"
+                    value={testEmailData.recipient}
+                    onChange={(e) => setTestEmailData(prev => ({...prev, recipient: e.target.value}))}
+                  />
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h3 className="font-medium mb-2">Template Variables</h3>
+                  <div className="space-y-3">
+                    {Object.keys(testEmailData.variables).map((variable) => (
+                      <div key={variable} className="space-y-1">
+                        <Label htmlFor={`var-${variable}`}>{`{{${variable}}}`}</Label>
+                        <Input
+                          id={`var-${variable}`}
+                          placeholder={variable}
+                          value={testEmailData.variables[variable]}
+                          onChange={(e) => handleTestVariableChange(variable, e.target.value)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </DialogScrollableContent>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsTestDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSendTestEmail}
+                disabled={isSendingTest || !testEmailData.recipient}
+              >
+                {isSendingTest ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Send Test
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </AdminAccessGuard>
   );
 }

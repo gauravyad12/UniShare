@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogScrollableContent,
 } from "@/components/ui/dialog";
 import {
   Card,
@@ -205,63 +206,63 @@ export default function StudyGroupInvitations({
                     Create a link to invite people to join this study group.
                   </DialogDescription>
                 </DialogHeader>
-
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
-                    <Label htmlFor="expires" className="sm:text-right">
-                      Expires in
-                    </Label>
-                    <div className="sm:col-span-3">
-                      <Select
-                        value={expiresIn}
-                        onValueChange={setExpiresIn}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select expiration time" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">1 hour</SelectItem>
-                          <SelectItem value="6">6 hours</SelectItem>
-                          <SelectItem value="12">12 hours</SelectItem>
-                          <SelectItem value="24">24 hours</SelectItem>
-                          <SelectItem value="48">2 days</SelectItem>
-                          <SelectItem value="168">7 days</SelectItem>
-                          <SelectItem value="720">30 days</SelectItem>
-                          <SelectItem value="0">Never expires</SelectItem>
-                        </SelectContent>
-                      </Select>
+                <DialogScrollableContent>
+                  <div className="grid gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+                      <Label htmlFor="expires" className="sm:text-right">
+                        Expires in
+                      </Label>
+                      <div className="sm:col-span-3">
+                        <Select
+                          value={expiresIn}
+                          onValueChange={setExpiresIn}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select expiration time" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1 hour</SelectItem>
+                            <SelectItem value="6">6 hours</SelectItem>
+                            <SelectItem value="12">12 hours</SelectItem>
+                            <SelectItem value="24">24 hours</SelectItem>
+                            <SelectItem value="48">2 days</SelectItem>
+                            <SelectItem value="168">7 days</SelectItem>
+                            <SelectItem value="720">30 days</SelectItem>
+                            <SelectItem value="0">Never expires</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
+                      <Label htmlFor="maxUses" className="sm:text-right">
+                        Max uses
+                      </Label>
+                      <div className="sm:col-span-3">
+                        <Input
+                          id="maxUses"
+                          type="number"
+                          min="1"
+                          placeholder="Unlimited"
+                          value={maxUses}
+                          onChange={(e) => {
+                            // Only allow numeric input
+                            const value = e.target.value;
+                            if (value === '' || /^\d+$/.test(value)) {
+                              setMaxUses(value);
+                            }
+                          }}
+                          onKeyPress={(e) => {
+                            // Prevent non-numeric characters from being entered
+                            if (!/\d/.test(e.key)) {
+                              e.preventDefault();
+                            }
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-4 items-start sm:items-center gap-2 sm:gap-4">
-                    <Label htmlFor="maxUses" className="sm:text-right">
-                      Max uses
-                    </Label>
-                    <div className="sm:col-span-3">
-                      <Input
-                        id="maxUses"
-                        type="number"
-                        min="1"
-                        placeholder="Unlimited"
-                        value={maxUses}
-                        onChange={(e) => {
-                          // Only allow numeric input
-                          const value = e.target.value;
-                          if (value === '' || /^\d+$/.test(value)) {
-                            setMaxUses(value);
-                          }
-                        }}
-                        onKeyPress={(e) => {
-                          // Prevent non-numeric characters from being entered
-                          if (!/\d/.test(e.key)) {
-                            e.preventDefault();
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+                </DialogScrollableContent>
+                <DialogFooter>
                   <Button
                     onClick={handleCreateInvitation}
                     disabled={creating}
