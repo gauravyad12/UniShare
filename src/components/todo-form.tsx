@@ -30,7 +30,14 @@ export default function TodoForm({ onAddTodo }: TodoFormProps) {
   // Check if we're on mobile
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768); // md breakpoint in Tailwind
+      const width = window.innerWidth;
+      const hasTouchCapability = 'ontouchstart' in window ||
+                                navigator.maxTouchPoints > 0 ||
+                                (navigator as any).msMaxTouchPoints > 0;
+
+      // Consider mobile if width is small OR device has touch capability
+      const mobileDevice = width < 768 || hasTouchCapability;
+      setIsMobile(mobileDevice);
     };
 
     // Initial check

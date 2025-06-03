@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar, Clock, MapPin, Link as LinkIcon, Plus, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import MobileDateTimePicker from "./mobile-date-time-picker";
 
 interface ScheduleGroupMeetingProps {
   groupId: string;
@@ -46,6 +47,11 @@ export default function ScheduleGroupMeeting({
   const [location, setLocation] = useState("");
   const [meetingLink, setMeetingLink] = useState("");
   const [scheduling, setScheduling] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // For mobile date time picker
+  const [startDateTime, setStartDateTime] = useState(new Date());
+  const [endDateTime, setEndDateTime] = useState(new Date());
 
   // Character counts
   const [charCounts, setCharCounts] = useState({
@@ -63,6 +69,31 @@ export default function ScheduleGroupMeeting({
     meetingLink?: string;
     dateTime?: string;
   }>({});
+
+  // Detect mobile devices
+  useEffect(() => {
+    const checkMobile = () => {
+      const width = window.innerWidth;
+      const hasTouchCapability = 'ontouchstart' in window ||
+                                navigator.maxTouchPoints > 0 ||
+                                (navigator as any).msMaxTouchPoints > 0;
+
+      // Consider mobile if width is small OR device has touch capability
+      const mobileDevice = width < 768 || hasTouchCapability;
+      setIsMobile(mobileDevice);
+    };
+
+    // Initial check
+    checkMobile();
+
+    // Add event listener for window resize
+    window.addEventListener("resize", checkMobile);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+    };
+  }, []);
 
   const handleScheduleMeeting = async () => {
     // Clear previous errors
@@ -86,14 +117,34 @@ export default function ScheduleGroupMeeting({
       hasErrors = true;
     }
 
-    if (!startDate || !startTime) {
-      errors.dateTime = "Start date and time are required";
-      hasErrors = true;
-    }
+    // Get date/time values based on device type
+    let startDateTimeValue: Date;
+    let endDateTimeValue: Date;
 
-    if (!endDate || !endTime) {
-      errors.dateTime = "End date and time are required";
-      hasErrors = true;
+    if (isMobile) {
+      // Use the date objects directly from the mobile picker
+      startDateTimeValue = startDateTime;
+      endDateTimeValue = endDateTime;
+    } else {
+      // Validate desktop inputs
+      if (!startDate || !startTime) {
+        errors.dateTime = "Start date and time are required";
+        hasErrors = true;
+      }
+
+      if (!endDate || !endTime) {
+        errors.dateTime = "End date and time are required";
+        hasErrors = true;
+      }
+
+      if (hasErrors) {
+        setFormErrors(errors);
+        return;
+      }
+
+      // Convert dates and times to ISO strings for desktop inputs
+      startDateTimeValue = new Date(`${startDate}T${startTime}`);
+      endDateTimeValue = new Date(`${endDate}T${endTime}`);
     }
 
     // Check for bad words
@@ -127,10 +178,6 @@ export default function ScheduleGroupMeeting({
       setFormErrors(errors);
       return;
     }
-
-    // Convert dates and times to ISO strings
-    const startDateTimeValue = new Date(`${startDate}T${startTime}`);
-    const endDateTimeValue = new Date(`${endDate}T${endTime}`);
 
     // Validate dates
     if (isNaN(startDateTimeValue.getTime()) || isNaN(endDateTimeValue.getTime())) {
@@ -224,15 +271,21 @@ export default function ScheduleGroupMeeting({
     const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
     const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
 
-    // Format dates for input fields
-    const dateStr = format(now, "yyyy-MM-dd");
-    const startTimeStr = format(oneHourLater, "HH:mm");
-    const endTimeStr = format(twoHoursLater, "HH:mm");
+    if (isMobile) {
+      // Set mobile date/time picker values
+      setStartDateTime(oneHourLater);
+      setEndDateTime(twoHoursLater);
+    } else {
+      // Format dates for desktop input fields
+      const dateStr = format(now, "yyyy-MM-dd");
+      const startTimeStr = format(oneHourLater, "HH:mm");
+      const endTimeStr = format(twoHoursLater, "HH:mm");
 
-    setStartDate(dateStr);
-    setEndDate(dateStr);
-    setStartTime(startTimeStr);
-    setEndTime(endTimeStr);
+      setStartDate(dateStr);
+      setEndDate(dateStr);
+      setStartTime(startTimeStr);
+      setEndTime(endTimeStr);
+    }
   };
 
   // Update character counts when values change
@@ -377,102 +430,125 @@ export default function ScheduleGroupMeeting({
               )}
             </div>
 
+            {/* Date/time selector - different for mobile and desktop */}
             <div className="space-y-4">
               {formErrors.dateTime && (
                 <p className="text-xs text-red-500">{formErrors.dateTime}</p>
               )}
               
-              <div className="grid gap-2">
-                <Label htmlFor="start-datetime">Start Date & Time</Label>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <div className="relative flex-1">
-                    <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="start-date"
-                      type="date"
-                      className="pl-8 w-full"
-                      value={startDate}
-                      onChange={(e) => {
-                        setStartDate(e.target.value);
-                        // Clear date/time error when user selects a date
-                        if (formErrors.dateTime) {
-                          setFormErrors(prev => {
-                            const newErrors = { ...prev };
-                            delete newErrors.dateTime;
-                            return newErrors;
-                          });
-                        }
-                      }}
-                    />
-                  </div>
-                  <div className="relative flex-1">
-                    <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="start-time"
-                      type="time"
-                      className="pl-8 w-full"
-                      value={startTime}
-                      onChange={(e) => {
-                        setStartTime(e.target.value);
-                        // Clear date/time error when user selects a time
-                        if (formErrors.dateTime) {
-                          setFormErrors(prev => {
-                            const newErrors = { ...prev };
-                            delete newErrors.dateTime;
-                            return newErrors;
-                          });
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
+              {isMobile ? (
+                // Mobile custom date/time picker
+                <>
+                  <MobileDateTimePicker
+                    label="Start Date & Time"
+                    value={startDateTime}
+                    onChange={(date) => setStartDateTime(date)}
+                    icon="calendar"
+                  />
 
-              <div className="grid gap-2">
-                <Label htmlFor="end-datetime">End Date & Time</Label>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <div className="relative flex-1">
-                    <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="end-date"
-                      type="date"
-                      className="pl-8 w-full"
-                      value={endDate}
-                      onChange={(e) => {
-                        setEndDate(e.target.value);
-                        // Clear date/time error when user selects a date
-                        if (formErrors.dateTime) {
-                          setFormErrors(prev => {
-                            const newErrors = { ...prev };
-                            delete newErrors.dateTime;
-                            return newErrors;
-                          });
-                        }
-                      }}
-                    />
+                  <MobileDateTimePicker
+                    label="End Date & Time"
+                    value={endDateTime}
+                    onChange={(date) => setEndDateTime(date)}
+                    icon="clock"
+                  />
+                </>
+              ) : (
+                // Desktop standard date/time inputs
+                <>
+                  <div className="grid gap-2">
+                    <Label htmlFor="start-datetime">Start Date & Time</Label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="relative flex-1">
+                        <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="start-date"
+                          type="date"
+                          className="pl-8 w-full"
+                          value={startDate}
+                          onChange={(e) => {
+                            setStartDate(e.target.value);
+                            // Clear date/time error when user selects a date
+                            if (formErrors.dateTime) {
+                              setFormErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.dateTime;
+                                return newErrors;
+                              });
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="relative flex-1">
+                        <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="start-time"
+                          type="time"
+                          className="pl-8 w-full"
+                          value={startTime}
+                          onChange={(e) => {
+                            setStartTime(e.target.value);
+                            // Clear date/time error when user selects a time
+                            if (formErrors.dateTime) {
+                              setFormErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.dateTime;
+                                return newErrors;
+                              });
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="relative flex-1">
-                    <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="end-time"
-                      type="time"
-                      className="pl-8 w-full"
-                      value={endTime}
-                      onChange={(e) => {
-                        setEndTime(e.target.value);
-                        // Clear date/time error when user selects a time
-                        if (formErrors.dateTime) {
-                          setFormErrors(prev => {
-                            const newErrors = { ...prev };
-                            delete newErrors.dateTime;
-                            return newErrors;
-                          });
-                        }
-                      }}
-                    />
+
+                  <div className="grid gap-2">
+                    <Label htmlFor="end-datetime">End Date & Time</Label>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="relative flex-1">
+                        <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="end-date"
+                          type="date"
+                          className="pl-8 w-full"
+                          value={endDate}
+                          onChange={(e) => {
+                            setEndDate(e.target.value);
+                            // Clear date/time error when user selects a date
+                            if (formErrors.dateTime) {
+                              setFormErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.dateTime;
+                                return newErrors;
+                              });
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="relative flex-1">
+                        <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="end-time"
+                          type="time"
+                          className="pl-8 w-full"
+                          value={endTime}
+                          onChange={(e) => {
+                            setEndTime(e.target.value);
+                            // Clear date/time error when user selects a time
+                            if (formErrors.dateTime) {
+                              setFormErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.dateTime;
+                                return newErrors;
+                              });
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
 
             <div className="grid gap-2">
