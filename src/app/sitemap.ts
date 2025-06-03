@@ -8,9 +8,6 @@ export const dynamic = 'force-dynamic';
 type PublicProfile = {
   username: string;
   updated_at: string | null;
-  user_settings: {
-    profile_visibility: boolean;
-  };
 };
 
 type PublicResource = {
@@ -112,23 +109,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     // Get public user profiles (limit to 1000 to prevent sitemap from becoming too large)
-    const { data: publicProfiles, error: profilesError } = await supabase
-      .from('user_profiles')
+    // First get user settings with profile_visibility = true, then join with user_profiles
+    const { data: publicSettings, error: settingsError } = await supabase
+      .from('user_settings')
       .select(`
-        username, 
-        updated_at,
-        user_settings!inner(profile_visibility)
+        user_id,
+        user_profiles!inner(
+          username,
+          updated_at,
+          is_verified
+        )
       `)
-      .eq('is_verified', true)
-      .eq('user_settings.profile_visibility', true)
+      .eq('profile_visibility', true)
+      .not('user_profiles.username', 'is', null)
+      .eq('user_profiles.is_verified', true)
       .limit(1000);
 
-    if (profilesError) {
-      console.error('Error fetching public profiles for sitemap:', profilesError);
+    if (settingsError) {
+      console.error('Error fetching public profiles for sitemap:', settingsError);
     } else {
-      profileRoutes = (publicProfiles || []).map((profile: PublicProfile) => ({
-        url: `${baseUrl}/u/${profile.username}`,
-        lastModified: new Date(profile.updated_at || currentDate),
+      profileRoutes = (publicSettings || []).map((setting: any) => ({
+        url: `${baseUrl}/u/${setting.user_profiles.username}`,
+        lastModified: new Date(setting.user_profiles.updated_at || currentDate),
         changeFrequency: 'weekly' as const,
         priority: 0.7,
       }));
