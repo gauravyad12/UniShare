@@ -108,32 +108,37 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let studyGroupRoutes: MetadataRoute.Sitemap = [];
 
   try {
-    // Get public user profiles (limit to 1000 to prevent sitemap from becoming too large)
-    // First get user settings with profile_visibility = true, then join with user_profiles
+    // Get public user profiles using a two-step approach
+    // Step 1: Get user IDs with profile_visibility = true
     const { data: publicSettings, error: settingsError } = await supabase
       .from('user_settings')
-      .select(`
-        user_id,
-        user_profiles!inner(
-          username,
-          updated_at,
-          is_verified
-        )
-      `)
+      .select('user_id')
       .eq('profile_visibility', true)
-      .not('user_profiles.username', 'is', null)
-      .eq('user_profiles.is_verified', true)
       .limit(1000);
 
     if (settingsError) {
-      console.error('Error fetching public profiles for sitemap:', settingsError);
-    } else {
-      profileRoutes = (publicSettings || []).map((setting: any) => ({
-        url: `${baseUrl}/u/${setting.user_profiles.username}`,
-        lastModified: new Date(setting.user_profiles.updated_at || currentDate),
-        changeFrequency: 'weekly' as const,
-        priority: 0.7,
-      }));
+      console.error('Error fetching public settings for sitemap:', settingsError);
+    } else if (publicSettings && publicSettings.length > 0) {
+      // Step 2: Get user profiles for those user IDs
+      const userIds = publicSettings.map((setting: { user_id: string }) => setting.user_id);
+      const { data: profiles, error: profilesError } = await supabase
+        .from('user_profiles')
+        .select('username, updated_at')
+        .in('id', userIds)
+        .eq('is_verified', true)
+        .not('username', 'is', null)
+        .limit(1000);
+
+      if (profilesError) {
+        console.error('Error fetching profiles for sitemap:', profilesError);
+      } else {
+        profileRoutes = (profiles || []).map((profile: PublicProfile) => ({
+          url: `${baseUrl}/u/${profile.username}`,
+          lastModified: new Date(profile.updated_at || currentDate),
+          changeFrequency: 'weekly' as const,
+          priority: 0.7,
+        }));
+      }
     }
 
     // Get public resources (limit to 1000)
