@@ -1202,7 +1202,7 @@ export default function AIEssayWriterPage() {
             <div className="lg:col-span-2 space-y-6">
               <Card>
                 <CardHeader>
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                  <div className="flex justify-between items-start gap-3">
                     <div className="flex-1">
                       <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-2">
                         <div className="flex items-center gap-2">
@@ -1217,12 +1217,11 @@ export default function AIEssayWriterPage() {
                         Write your essay with AI assistance
                       </CardDescription>
                     </div>
-                    <div className="flex gap-2 sm:flex-shrink-0">
+                    <div className="flex gap-2 flex-shrink-0">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setShowPreview(!showPreview)}
-                        className="w-full sm:w-auto"
                       >
                         {showPreview ? <EyeOff className="h-4 w-4 sm:mr-2" /> : <Eye className="h-4 w-4 sm:mr-2" />}
                         <span className="hidden sm:inline">{showPreview ? 'Edit' : 'Preview'}</span>

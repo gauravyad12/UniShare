@@ -46,7 +46,7 @@ export default function MobileToolsSection({ hasSubscription = false }: MobileTo
     {
       id: "ai-essay-writer",
       name: "AI Essay Writer",
-      comingSoon: true,
+      comingSoon: false,
       path: "/dashboard/tools/ai-essay-writer",
       icon: FileText,
     },

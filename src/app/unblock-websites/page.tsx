@@ -1,7 +1,11 @@
+"use client";
+
 export const dynamic = "force-dynamic";
 
 import { Metadata } from "next";
 import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -16,13 +20,30 @@ import Footer from "@/components/footer";
 import Navbar from "@/components/navbar";
 import { Globe, Lock, Shield, Zap } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "UniShare | Unblock Websites",
-  description:
-    "Access educational resources and research materials blocked by university networks",
-};
-
 export default function UnblockWebsitesPage() {
+  const [url, setUrl] = useState("");
+  const router = useRouter();
+
+  const handleAccessWebsite = () => {
+    if (!url.trim()) return;
+    
+    // Add https:// if no protocol is specified
+    let formattedUrl = url.trim();
+    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
+    
+    // Encode the URL and redirect to the proxy tool
+    const encodedUrl = encodeURIComponent(formattedUrl);
+    router.push(`/dashboard/tools/proxy-browser?url=${encodedUrl}`);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleAccessWebsite();
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -48,13 +69,16 @@ export default function UnblockWebsitesPage() {
               <Input
                 placeholder="https://example.com"
                 className="flex-1"
-                disabled
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onKeyPress={handleKeyPress}
               />
-              <Button disabled>Access Website</Button>
+              <Button onClick={handleAccessWebsite} disabled={!url.trim()}>
+                Access Website
+              </Button>
             </div>
             <p className="text-sm text-muted-foreground mt-2">
-              Note: This service is coming soon and is intended for accessing
-              legitimate educational resources only.
+              Note: This service is intended for accessing legitimate educational resources only.
             </p>
           </div>
 
