@@ -2795,8 +2795,9 @@ export default function DegreeRoadmapPage() {
                       </Button>
                       
                       <Button 
-                        variant="destructive" 
+                        variant="outline" 
                         size="sm" 
+                        className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30"
                         disabled={selectedCourses.size === 0 || isPerformingBulkAction}
                         onClick={handleBulkDelete}
                       >
@@ -3766,9 +3767,9 @@ export default function DegreeRoadmapPage() {
                   </CardContent>
                   <CardFooter>
                     <Button 
-                      variant="destructive" 
+                      variant="outline" 
                       onClick={() => setIsDeleteDialogOpen(true)}
-                      className="w-full md:w-auto"
+                      className="w-full md:w-auto text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete Roadmap
@@ -4029,9 +4030,10 @@ export default function DegreeRoadmapPage() {
                 Cancel
               </Button>
               <Button 
-                variant="destructive" 
+                variant="outline" 
                 onClick={handleDeleteRoadmap}
                 disabled={isDeletingRoadmap}
+                className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30"
               >
                 {isDeletingRoadmap ? (
                   <>

@@ -82,7 +82,7 @@ export default function ToolsPage({
       icon: FileText,
       category: "ai",
       path: "/dashboard/tools/ai-essay-writer",
-      comingSoon: true,
+      comingSoon: false,
     },
     {
       id: "ai-document-chat",

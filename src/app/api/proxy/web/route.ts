@@ -213,13 +213,14 @@ export async function GET(request: NextRequest) {
     // Decode the URL if it's encoded (handle double encoding and HTML entities)
     let decodedUrl = decodeURIComponent(url);
 
-    // Handle HTML entities like &amp; -> &
+    // Handle HTML entities safely to prevent double-unescaping
+    // Process in a specific order to avoid conflicts
     decodedUrl = decodedUrl
-      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'");
+      .replace(/&amp;/g, '&'); // Process &amp; last to prevent double-unescaping
 
     // Handle relative URLs by detecting the referrer
     let targetUrl: URL;
@@ -749,13 +750,14 @@ export async function POST(request: NextRequest) {
     // Decode the URL if it's encoded (handle double encoding and HTML entities)
     let decodedUrl = decodeURIComponent(url);
 
-    // Handle HTML entities like &amp; -> &
+    // Handle HTML entities safely to prevent double-unescaping
+    // Process in a specific order to avoid conflicts
     decodedUrl = decodedUrl
-      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'");
+      .replace(/&amp;/g, '&'); // Process &amp; last to prevent double-unescaping
 
     // Security validation (same as GET)
     let targetUrl: URL;
@@ -955,8 +957,9 @@ function modifyHtmlForProxy(html: string, targetUrl: URL): string {
               return originalFetch(url, options);
             }
 
-            // Skip data URLs, blob URLs, etc.
-            if (url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('javascript:')) {
+            // Skip data URLs, blob URLs, and dangerous script URLs
+            const dangerousSchemes = ['javascript:', 'vbscript:', 'data:', 'blob:', 'file:', 'ftp:'];
+            if (dangerousSchemes.some(scheme => url.toLowerCase().startsWith(scheme))) {
               return originalFetch(url, options);
             }
 
@@ -992,8 +995,9 @@ function modifyHtmlForProxy(html: string, targetUrl: URL): string {
                 return originalOpen.call(this, method, url, ...args);
               }
 
-              // Skip data URLs, blob URLs, etc.
-              if (url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('javascript:')) {
+              // Skip data URLs, blob URLs, and dangerous script URLs
+              const dangerousSchemes = ['javascript:', 'vbscript:', 'data:', 'blob:', 'file:', 'ftp:'];
+              if (dangerousSchemes.some(scheme => url.toLowerCase().startsWith(scheme))) {
                 return originalOpen.call(this, method, url, ...args);
               }
 
@@ -1159,7 +1163,8 @@ function modifyHtmlForProxy(html: string, targetUrl: URL): string {
           while (el && el.tagName !== 'A') el = el.parentElement;
           if (el && el.tagName === 'A' && el.href) {
             const href = el.getAttribute('href');
-            if (href && !href.startsWith('#') && !href.startsWith('javascript:')) {
+            const dangerousSchemes = ['javascript:', 'vbscript:', 'data:', 'blob:', 'file:', 'ftp:'];
+            if (href && !href.startsWith('#') && !dangerousSchemes.some(scheme => href.toLowerCase().startsWith(scheme))) {
               e.preventDefault();
               let targetUrl = href;
               if (href.startsWith('/')) {
@@ -1196,8 +1201,9 @@ function rewriteUrlsInHtml(html: string, baseUrl: string): string {
 
   // Helper function to rewrite a URL
   const rewriteUrl = (url: string): string => {
-    // Skip data URLs, blob URLs, javascript URLs, anchors
-    if (url.startsWith('data:') || url.startsWith('blob:') || url.startsWith('javascript:') || url.startsWith('#')) {
+    // Skip data URLs, blob URLs, and dangerous script URLs, anchors
+    const dangerousSchemes = ['javascript:', 'vbscript:', 'data:', 'blob:', 'file:', 'ftp:'];
+    if (url.startsWith('#') || dangerousSchemes.some(scheme => url.toLowerCase().startsWith(scheme))) {
       return url;
     }
     if (url.startsWith('http') || url.startsWith('//')) {

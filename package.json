@@ -74,6 +74,7 @@
     "@mapbox/node-pre-gyp": {
       "npmlog": "^7.0.1"
     },
-    "npmlog": "^7.0.1"
+    "npmlog": "^7.0.1",
+    "tar-fs": "^2.1.3"
   }
 }
