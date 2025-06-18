@@ -103,7 +103,6 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
         <meta name="theme-color" content="#000000" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
@@ -128,7 +127,12 @@ export default function RootLayout({
             <GlobalLoadingSpinner />
             <KeyboardAwareLayout />
             <AppilixRootIdentity />
-            <ViewportWarningWrapper minWidth={365} minHeight={400}>
+            <ViewportWarningWrapper 
+              minWidth={365} 
+              minHeight={400}
+              enableMobileOptimization={true}
+              strictMode={false}
+            >
               {children}
             </ViewportWarningWrapper>
             <NavigationEvents />

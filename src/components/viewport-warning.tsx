@@ -17,31 +17,71 @@ export default function ViewportWarning({
   const [isTooNarrow, setIsTooNarrow] = useState(false);
   const [isTooShort, setIsTooShort] = useState(false);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [deviceInfo, setDeviceInfo] = useState({ 
+    dpr: 1, 
+    isAndroid: false, 
+    isIOS: false,
+    actualWidth: 0 
+  });
 
   useEffect(() => {
-    // Function to check viewport dimensions
+    // Function to get device information
+    const getDeviceInfo = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const userAgent = navigator.userAgent;
+      const isAndroid = /Android/i.test(userAgent);
+      const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+      
+      return { dpr, isAndroid, isIOS };
+    };
+
+    // Function to check viewport dimensions with device-aware logic
     const checkViewport = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
+      const info = getDeviceInfo();
+      
+      // Calculate actual physical width for comparison
+      const actualWidth = width * info.dpr;
+      
+      // Adjust minimum width based on device type
+      let adjustedMinWidth = minWidth;
+      
+             // Be more lenient for mobile devices, especially Android
+       if (info.isAndroid || info.isIOS) {
+         // Additional Android-specific adjustments for high-DPR devices
+         if (info.isAndroid && width < 360 && actualWidth > 1000) {
+           // This is likely a high-DPR Android device reporting low logical width
+           // but has sufficient physical width - don't show warning
+           adjustedMinWidth = width - 1;
+         }
+       }
 
-      const tooNarrow = width < minWidth;
+      const tooNarrow = width < adjustedMinWidth;
       const tooShort = height < minHeight;
 
       setIsTooNarrow(tooNarrow);
       setIsTooShort(tooShort);
       setIsVisible(tooNarrow || tooShort);
       setDimensions({ width, height });
+      setDeviceInfo({ ...info, actualWidth });
     };
 
-    // Check on initial load
-    checkViewport();
+    // Check on initial load with a small delay to ensure proper initialization
+    const timeoutId = setTimeout(checkViewport, 100);
 
     // Add event listener for resize
     window.addEventListener("resize", checkViewport);
+    // Also listen for orientation changes on mobile
+    window.addEventListener("orientationchange", () => {
+      setTimeout(checkViewport, 500); // Delay after orientation change
+    });
 
     // Cleanup
     return () => {
+      clearTimeout(timeoutId);
       window.removeEventListener("resize", checkViewport);
+      window.removeEventListener("orientationchange", checkViewport);
     };
   }, [minWidth, minHeight]);
 
