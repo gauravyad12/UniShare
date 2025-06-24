@@ -2,6 +2,15 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createClient } from "./utils/supabase/middleware";
 
+// Helper function to get the appropriate base URL for redirects
+function getBaseUrl(): string {
+  if (process.env.NODE_ENV === 'development') {
+    const port = process.env.PORT || '3000';
+    return `http://localhost:${port}`;
+  }
+  return `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
+}
+
 // Helper function to clear auth cookies when session is invalid
 function clearAuthCookies(response: NextResponse) {
   // Clear common Supabase auth cookie patterns
@@ -30,7 +39,7 @@ function handleAuthError(error: any, pathname: string, isProtectedRoute: boolean
     
     if (isProtectedRoute) {
       // For protected routes, redirect to sign-in and clear cookies
-      const response = NextResponse.redirect(new URL('/sign-in?error=Session expired. Please sign in again.', 'https://unishare.app'));
+      const response = NextResponse.redirect(new URL('/sign-in?error=Session expired. Please sign in again.', getBaseUrl()));
       return clearAuthCookies(response);
     } else {
       // For non-protected routes, just clear cookies and continue
@@ -165,7 +174,7 @@ export async function middleware(req: NextRequest) {
         if (session.expires_at && session.expires_at < currentTime) {
           console.warn("Session expired, clearing cookies and redirecting");
           if (isProtectedRoute) {
-            const redirectResponse = NextResponse.redirect(new URL('/sign-in?error=Your session has expired. Please sign in again.', url));
+            const redirectResponse = NextResponse.redirect(new URL('/sign-in?error=Your session has expired. Please sign in again.', getBaseUrl()));
             return clearAuthCookies(redirectResponse);
           } else {
             const response = NextResponse.next();
@@ -202,15 +211,15 @@ export async function middleware(req: NextRequest) {
 
     // Handle protected routes
     if (isProtectedRoute && !user) {
-      url.pathname = "/sign-in";
-      url.searchParams.set("error", "Please sign in to access the dashboard");
-      return NextResponse.redirect(url);
+      const redirectUrl = new URL('/sign-in', getBaseUrl());
+      redirectUrl.searchParams.set("error", "Please sign in to access the dashboard");
+      return NextResponse.redirect(redirectUrl);
     }
 
     // Handle auth routes when user is already logged in
     if (isAuthRoute && user) {
-      url.pathname = "/dashboard";
-      return NextResponse.redirect(url);
+      const redirectUrl = new URL('/dashboard', getBaseUrl());
+      return NextResponse.redirect(redirectUrl);
     }
 
     // Add security headers to prevent common attacks

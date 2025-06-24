@@ -23,8 +23,7 @@ interface CourseNode {
 export default async function Image({ params }: { params: { id: string } }) {
   try {
     const roadmapId = params.id;
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-                   (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://unishare.app');
+    const baseUrl = process.env.NODE_ENV === 'development' ? `http://localhost:${process.env.PORT || 3000}` : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
 
     // Fetch roadmap data
     const supabase = createClient();

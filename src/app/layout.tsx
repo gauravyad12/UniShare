@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   title: "UniShare | Academic Resource Sharing Platform",
   description:
     "An exclusive platform for university students to collaborate, share academic resources, and form study groups in a secure environment.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://unishare.app'),
+  metadataBase: new URL(process.env.NODE_ENV === 'development' ? `http://localhost:${process.env.PORT || 3000}` : `https://${process.env.NEXT_PUBLIC_DOMAIN}`),
   keywords: [
     "university", "student", "academic", "resources", "study groups",
     "collaboration", "education", "learning", "college", "university resources"
@@ -42,13 +42,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://unishare.app",
+    url: process.env.NODE_ENV === 'development' ? `http://localhost:${process.env.PORT || 3000}` : `https://${process.env.NEXT_PUBLIC_DOMAIN}`,
     title: "UniShare | Academic Resource Sharing Platform",
     description: "An exclusive platform for university students to collaborate, share academic resources, and form study groups in a secure environment.",
     siteName: "UniShare",
     images: [
       {
-        url: "https://unishare.app/api/og/default",
+        url: `${process.env.NODE_ENV === 'development' ? `http://localhost:${process.env.PORT || 3000}` : `https://${process.env.NEXT_PUBLIC_DOMAIN}`}/api/og/default`,
         width: 1200,
         height: 630,
         alt: "UniShare - Academic Resource Sharing Platform",
@@ -60,7 +60,7 @@ export const metadata: Metadata = {
     title: "UniShare | Academic Resource Sharing Platform",
     description: "An exclusive platform for university students to collaborate, share academic resources, and form study groups in a secure environment.",
     creator: "@useunishare",
-    images: ["https://unishare.app/api/og/default"],
+    images: [`${process.env.NODE_ENV === 'development' ? `http://localhost:${process.env.PORT || 3000}` : `https://${process.env.NEXT_PUBLIC_DOMAIN}`}/api/og/default`],
   },
   robots: {
     index: true,

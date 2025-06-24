@@ -24,18 +24,14 @@ export async function checkUrlSafety(url: string): Promise<{
     }
     // In server environment, use fallbacks in the specified order
     else {
-      // Fallback order: unishare.app, localhost, NEXT_PUBLIC_SITE_URL
-      const baseUrl = 'https://unishare.app';
+      // Fallback order: custom domain, localhost
+      const baseUrl = `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
 
       // For local development (if detected)
       if (process.env.NODE_ENV === 'development') {
-        apiUrl = 'http://localhost:3000/api/url/check-safety';
+        apiUrl = `http://localhost:${process.env.PORT || 3000}/api/url/check-safety`;
       }
-      // Use NEXT_PUBLIC_SITE_URL as last resort if available
-      else if (process.env.NEXT_PUBLIC_SITE_URL) {
-        apiUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/url/check-safety`;
-      }
-      // Default to unishare.app
+      // Default to configured domain
       else {
         apiUrl = `${baseUrl}/api/url/check-safety`;
       }

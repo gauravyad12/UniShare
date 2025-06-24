@@ -170,6 +170,87 @@ CREATE TABLE IF NOT EXISTS public.study_group_resources (
     UNIQUE(study_group_id, resource_id)
 );
 
+-- Document Chat Documents table
+CREATE TABLE IF NOT EXISTS public.document_chat_documents (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    name text NOT NULL,
+    type text NOT NULL,
+    size bigint NOT NULL,
+    storage_path text NOT NULL,
+    status text DEFAULT 'processing' CHECK (status IN ('processing', 'ready', 'error')),
+    content text,
+    page_count integer,
+    text_chunks jsonb,
+    error_message text,
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
+
+-- Document Chat Sessions table
+CREATE TABLE IF NOT EXISTS public.document_chat_sessions (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    name text NOT NULL,
+    document_ids uuid[] DEFAULT '{}',
+    messages jsonb DEFAULT '[]',
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
+
+-- Document Processing Jobs table
+CREATE TABLE IF NOT EXISTS public.document_processing_jobs (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    document_id uuid REFERENCES public.document_chat_documents(id) ON DELETE CASCADE,
+    filename text NOT NULL,
+    file_size bigint NOT NULL,
+    status text DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+    result jsonb,
+    error_message text,
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+    completed_at timestamp with time zone
+);
+
+-- Flowchart Analysis Jobs table
+CREATE TABLE IF NOT EXISTS public.flowchart_analysis_jobs (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    filename text NOT NULL,
+    file_size bigint NOT NULL,
+    status text DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+    analysis_result jsonb,
+    error_message text,
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+    completed_at timestamp with time zone
+);
+
+-- Essay Analysis Jobs table
+CREATE TABLE IF NOT EXISTS public.essay_analysis_jobs (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    operation_type text NOT NULL CHECK (operation_type IN ('outline', 'content', 'analyze')),
+    prompt text,
+    content text,
+    title text,
+    outline text,
+    essay_type text,
+    word_count integer,
+    academic_level text,
+    citation_style text,
+    requirements jsonb DEFAULT '[]',
+    rubric jsonb,
+    custom_rubric text,
+    status text DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+    result jsonb,
+    error_message text,
+    created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+    updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
+    completed_at timestamp with time zone
+);
+
 -- Universities table
 CREATE TABLE IF NOT EXISTS public.universities (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -347,6 +428,20 @@ CREATE INDEX IF NOT EXISTS webhook_events_type_idx ON public.webhook_events(type
 CREATE INDEX IF NOT EXISTS webhook_events_stripe_event_id_idx ON public.webhook_events(stripe_event_id);
 CREATE INDEX IF NOT EXISTS webhook_events_event_type_idx ON public.webhook_events(event_type);
 
+-- Document Chat indexes
+CREATE INDEX IF NOT EXISTS document_chat_documents_user_id_idx ON public.document_chat_documents(user_id);
+CREATE INDEX IF NOT EXISTS document_chat_documents_status_idx ON public.document_chat_documents(status);
+CREATE INDEX IF NOT EXISTS document_chat_sessions_user_id_idx ON public.document_chat_sessions(user_id);
+
+-- Job table indexes
+CREATE INDEX IF NOT EXISTS document_processing_jobs_user_id_idx ON public.document_processing_jobs(user_id);
+CREATE INDEX IF NOT EXISTS document_processing_jobs_status_idx ON public.document_processing_jobs(status);
+CREATE INDEX IF NOT EXISTS document_processing_jobs_document_id_idx ON public.document_processing_jobs(document_id);
+CREATE INDEX IF NOT EXISTS flowchart_analysis_jobs_user_id_idx ON public.flowchart_analysis_jobs(user_id);
+CREATE INDEX IF NOT EXISTS flowchart_analysis_jobs_status_idx ON public.flowchart_analysis_jobs(status);
+CREATE INDEX IF NOT EXISTS essay_analysis_jobs_user_id_idx ON public.essay_analysis_jobs(user_id);
+CREATE INDEX IF NOT EXISTS essay_analysis_jobs_status_idx ON public.essay_analysis_jobs(status);
+
 -- Enable Row Level Security on all tables
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
@@ -361,6 +456,8 @@ ALTER TABLE public.resources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.resource_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.resource_likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.study_group_resources ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.document_chat_documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.document_chat_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.universities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invite_codes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sent_invitations ENABLE ROW LEVEL SECURITY;
@@ -872,3 +969,17 @@ DROP TRIGGER IF EXISTS update_study_group_member_count_trigger ON study_group_me
 CREATE TRIGGER update_study_group_member_count_trigger
   AFTER INSERT OR DELETE ON study_group_members
   FOR EACH ROW EXECUTE FUNCTION update_study_group_member_count();
+
+-- Row Level Security Policies for Document Chat
+
+-- Document Chat Documents policies
+CREATE POLICY "Users can view their own documents" ON public.document_chat_documents FOR SELECT USING (user_id = auth.uid()::uuid);
+CREATE POLICY "Users can insert their own documents" ON public.document_chat_documents FOR INSERT WITH CHECK (user_id = auth.uid()::uuid);
+CREATE POLICY "Users can update their own documents" ON public.document_chat_documents FOR UPDATE USING (user_id = auth.uid()::uuid);
+CREATE POLICY "Users can delete their own documents" ON public.document_chat_documents FOR DELETE USING (user_id = auth.uid()::uuid);
+
+-- Document Chat Sessions policies
+CREATE POLICY "Users can view their own chat sessions" ON public.document_chat_sessions FOR SELECT USING (user_id = auth.uid()::uuid);
+CREATE POLICY "Users can insert their own chat sessions" ON public.document_chat_sessions FOR INSERT WITH CHECK (user_id = auth.uid()::uuid);
+CREATE POLICY "Users can update their own chat sessions" ON public.document_chat_sessions FOR UPDATE USING (user_id = auth.uid()::uuid);
+CREATE POLICY "Users can delete their own chat sessions" ON public.document_chat_sessions FOR DELETE USING (user_id = auth.uid()::uuid);

@@ -8,8 +8,7 @@ export const size = {
 export const contentType = 'image/png';
 
 export default async function Image() {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-                 (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://unishare.app');
+  const baseUrl = process.env.NODE_ENV === 'development' ? `http://localhost:${process.env.PORT || 3000}` : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
 
   // Redirect to the Scholar+ social image
   return new Response(null, {

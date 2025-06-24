@@ -91,7 +91,7 @@ export default function ToolsPage({
       icon: MessageSquare,
       category: "ai",
       path: "/dashboard/tools/ai-document-chat",
-      comingSoon: true,
+      comingSoon: false,
     },
     {
       id: "ai-lecture-notes",

@@ -7,7 +7,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const username = params.username;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unishare.app';
+  const baseUrl = process.env.NODE_ENV === 'development' ? `http://localhost:${process.env.PORT || 3000}` : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
 
   // Fetch user profile to get the full name if available
   const supabase = createClient();

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClientSubscriptionCheck } from "@/components/client-subscription-check";
+import { SubscriptionRequiredNotice } from "@/components/subscription-required-notice";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { useMobileDetection } from "@/hooks/use-mobile-detection";
@@ -531,16 +532,14 @@ export default function ProxyBrowserPage() {
 
   return (
     <ClientSubscriptionCheck redirectTo="/pricing">
-      <div className="container mx-auto px-4 pt-4 pb-4">
+      <div className="container mx-auto px-4 py-8 pb-15 md:pb-8">
         <DynamicPageTitle title="UniShare | Proxy Browser" />
 
         <header className="mb-8">
-          <div className="flex flex-col items-start gap-0 mb-2 sm:flex-row sm:items-center sm:gap-2">
-            <div className="flex items-center gap-2">
-              <Globe className="h-6 w-6 text-primary" />
-              <h1 className="text-3xl font-bold">Proxy Browser</h1>
-            </div>
-            <Badge variant="outline" className="bg-primary/5 text-primary mt-2 sm:mt-0">
+          <div className="flex items-center gap-2 mb-2">
+            <Globe className="h-6 w-6 text-primary" />
+            <h1 className="text-3xl font-bold">Proxy Browser</h1>
+            <Badge variant="outline" className="bg-primary/5 text-primary">
               <Shield className="h-3 w-3 mr-1" />
               Secure
             </Badge>
@@ -713,6 +712,9 @@ export default function ProxyBrowserPage() {
             </CardContent>
           </Card>
         )}
+
+        {/* This component will only show if the user doesn't have an active subscription */}
+        <SubscriptionRequiredNotice />
       </div>
     </ClientSubscriptionCheck>
   );

@@ -8,7 +8,7 @@ type Props = {
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   // We can't get the origin from the request in metadata.ts, so we'll use the environment variable
   // This is a limitation of Next.js metadata API
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://unishare.app';
+  const baseUrl = process.env.NODE_ENV === 'development' ? `http://localhost:${process.env.PORT || 3000}` : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
 
   // If viewing a specific study group
   if (searchParams.view) {

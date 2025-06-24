@@ -276,7 +276,8 @@ export async function GET(request: NextRequest) {
 
     // Block access to our own domain to prevent recursion and confusion
     const hostname = targetUrl.hostname.toLowerCase();
-    if (hostname.includes('unishare.app') || hostname.includes('localhost:3000') || hostname.includes('127.0.0.1:3000')) {
+    const currentDomain = process.env.NEXT_PUBLIC_DOMAIN;
+    if ((currentDomain && hostname.includes(currentDomain)) || hostname.includes('localhost:3000') || hostname.includes('127.0.0.1:3000')) {
       return new NextResponse('Access to UniShare domains is not allowed through the proxy', { status: 403 });
     }
 
@@ -773,7 +774,8 @@ export async function POST(request: NextRequest) {
 
     // Block access to our own domain to prevent recursion and confusion
     const hostname = targetUrl.hostname.toLowerCase();
-    if (hostname.includes('unishare.app') || hostname.includes('localhost:3000') || hostname.includes('127.0.0.1:3000')) {
+    const currentDomain = process.env.NEXT_PUBLIC_DOMAIN;
+    if ((currentDomain && hostname.includes(currentDomain)) || hostname.includes('localhost:3000') || hostname.includes('127.0.0.1:3000')) {
       return new NextResponse('Access to UniShare domains is not allowed through the proxy', { status: 403 });
     }
 

@@ -38,6 +38,8 @@ import DynamicPageTitle from '@/components/dynamic-page-title';
 import { createClient } from '@/utils/supabase/client';
 import { useMobileDetection } from '@/hooks/use-mobile-detection';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogHeaderNoBorder, DialogFooterNoBorder, DialogTitle } from '@/components/ui/dialog';
+import { ClientSubscriptionCheck } from '@/components/client-subscription-check';
+import { SubscriptionRequiredNotice } from '@/components/subscription-required-notice';
 
 // Types
 interface EssayPrompt {
@@ -925,20 +927,19 @@ export default function AIEssayWriterPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-4 sm:py-8 pb-15 md:pb-8">
-      <DynamicPageTitle title="UniShare | AI Essay Writer" />
-      
-      <header className="mb-6 sm:mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-            <h1 className="text-2xl sm:text-3xl font-bold">AI Essay Writer</h1>
+    <ClientSubscriptionCheck redirectTo="/pricing">
+      <div className="container mx-auto px-4 py-8 pb-15 md:pb-8">
+        <DynamicPageTitle title="UniShare | AI Essay Writer" />
+        
+        <header className="mb-8">
+          <div className="flex items-center gap-2 mb-2">
+            <FileText className="h-6 w-6 text-primary" />
+            <h1 className="text-3xl font-bold">AI Essay Writer</h1>
           </div>
-        </div>
-        <p className="text-sm sm:text-base text-muted-foreground">
-          Get AI assistance with essay writing, from brainstorming to final draft
-        </p>
-      </header>
+          <p className="text-muted-foreground">
+            Get AI assistance with essay writing, from brainstorming to final draft
+          </p>
+        </header>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
         <TabsList className="grid w-full grid-cols-4 h-auto">
@@ -1790,6 +1791,10 @@ export default function AIEssayWriterPage() {
           </DialogFooterNoBorder>
         </DialogContent>
       </Dialog>
-    </div>
+
+      {/* This component will only show if the user doesn't have an active subscription */}
+      <SubscriptionRequiredNotice />
+      </div>
+    </ClientSubscriptionCheck>
   );
 } 

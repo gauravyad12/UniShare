@@ -61,7 +61,7 @@ export async function sendNotification(
           title: notification.title,
           body: notification.message,
           userIdentity: userData?.email, // Will be undefined if user email not found
-          openLinkUrl: notification.link ? `https://unishare.app${notification.link}` : undefined
+          openLinkUrl: notification.link ? `${process.env.NODE_ENV === 'development' ? `http://localhost:${process.env.PORT || 3000}` : `https://${process.env.NEXT_PUBLIC_DOMAIN}`}${notification.link}` : undefined
         });
       } catch (pushError) {
         // Log push notification error but don't fail the whole operation

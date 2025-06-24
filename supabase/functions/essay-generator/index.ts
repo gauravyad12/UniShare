@@ -1,7 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 interface EssayRequest {
-  type: 'outline' | 'content' | 'analyze';
+  operation: 'outline' | 'content' | 'analyze';
+  jobId?: string;
+  userId: string;
   prompt?: string;
   outline?: string;
   content?: string;
@@ -12,6 +15,7 @@ interface EssayRequest {
   citationStyle: string;
   requirements?: string[];
   rubric?: any;
+  customRubric?: string;
 }
 
 interface EssayResponse {
@@ -52,8 +56,48 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Get authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Verify user authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const requestData: EssayRequest = await req.json();
-    const { type, prompt, outline, content, title, essayType, wordCount, academicLevel, citationStyle, requirements, rubric } = requestData;
+    const { operation, jobId, userId, prompt, outline, content, title, essayType, wordCount, academicLevel, citationStyle, requirements, rubric, customRubric } = requestData;
+
+    // Update job status to processing if jobId is provided
+    if (jobId) {
+      try {
+        await supabase
+          .from('essay_analysis_jobs')
+          .update({ 
+            status: 'processing',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', jobId);
+      } catch (error) {
+        console.error('Failed to update job status to processing:', error);
+      }
+    }
 
     let systemPrompt = '';
     let userPrompt = '';
@@ -192,7 +236,7 @@ ${content}`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: type === 'content' ? 'gpt-4o' : 'gpt-4o-mini',
+        model: operation === 'content' ? 'gpt-4o' : 'gpt-4o-mini',
         messages: [
           {
             role: 'system',

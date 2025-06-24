@@ -9,8 +9,7 @@ export const contentType = 'image/png';
 
 export default async function Image({ params }: { params: { username: string } }) {
   const username = params.username;
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-                 (process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : 'https://unishare.app');
+  const baseUrl = process.env.NODE_ENV === 'development' ? `http://localhost:${process.env.PORT || 3000}` : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
 
   // Redirect to the profile-specific OG image API
   return new Response(null, {

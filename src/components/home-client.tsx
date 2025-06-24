@@ -55,15 +55,17 @@ export default function HomeClient() {
     return () => document.removeEventListener("click", handleAnchorClick);
   }, []);
 
+  const baseUrl = process.env.NODE_ENV === 'development' ? `http://localhost:${process.env.PORT || 3000}` : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
+  
   const websiteStructuredData = {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "UniShare",
-    "url": "https://unishare.app",
+    "url": baseUrl,
     "description": "An exclusive platform for university students to collaborate, share academic resources, and form study groups in a secure environment.",
     "potentialAction": {
       "@type": "SearchAction",
-      "target": "https://unishare.app/dashboard/resources?search={search_term_string}",
+      "target": `${baseUrl}/dashboard/resources?search={search_term_string}`,
       "query-input": "required name=search_term_string"
     }
   };
@@ -72,8 +74,8 @@ export default function HomeClient() {
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "UniShare",
-    "url": "https://unishare.app",
-    "logo": "https://unishare.app/android-chrome-512x512.png",
+    "url": baseUrl,
+    "logo": `${baseUrl}/android-chrome-512x512.png`,
     "sameAs": [
       "https://twitter.com/useunishare",
       "https://facebook.com/useunishare",

@@ -306,7 +306,7 @@ export async function POST(request: NextRequest) {
           email: email,
           username: username,
         },
-        emailRedirectTo: `https://unishare.app/auth/verification-success`,
+        emailRedirectTo: `${process.env.NODE_ENV === 'development' ? `http://localhost:${process.env.PORT || 3000}` : `https://${process.env.NEXT_PUBLIC_DOMAIN}`}/auth/verification-success`,
       },
     });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { InfoIcon, Sparkles, BookOpen, MessageSquare, UserPlus, Users, Search } from "lucide-react";
 import Link from "next/link";
@@ -23,7 +23,7 @@ interface MobileDashboardHeaderProps {
   username?: string;
 }
 
-export default function MobileDashboardHeader({
+function MobileDashboardHeaderComponent({
   userName,
   universityName,
   universityLogoUrl,
@@ -32,11 +32,11 @@ export default function MobileDashboardHeader({
   studyGroupCount,
   username,
 }: MobileDashboardHeaderProps) {
-  const [greeting, setGreeting] = useState("Good day");
-  const [hasScholarPlus, setHasScholarPlus] = useState(false);
+  const [greeting, setGreeting] = React.useState("Good day");
+  const [hasScholarPlus, setHasScholarPlus] = React.useState(false);
   const supabase = createClient();
 
-  useEffect(() => {
+  React.useEffect(() => {
     // Set appropriate greeting based on time of day
     const hour = new Date().getHours();
     if (hour < 12) setGreeting("Good morning");
@@ -45,7 +45,7 @@ export default function MobileDashboardHeader({
   }, []);
 
   // Check if user has Scholar+ subscription
-  useEffect(() => {
+  React.useEffect(() => {
     async function checkSubscription() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -211,4 +211,33 @@ export default function MobileDashboardHeader({
       </div>
     </div>
   );
+}
+
+// Wrapper with error boundary
+export default function MobileDashboardHeader(props: MobileDashboardHeaderProps) {
+  try {
+    return <MobileDashboardHeaderComponent {...props} />;
+  } catch (error) {
+    console.error('Error in MobileDashboardHeader:', error);
+    // Fallback UI
+    return (
+      <div className="relative overflow-hidden pb-4">
+        <div className="pt-6 pb-8 px-4">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center">
+                <span className="text-primary font-medium">
+                  {props.userName.substring(0, 2).toUpperCase()}
+                </span>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Good day</p>
+                <h2 className="font-bold text-xl">{props.userName.split(" ")[0]}</h2>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 }

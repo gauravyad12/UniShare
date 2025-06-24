@@ -231,7 +231,7 @@ function renderHardcodedInviteTemplate(variables: Record<string, string> = {}): 
   const senderName = variables?.senderName || 'Someone';
   const universityName = variables?.universityName || 'their university';
   const inviteCode = variables?.inviteCode || '[Invite Code]';
-  const inviteUrl = variables?.inviteUrl || 'https://unishare.app';
+  const inviteUrl = variables?.inviteUrl || `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
 
   const subject = `${senderName} has invited you to join UniShare!`;
 

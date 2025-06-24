@@ -101,16 +101,12 @@ export async function POST(request: NextRequest) {
         try {
           // Use direct API call to the safety check endpoint
           // This avoids using window.location which is not available in server components
-          // Fallback order: unishare.app, localhost, NEXT_PUBLIC_SITE_URL
-          let baseUrl = 'https://unishare.app';
-
-          // For local development
+          // Use dynamic domain configuration
+          let baseUrl;
           if (process.env.NODE_ENV === 'development') {
-            baseUrl = 'http://localhost:3000';
-          }
-          // Use NEXT_PUBLIC_SITE_URL as last resort if available
-          else if (process.env.NEXT_PUBLIC_SITE_URL) {
-            baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
+            baseUrl = `http://localhost:${process.env.PORT || 3000}`;
+          } else {
+            baseUrl = `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
           }
 
           const apiUrl = new URL('/api/url/check-safety', baseUrl).toString();
