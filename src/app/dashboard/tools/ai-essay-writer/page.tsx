@@ -1584,10 +1584,6 @@ export default function AIEssayWriterPage() {
                     Access and manage your essay drafts
                   </CardDescription>
                 </div>
-                <Button onClick={createNewDraft} size="sm" className="w-full sm:w-auto">
-                  <FileText className="h-4 w-4 mr-2" />
-                  New Draft
-                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -1745,10 +1741,6 @@ export default function AIEssayWriterPage() {
                     Your saved essay drafts will appear here. Start writing to create your first draft.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                    <Button onClick={createNewDraft} className="w-full sm:w-auto">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Start New Draft
-                    </Button>
                     <Button onClick={() => setActiveTab("write")} variant="outline" className="w-full sm:w-auto">
                       Go to Editor
                     </Button>

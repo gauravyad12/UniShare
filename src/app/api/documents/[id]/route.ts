@@ -45,6 +45,18 @@ export async function DELETE(
       }
     }
 
+    // Delete related study jobs first
+    const { error: studyJobsError } = await supabase
+      .from('document_study_jobs')
+      .delete()
+      .contains('document_ids', [documentId])
+      .eq('user_id', user.id);
+
+    if (studyJobsError) {
+      console.error('Study jobs deletion error:', studyJobsError);
+      // Continue with document deletion even if study jobs deletion fails
+    }
+
     // Delete from database
     const { error: deleteError } = await supabase
       .from('document_chat_documents')

@@ -18,6 +18,8 @@ import { checkUrlSafety } from "@/utils/urlSafety";
 import { useToast } from "./ui/use-toast";
 import ProfessorSearch from "./professor-search";
 import { Professor } from "@/utils/rateMyProfessor";
+import mammoth from 'mammoth';
+import jsPDF from 'jspdf';
 // Import badWords dynamically to use the async version
 
 export default function ResourceUploadForm() {
@@ -192,38 +194,45 @@ export default function ResourceUploadForm() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append("title", title);
-    formData.append("description", description);
-    formData.append("type", resourceType);
-    formData.append("course_code", courseCode);
-
-    // Add professor information if selected
-    if (professor) {
-      formData.append("professor", `${professor.firstName} ${professor.lastName}`);
-      // You can also include additional professor data if needed
-      formData.append("professor_data", JSON.stringify({
-        id: professor.id,
-        firstName: professor.firstName,
-        lastName: professor.lastName,
-        department: professor.department || '',
-        school: professor.school ? professor.school.name : '',
-        rating: professor.rating || 0,
-        numRatings: professor.numRatings || 0
-      }));
-    }
-
-    // Add file to form data if selected
-    if (selectedFile) {
-      formData.append("file", selectedFile);
-    }
-
-    // Add external URL if resource type is link
-    if (resourceType === "link") {
-      formData.append("external_link", externalLink);
-    }
-
     try {
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("description", description);
+      formData.append("type", resourceType);
+      formData.append("course_code", courseCode);
+
+      // Handle file upload with Word conversion if needed
+      if (resourceType !== "link" && selectedFile) {
+        let fileToUpload = selectedFile;
+        
+        // Convert Word documents to PDF before uploading
+        if (selectedFile.type.includes('word') || selectedFile.name.toLowerCase().endsWith('.docx')) {
+          fileToUpload = await convertWordToPDF(selectedFile);
+        }
+        
+        formData.append("file", fileToUpload, fileToUpload.name);
+      }
+
+      // Add professor information if selected
+      if (professor) {
+        formData.append("professor", `${professor.firstName} ${professor.lastName}`);
+        // You can also include additional professor data if needed
+        formData.append("professor_data", JSON.stringify({
+          id: professor.id,
+          firstName: professor.firstName,
+          lastName: professor.lastName,
+          department: professor.department || '',
+          school: professor.school ? professor.school.name : '',
+          rating: professor.rating || 0,
+          numRatings: professor.numRatings || 0
+        }));
+      }
+
+      // Add external URL if resource type is link
+      if (resourceType === "link") {
+        formData.append("external_link", externalLink);
+      }
+
       const response = await fetch("/api/resources/upload", {
         method: "POST",
         body: formData,
@@ -253,9 +262,8 @@ export default function ResourceUploadForm() {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
 
-      // Check if the file is a PDF
-      if (file.type !== 'application/pdf') {
-        setErrors(prev => ({ ...prev, file: 'Only PDF files are accepted' }));
+      // Validate the file using our updated validation function
+      if (!validateFile(file)) {
         setSelectedFile(null);
         return;
       }
@@ -293,9 +301,8 @@ export default function ResourceUploadForm() {
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const file = e.dataTransfer.files[0];
 
-      // Check if the file is a PDF
-      if (file.type !== 'application/pdf') {
-        setErrors(prev => ({ ...prev, file: 'Only PDF files are accepted' }));
+      // Validate the file using our updated validation function
+      if (!validateFile(file)) {
         setSelectedFile(null);
         return;
       }
@@ -364,10 +371,184 @@ export default function ResourceUploadForm() {
       toast({
         title: "URL Safety Check Failed",
         description: "Could not verify the safety of this URL. You can still submit, but please ensure it's from a trusted source.",
-        variant: "warning",
+        variant: "destructive",
       });
     } finally {
       setIsCheckingUrl(false);
+    }
+  };
+
+  const validateFile = (file: File): boolean => {
+    // Clear any previous file error
+    setErrors(prev => ({ ...prev, file: '' }));
+    
+    // Check file type - Only PDF and DOCX documents supported
+    const allowedTypes = ['application/pdf', 
+                         'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    
+    // Check for legacy .doc files which are not supported
+    if (file.name.toLowerCase().endsWith('.doc') && !file.name.toLowerCase().endsWith('.docx')) {
+      setErrors(prev => ({ ...prev, file: 'Legacy .doc files are not supported. Please save as .docx format and try again.' }));
+      return false;
+    }
+    
+    if (!allowedTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.docx')) {
+      setErrors(prev => ({ ...prev, file: 'Only PDF and Word documents (.pdf, .docx) are accepted' }));
+      return false;
+    }
+
+    // Check file size (max 25MB)
+    if (file.size > 25 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, file: 'File size must be less than 25MB' }));
+      return false;
+    }
+
+    return true;
+  };
+
+  const convertWordToPDF = async (file: File): Promise<File> => {
+    try {
+      // Check if it's a Word document
+      if (!file.type.includes('word') && !file.name.toLowerCase().endsWith('.docx') && !file.name.toLowerCase().endsWith('.doc')) {
+        return file; // Return as-is if not a Word document
+      }
+
+      // Check if it's a legacy .doc file (not supported by mammoth)
+      if (file.name.toLowerCase().endsWith('.doc') && !file.name.toLowerCase().endsWith('.docx')) {
+        throw new Error('Legacy .doc files are not supported. Please save as .docx format and try again.');
+      }
+
+      toast({
+        title: "Converting Word Document",
+        description: "Converting Word document to PDF format for processing...",
+        variant: "default",
+      });
+
+      // Validate file size and type more strictly
+      if (file.size === 0) {
+        throw new Error('The file appears to be empty or corrupted.');
+      }
+
+      // Convert DOCX to HTML using mammoth
+      const arrayBuffer = await file.arrayBuffer();
+      
+      // Additional validation for the ArrayBuffer
+      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+        throw new Error('Failed to read the file content. The file may be corrupted.');
+      }
+
+      // Check for DOCX file signature (PK at the beginning)
+      const uint8Array = new Uint8Array(arrayBuffer);
+      if (uint8Array.length < 4 || uint8Array[0] !== 0x50 || uint8Array[1] !== 0x4B) {
+        throw new Error('Invalid DOCX file format. Please ensure the file is a valid .docx document.');
+      }
+
+      const result = await mammoth.convertToHtml({ arrayBuffer });
+      const html = result.value;
+
+      // Check if we got valid HTML content
+      if (!html || html.trim().length === 0) {
+        throw new Error('No content could be extracted from the document. The file may be empty or corrupted.');
+      }
+
+      // Create a temporary div to render the HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      tempDiv.style.width = '210mm'; // A4 width
+      tempDiv.style.maxWidth = '210mm';
+      tempDiv.style.fontFamily = 'Arial, sans-serif';
+      tempDiv.style.fontSize = '12px';
+      tempDiv.style.lineHeight = '1.4';
+      tempDiv.style.padding = '20mm';
+      tempDiv.style.backgroundColor = 'white';
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      tempDiv.style.top = '0';
+      
+      document.body.appendChild(tempDiv);
+
+      // Create PDF using jsPDF
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      // Split content into pages
+      const pageHeight = pdf.internal.pageSize.height - 40; // Leave margins
+      const lines = html.split('\n');
+      let yPosition = 20;
+
+      pdf.setFontSize(12);
+      
+      for (const line of lines) {
+        const cleanLine = line.replace(/<[^>]*>/g, '').trim(); // Remove HTML tags
+        if (cleanLine) {
+          const splitText = pdf.splitTextToSize(cleanLine, 170); // Width minus margins
+          
+          for (const textLine of splitText) {
+            if (yPosition > pageHeight) {
+              pdf.addPage();
+              yPosition = 20;
+            }
+            pdf.text(textLine, 20, yPosition);
+            yPosition += 7;
+          }
+        }
+      }
+
+      // Clean up
+      document.body.removeChild(tempDiv);
+
+      // Convert PDF to blob and create a File-like object
+      const pdfBlob = pdf.output('blob') as Blob;
+      const pdfFileName = file.name.replace(/\.(docx?|doc)$/i, '.pdf');
+      
+      // Create a File-like object that works with FormData
+      const pdfFile = new Blob([pdfBlob], { type: 'application/pdf' }) as File;
+      
+      // Add File properties manually
+      Object.defineProperty(pdfFile, 'name', {
+        value: pdfFileName,
+        writable: false
+      });
+      
+      Object.defineProperty(pdfFile, 'lastModified', {
+        value: Date.now(),
+        writable: false
+      });
+      
+      Object.defineProperty(pdfFile, 'webkitRelativePath', {
+        value: '',
+        writable: false
+      });
+
+      toast({
+        title: "Conversion Complete",
+        description: "Word document successfully converted to PDF.",
+        variant: "default",
+      });
+
+      return pdfFile;
+
+    } catch (error) {
+      console.error('Error converting Word to PDF:', error);
+      
+      let errorMessage = "Failed to convert DOCX document to PDF.";
+      
+      if (error instanceof Error) {
+        // Use the specific error message we created
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      toast({
+        title: "Conversion Error",
+        description: errorMessage + " Please try uploading a PDF instead.",
+        variant: "destructive",
+      });
+      throw new Error(`DOCX to PDF conversion failed: ${errorMessage}`);
     }
   };
 
@@ -574,7 +755,7 @@ export default function ResourceUploadForm() {
         <div className="space-y-2">
           <Label htmlFor="file">Upload File</Label>
           <div
-            className={`border-2 border-dashed ${errors.file ? "border-red-500" : isDragging ? "border-primary" : "border-gray-300 dark:border-gray-700"} rounded-md p-4 transition-colors ${isDragging ? "bg-primary/5" : ""}`}
+            className={`border-2 border-dashed ${errors.file ? "border-red-200 dark:border-red-900" : isDragging ? "border-primary" : "border-gray-300 dark:border-gray-700"} rounded-md p-4 transition-colors ${isDragging ? "bg-primary/5" : ""}`}
             onDragOver={handleDragOver}
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
@@ -596,40 +777,41 @@ export default function ResourceUploadForm() {
               </div>
             ) : (
               <div className="text-center">
-                <Upload className={`mx-auto h-8 w-8 ${errors.file ? "text-destructive" : "text-gray-400"} mb-2 transition-colors`} />
-                {errors.file && errors.file.includes("PDF") ? (
+                <Upload className={`mx-auto h-8 w-8 ${errors.file ? "text-red-500" : "text-gray-400"} mb-2 transition-colors`} />
+                {errors.file ? (
                   <div className="mb-2">
-                    <p className="text-sm text-destructive font-medium">
-                      Only PDF files are accepted
+                    <p className="text-sm text-red-500 font-medium">
+                      {errors.file}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Please select a PDF document to continue
+                    <p className="text-xs text-red-500/70 mt-1">
+                      Please select a valid PDF or DOCX document
                     </p>
                   </div>
                 ) : (
                   <p className="text-sm text-gray-500 mb-2">
-                    Drag and drop or click to upload (PDF only)
+                    Drag and drop or click to upload (PDF and DOCX supported)
                   </p>
                 )}
                 <Input
                   id="file"
                   type="file"
-                  accept="application/pdf"
+                  accept="application/pdf,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx"
                   className="hidden"
                   onChange={handleFileChange}
                 />
                 <Button
                   type="button"
-                  variant={errors.file ? "destructive" : "outline"}
+                  variant="outline"
                   size="sm"
                   onClick={() => document.getElementById("file")?.click()}
+                  className={errors.file ? "text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900 dark:hover:bg-red-950/30" : ""}
                 >
                   Select File
                 </Button>
               </div>
             )}
           </div>
-          {errors.file && !errors.file.includes("PDF") && (
+          {errors.file && (
             <p className="text-sm text-red-500 mt-1">{errors.file}</p>
           )}
         </div>
