@@ -84,13 +84,13 @@ export default function ToolsPage({
       path: "/dashboard/tools/ai-essay-writer",
       comingSoon: false,
     },
-    {
-      id: "ai-document-chat",
-      name: "AI Document Chat",
-      description: "Upload PDFs, notes, or text and chat with an AI about the content",
-      icon: MessageSquare,
-      category: "ai",
-      path: "/dashboard/tools/ai-document-chat",
+          {
+        id: "ai-study-assistant",
+        name: "AI Study Assistant",
+        description: "Upload documents and generate study materials with AI-powered tools",
+        icon: Brain,
+        category: "ai",
+        path: "/dashboard/tools/ai-study-assistant",
       comingSoon: false,
     },
     {

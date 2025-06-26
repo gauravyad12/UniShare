@@ -61,7 +61,7 @@ export default function ScholarPlusStep() {
             </div>
             <div className="flex items-center gap-2 bg-background rounded-lg p-2 border border-amber-200 dark:border-amber-800/30">
               <MessageSquare className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-              <span className="text-xs">AI Document Chat</span>
+                                          <span className="text-xs">AI Study Assistant</span>
             </div>
             <div className="flex items-center gap-2 bg-background rounded-lg p-2 border border-amber-200 dark:border-amber-800/30">
               <Mic className="h-4 w-4 text-amber-600 dark:text-amber-400" />

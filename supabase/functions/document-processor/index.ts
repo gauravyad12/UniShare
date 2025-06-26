@@ -20,6 +20,91 @@ interface DocumentProcessingResponse {
   error?: string;
 }
 
+// YouTube helper functions
+function extractYouTubeVideoId(url: string): string {
+  const regex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([^&\n?#]+)/;
+  const match = url.match(regex);
+  return match?.[1] || '';
+}
+
+interface YouTubeVideoInfo {
+  id: string;
+  title: string;
+  description: string;
+  duration: number;
+  channel: {
+    id: string;
+    name: string;
+  };
+  tags: string[];
+  thumbnail: string;
+  uploadDate: string;
+  viewCount: number;
+  likeCount: number;
+  transcriptLanguages: string[];
+}
+
+interface YouTubeTranscriptResponse {
+  content: string;
+  lang: string;
+  availableLangs: string[];
+}
+
+async function fetchYouTubeVideoInfo(videoId: string): Promise<YouTubeVideoInfo> {
+  const supadataApiKey = Deno.env.get('SUPADATA_API_KEY');
+  if (!supadataApiKey) {
+    throw new Error('SUPADATA_API_KEY environment variable not configured');
+  }
+
+  console.log(`Fetching video info for video ID: ${videoId}`);
+  
+  const response = await fetch(`https://api.supadata.ai/v1/youtube/video?id=${videoId}`, {
+    headers: {
+      'x-api-key': supadataApiKey,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch video info: ${response.status} ${response.statusText}`);
+  }
+
+  const videoInfo: YouTubeVideoInfo = await response.json();
+  console.log(`Successfully fetched video info: ${videoInfo.title}`);
+  
+  return videoInfo;
+}
+
+async function fetchYouTubeTranscript(videoId: string): Promise<string> {
+  const supadataApiKey = Deno.env.get('SUPADATA_API_KEY');
+  if (!supadataApiKey) {
+    throw new Error('SUPADATA_API_KEY environment variable not configured');
+  }
+
+  console.log(`Fetching transcript for video ID: ${videoId}`);
+  
+  const response = await fetch(`https://api.supadata.ai/v1/youtube/transcript?videoId=${videoId}&lang=en&text=true`, {
+    headers: {
+      'x-api-key': supadataApiKey,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch transcript: ${response.status} ${response.statusText}`);
+  }
+
+  const transcriptData: YouTubeTranscriptResponse = await response.json();
+  
+  if (!transcriptData.content || transcriptData.content.trim().length === 0) {
+    throw new Error('No transcript content available for this video');
+  }
+
+  console.log(`Successfully fetched transcript: ${transcriptData.content.length} characters in ${transcriptData.lang}`);
+  
+  return transcriptData.content.trim();
+}
+
+
+
 Deno.serve(async (req: Request) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
@@ -337,6 +422,48 @@ Error: ${pdfError instanceof Error ? pdfError.message : 'Unknown PDF parsing err
         throw new Error('Failed to decode text content from the document');
       }
 
+    } else if (fileType === 'youtube') {
+      // ============ YOUTUBE PROCESSING IMPLEMENTATION ============
+      console.log('Processing YouTube video transcript...');
+      
+      // Extract video ID from the filename (which contains the YouTube URL)
+      const videoId = extractYouTubeVideoId(filename);
+      
+      if (!videoId) {
+        throw new Error('Invalid YouTube URL - could not extract video ID');
+      }
+      
+      console.log(`Extracted video ID: ${videoId}`);
+      
+      // Fetch video information first
+      const videoInfo = await fetchYouTubeVideoInfo(videoId);
+      
+      // Fetch the transcript using Supadata.ai
+      extractedContent = await fetchYouTubeTranscript(videoId);
+      
+      if (!extractedContent || extractedContent.length < 10) {
+        throw new Error('No transcript content available for this video. The video may not have captions enabled.');
+      }
+      
+      // Set page count to 1 for YouTube videos
+      pageCount = 1;
+      
+      console.log(`YouTube transcript processed successfully: ${extractedContent.length} characters`);
+      
+      // Update the document name with the actual video title
+      try {
+        await supabase
+          .from('document_chat_documents')
+          .update({
+            name: videoInfo.title
+          })
+          .eq('id', documentId);
+        console.log(`Updated document name to: ${videoInfo.title}`);
+      } catch (nameUpdateError) {
+        console.error('Failed to update document name:', nameUpdateError);
+        // Don't throw here, just log the error as the main processing succeeded
+      }
+      
     } else {
       throw new Error(`Unsupported file type: ${fileType}`);
     }

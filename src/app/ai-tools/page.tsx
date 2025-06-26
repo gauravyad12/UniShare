@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import Footer from "@/components/footer";
 import Navbar from "@/components/navbar";
-import { Bot, Brain, FileText, Sparkles, Upload, MessageSquare, Mic, CheckCircle, Clock } from "lucide-react";
+import { Bot, Brain, FileText, Sparkles, Upload, MessageSquare, Mic, CheckCircle, Clock, BookMarked, Globe, BarChart3, Image } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export const metadata: Metadata = {
@@ -35,7 +35,7 @@ export default function AIToolsPage() {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-            {/* AI Essay Writer - Completed */}
+            {/* AI Essay Writer */}
             <Card className="border border-border flex flex-col">
               <CardHeader className="pb-2">
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
@@ -66,24 +66,24 @@ export default function AIToolsPage() {
               </CardFooter>
             </Card>
 
-            {/* AI Document Chat - Coming Soon */}
+            {/* AI Study Assistant */}
             <Card className="border border-border flex flex-col">
               <CardHeader className="pb-2">
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-                  <MessageSquare className="h-6 w-6 text-primary" />
+                  <Brain className="h-6 w-6 text-primary" />
                 </div>
-                <CardTitle>AI Document Chat</CardTitle>
+                <CardTitle>AI Study Assistant</CardTitle>
                 <CardDescription>
-                  Upload documents and chat with AI about the content
+                  Upload documents and generate comprehensive study materials
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex-1">
                 <p className="text-muted-foreground mb-4">
-                  Upload PDFs, notes, text files, or YouTube videos and have intelligent conversations 
-                  with AI about the content. Extract insights and get help understanding complex materials.
+                  Upload PDFs and Word documents to generate study materials, chat with AI about content, 
+                  and get intelligent analysis of your learning materials.
                 </p>
                 <ul className="list-disc pl-6 text-muted-foreground space-y-1">
-                  <li>Upload PDF, notes, text, or YouTube content</li>
+                  <li>Upload PDF and Word documents</li>
                   <li>Interactive chat with document content</li>
                   <li>AI-powered summarization</li>
                   <li>Automatic note generation</li>
@@ -92,14 +92,46 @@ export default function AIToolsPage() {
                 </ul>
               </CardContent>
               <CardFooter>
-                <Button className="w-full" disabled>
-                  Coming Soon
+                <Button className="w-full" asChild>
+                  <Link href="/dashboard/tools/ai-study-assistant">Launch Tool</Link>
                 </Button>
               </CardFooter>
             </Card>
 
-            {/* AI Lecture Note Taker - Coming Soon */}
+            {/* AI Flowchart Analyzer */}
             <Card className="border border-border flex flex-col">
+              <CardHeader className="pb-2">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                  <Image className="h-6 w-6 text-primary" />
+                </div>
+                <CardTitle>AI Flowchart Analyzer</CardTitle>
+                <CardDescription>
+                  Upload degree flowcharts and extract course information with AI
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1">
+                <p className="text-muted-foreground mb-4">
+                  Upload images of degree flowcharts and let AI automatically extract course codes, names, 
+                  prerequisites, and graduation pathways for your degree planning.
+                </p>
+                <ul className="list-disc pl-6 text-muted-foreground space-y-1">
+                  <li>Extract course codes and names from images</li>
+                  <li>Identify prerequisite relationships</li>
+                  <li>Generate optimal graduation pathways</li>
+                  <li>Match with completed courses</li>
+                  <li>Provide graduation timeline estimates</li>
+                  <li>Save analysis results for future reference</li>
+                </ul>
+              </CardContent>
+              <CardFooter>
+                <Button className="w-full" asChild>
+                  <Link href="/dashboard/tools/degree-roadmap">Access in Degree Roadmap</Link>
+                </Button>
+              </CardFooter>
+            </Card>
+
+            {/* AI Lecture Note Taker */}
+            <Card className="border border-border flex flex-col opacity-75">
               <CardHeader className="pb-2">
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
                   <Mic className="h-6 w-6 text-primary" />
@@ -125,40 +157,8 @@ export default function AIToolsPage() {
                 </ul>
               </CardContent>
               <CardFooter>
-                <Button className="w-full" disabled>
-                  Coming Soon
-                </Button>
-              </CardFooter>
-            </Card>
-
-            {/* Study Assistant - Future Tool */}
-            <Card className="border border-border opacity-75 flex flex-col">
-              <CardHeader className="pb-2">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-                  <Bot className="h-6 w-6 text-primary" />
-                </div>
-                <CardTitle>AI Study Assistant</CardTitle>
-                <CardDescription>
-                  Your personal AI study companion
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex-1">
-                <p className="text-muted-foreground mb-4">
-                  Get instant answers to your questions, explanations for
-                  complex concepts, and help with problem-solving. Our AI study
-                  assistant will be trained on academic content across various
-                  disciplines.
-                </p>
-                <ul className="list-disc pl-6 text-muted-foreground space-y-1">
-                  <li>24/7 homework help</li>
-                  <li>Concept explanations</li>
-                  <li>Practice problem generation</li>
-                  <li>Study plan creation</li>
-                </ul>
-              </CardContent>
-              <CardFooter>
                 <Button className="w-full" disabled variant="outline">
-                  Future Release
+                  Coming Soon
                 </Button>
               </CardFooter>
             </Card>
@@ -167,13 +167,17 @@ export default function AIToolsPage() {
           <div className="bg-secondary/20 p-6 rounded-lg mb-12">
             <h2 className="text-2xl font-semibold mb-4">Premium AI Features</h2>
             <p className="text-muted-foreground mb-6">
-              Unlock the full potential of our AI tools with a premium
-              subscription. Get unlimited access to all features and priority
-              processing for your requests.
+              Unlock the full potential of our AI tools with a Scholar+ subscription. Get unlimited access to all features, 
+              priority processing for your requests, and advanced AI capabilities.
             </p>
-            <Button asChild>
-              <Link href="/pricing">View Pricing Plans</Link>
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button asChild>
+                <Link href="/pricing">View Pricing Plans</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/dashboard/tools">Explore All Tools</Link>
+              </Button>
+            </div>
           </div>
 
           <div className="mt-12 flex justify-center">

@@ -57,7 +57,7 @@ serve(async (req) => {
           { name: "Create unlimited study groups", included: true },
           { name: "Advanced profile customization", included: true },
           { name: "AI Essay Writer", included: true, iconName: "FileText" },
-          { name: "AI Document Chat & Analysis", included: true, iconName: "MessageSquare" },
+          { name: "AI Study Assistant & Analysis", included: true, iconName: "Brain" },
           { name: "AI Lecture Note Taker", included: true, iconName: "Mic" },
           { name: "Textbook Solutions", included: true, iconName: "BookMarked" },
           { name: "Proxy Browser", included: true, iconName: "Globe" },

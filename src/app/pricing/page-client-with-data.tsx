@@ -49,7 +49,7 @@ export default function PricingClientWithData() {
         { name: "Create unlimited study groups", included: true },
         { name: "Priority support", included: true },
         { name: "AI Essay Writer", included: true, iconName: "FileText" },
-        { name: "AI Document Chat & Analysis", included: true, iconName: "MessageSquare" },
+        { name: "AI Study Assistant & Analysis", included: true, iconName: "Brain" },
         { name: "AI Lecture Note Taker", included: true, iconName: "Mic" },
         { name: "Textbook Solutions", included: true, iconName: "BookMarked" },
         { name: "Proxy Browser", included: true, iconName: "Globe" },
@@ -277,7 +277,7 @@ export default function PricingClientWithData() {
                   </td>
                 </tr>
                 <tr className="border-b border-border">
-                  <td className="py-3 md:py-4 px-4 md:px-6 font-medium">AI Document Chat & Analysis</td>
+                  <td className="py-3 md:py-4 px-4 md:px-6 font-medium">AI Study Assistant & Analysis</td>
                   <td className="py-3 md:py-4 px-3 md:px-6 text-center">
                     <X className="mx-auto h-5 w-5 text-red-500" />
                   </td>
@@ -343,7 +343,7 @@ export default function PricingClientWithData() {
               <div className="p-2 bg-primary/10 rounded-md w-fit mb-4">
                 <MessageSquare className="h-5 w-5 text-primary" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">AI Document Chat</h3>
+                              <h3 className="text-lg font-semibold mb-2">AI Study Assistant</h3>
               <p className="text-muted-foreground text-sm">
                 Upload PDFs, notes, or text and chat with an AI about the content. Generate summaries, notes, flashcards, and practice quizzes.
               </p>

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/use-toast';
@@ -38,7 +38,10 @@ import {
   RotateCcw,
   GraduationCap,
   Target,
-  BookOpenCheck
+  BookOpenCheck,
+  Youtube,
+  Type,
+  Plus
 } from 'lucide-react';
 import DynamicPageTitle from '@/components/dynamic-page-title';
 import { createClient } from '@/utils/supabase/client';
@@ -76,6 +79,8 @@ interface UploadedDocument {
   content?: string;
   pageCount?: number;
   error?: string;
+  source?: 'file' | 'youtube' | 'text';
+  originalUrl?: string; // For YouTube videos
 }
 
 interface ChatSession {
@@ -87,8 +92,9 @@ interface ChatSession {
   updatedAt: Date;
 }
 
-export default function AIDocumentChatPage() {
-  const [activeTab, setActiveTab] = useState("chat");
+export default function AIStudyAssistantPage() {
+  const [activeTab, setActiveTab] = useState("documents");
+  const [inputType, setInputType] = useState<"file" | "youtube" | "text">("file");
   const [documents, setDocuments] = useState<UploadedDocument[]>([]);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
@@ -104,6 +110,11 @@ export default function AIDocumentChatPage() {
   const [documentToDelete, setDocumentToDelete] = useState<UploadedDocument | null>(null);
   const [sessionToDelete, setSessionToDelete] = useState<ChatSession | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  
+  // New input type states
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [textContent, setTextContent] = useState("");
+  const [textTitle, setTextTitle] = useState("");
   
   // New feature states
   const [flashcards, setFlashcards] = useState<any[]>([]);
@@ -204,7 +215,9 @@ export default function AIDocumentChatPage() {
         status: doc.status,
         content: doc.content,
         pageCount: doc.page_count,
-        error: doc.error_message
+        error: doc.error_message,
+        source: doc.source,
+        originalUrl: doc.original_url
       })));
     } catch (error) {
       toast({
@@ -281,7 +294,7 @@ export default function AIDocumentChatPage() {
       return false;
     }
 
-    // Special note for document processing
+            // Special note for content processing
     if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
       toast({
         title: "PDF Processing",
@@ -291,7 +304,7 @@ export default function AIDocumentChatPage() {
     } else if (file.type.includes('word') || file.name.toLowerCase().endsWith('.docx')) {
       toast({
         title: "Word Document Upload",
-        description: "DOCX document will be automatically converted to PDF format for optimal AI processing.",
+                    description: "DOCX content will be automatically converted to PDF format for optimal AI processing.",
         variant: "default",
       });
     }
@@ -313,7 +326,7 @@ export default function AIDocumentChatPage() {
 
       toast({
         title: "Converting Word Document",
-        description: "Converting Word document to PDF format for processing...",
+                  description: "Converting Word content to PDF format for processing...",
         variant: "default",
       });
 
@@ -445,6 +458,179 @@ export default function AIDocumentChatPage() {
     }
   };
 
+  const validateYouTubeUrl = (url: string): boolean => {
+    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
+    return youtubeRegex.test(url);
+  };
+
+  const handleYouTubeVideoUpload = async () => {
+    if (!youtubeUrl.trim()) {
+      setUploadError('Please enter a YouTube URL');
+      return;
+    }
+
+    if (!validateYouTubeUrl(youtubeUrl)) {
+      setUploadError('Please enter a valid YouTube URL');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadError('');
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 10, 90));
+      }, 200);
+
+      // Create document record
+      const documentData = {
+        user_id: user.id,
+        name: `YouTube Video: ${youtubeUrl}`,
+        type: 'youtube',
+        size: 0,
+        source: 'youtube',
+        original_url: youtubeUrl,
+        status: 'processing'
+      };
+
+      const { data: document, error } = await supabase
+        .from('document_chat_documents')
+        .insert(documentData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      const newDocument: UploadedDocument = {
+        id: document.id,
+        name: `YouTube Video: ${youtubeUrl}`,
+        type: 'youtube',
+        size: 0,
+        uploadedAt: new Date(document.created_at),
+        status: 'processing',
+        source: 'youtube',
+        originalUrl: youtubeUrl
+      };
+
+      setDocuments(prev => [newDocument, ...prev]);
+      setYoutubeUrl('');
+      
+      // Start processing
+      setIsProcessing(true);
+                setProcessingStep('Starting YouTube content processing...');
+      await startDocumentProcessing(document.id);
+
+      toast({
+        title: "YouTube Video Added",
+        description: "Your YouTube video is being processed for AI analysis.",
+        variant: "default",
+      });
+
+    } catch (error) {
+      console.error('YouTube upload error:', error);
+      setUploadError(error instanceof Error ? error.message : 'Failed to process YouTube video');
+      toast({
+        title: "Upload Error",
+        description: error instanceof Error ? error.message : "Failed to process YouTube video",
+        variant: "destructive",
+      });
+      setIsProcessing(false);
+      setProcessingStep('');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleTextContentUpload = async () => {
+    if (!textContent.trim()) {
+      setUploadError('Please enter some text content');
+      return;
+    }
+
+    if (!textTitle.trim()) {
+      setUploadError('Please enter a title for your text');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadError('');
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => Math.min(prev + 20, 90));
+      }, 100);
+
+      // Create document record
+      const documentData = {
+        user_id: user.id,
+        name: textTitle,
+        type: 'text',
+        size: textContent.length,
+        source: 'text',
+        content: textContent,
+        status: 'ready'
+      };
+
+      const { data: document, error } = await supabase
+        .from('document_chat_documents')
+        .insert(documentData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      const newDocument: UploadedDocument = {
+        id: document.id,
+        name: textTitle,
+        type: 'text',
+        size: textContent.length,
+        uploadedAt: new Date(document.created_at),
+        status: 'ready',
+        source: 'text',
+        content: textContent
+      };
+
+      setDocuments(prev => [newDocument, ...prev]);
+      setTextContent('');
+      setTextTitle('');
+      
+      toast({
+        title: "Text Content Added",
+        description: "Your text content is ready for AI analysis.",
+        variant: "default",
+      });
+
+    } catch (error) {
+      console.error('Text upload error:', error);
+      setUploadError(error instanceof Error ? error.message : 'Failed to process text content');
+      toast({
+        title: "Upload Error",
+        description: error instanceof Error ? error.message : "Failed to process text content",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
   const handleFileUpload = async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
     
@@ -456,10 +642,10 @@ export default function AIDocumentChatPage() {
       setProcessingStep('Uploading file...');
 
       try {
-        // Convert Word documents to PDF before uploading
+        // Convert Word content to PDF before uploading
         let fileToUpload = file;
         if (file.type.includes('word') || file.name.toLowerCase().endsWith('.docx')) {
-          setProcessingStep('Converting DOCX document to PDF...');
+          setProcessingStep('Converting DOCX content to PDF...');
           fileToUpload = await convertWordToPDF(file);
           setProcessingStep('Uploading converted PDF...');
         }
@@ -496,7 +682,7 @@ export default function AIDocumentChatPage() {
         if (result.success) {
           // Start processing job
           setIsProcessing(true);
-          setProcessingStep('Starting document processing...');
+          setProcessingStep('Starting content processing...');
           await startDocumentProcessing(result.documentId);
         } else {
           throw new Error(result.error || 'Upload failed');
@@ -541,7 +727,7 @@ export default function AIDocumentChatPage() {
         // Start polling for job status
         await pollJobStatus(result.jobId, documentId);
       } else {
-        throw new Error('Failed to start document processing');
+        throw new Error('Failed to start content processing');
       }
 
     } catch (error) {
@@ -553,9 +739,9 @@ export default function AIDocumentChatPage() {
 
   const pollJobStatus = async (jobId: string, documentId: string) => {
     const steps = [
-      'Initializing document processing...',
+              'Initializing content processing...',
       'Extracting text content...',
-      'Analyzing document structure...',
+              'Analyzing content structure...',
       'Processing images and charts...',
       'Creating searchable index...',
       'Finalizing AI optimization...'
@@ -1089,6 +1275,8 @@ export default function AIDocumentChatPage() {
   const getFileIcon = (type: string) => {
     if (type.includes('pdf')) return FileText;
     if (type.includes('image')) return Image;
+    if (type === 'youtube') return Youtube;
+    if (type === 'text') return Type;
     return File;
   };
 
@@ -1528,22 +1716,22 @@ export default function AIDocumentChatPage() {
   return (
     <ClientSubscriptionCheck redirectTo="/pricing">
       <div className="container mx-auto px-4 py-8 pb-15 md:pb-8">
-        <DynamicPageTitle title="UniShare | AI Document Chat" />
+        <DynamicPageTitle title="UniShare | AI Study Assistant" />
 
         <header className="mb-8">
           <div className="flex items-center gap-2 mb-2">
-            <MessageSquare className="h-6 w-6 text-primary" />
-            <h1 className="text-3xl font-bold">AI Document Chat</h1>
+            <Brain className="h-6 w-6 text-primary" />
+            <h1 className="text-3xl font-bold">AI Study Assistant</h1>
           </div>
           <p className="text-muted-foreground">
-            Upload documents and have intelligent conversations about their content
+            Upload documents, add YouTube videos, or paste text content to generate study materials with AI-powered tools
           </p>
         </header>
 
       <Tabs value={activeTab} className="space-y-6">
         <MobileTabs
           tabs={[
-            { value: "documents", label: "Documents" },
+            { value: "documents", label: "Content" },
             { value: "chat", label: "Chat" },
             { value: "flashcards", label: "Flashcards" },
             { value: "quiz", label: "Quiz" },
@@ -1556,60 +1744,154 @@ export default function AIDocumentChatPage() {
           onTabChange={setActiveTab}
         />
 
-        {/* Documents Tab */}
+        {/* Content Tab */}
         <TabsContent value="documents" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5" />
-                Upload Documents
+                <Plus className="h-5 w-5" />
+                Add Content
               </CardTitle>
               <CardDescription>
-                Upload PDFs, Word documents, text files, or images to chat with AI about their content
+                Add documents, YouTube videos, or text content to generate study materials with AI
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                  isDragOver 
-                    ? 'border-primary bg-primary/5' 
-                    : 'border-border hover:border-primary/50'
-                }`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-              >
-                <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-medium mb-2">Drop files here or click to upload</h3>
-                <p className="text-muted-foreground mb-4">
-                  Supports PDF and Word documents (.pdf, .docx) - max 25MB each
-                </p>
-                <Button 
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading || isProcessing}
-                >
-                  Choose Files
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept=".pdf,.docx"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files.length > 0) {
-                      const file = e.target.files[0];
-                      if (!validateFile(file)) {
-                        return; // Error message already set by validateFile
-                      }
-                      handleFileUpload(e.target.files);
-                    }
-                  }}
-                  className="hidden"
-                />
-                {uploadError && (
-                  <p className="text-sm text-red-500 mt-2">{uploadError}</p>
-                )}
-              </div>
+              <Tabs value={inputType} onValueChange={(value) => setInputType(value as "file" | "youtube" | "text")} className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="file" className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    <span className="hidden sm:inline">Documents</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="youtube" className="flex items-center gap-2">
+                    <Youtube className="h-4 w-4" />
+                    <span className="hidden sm:inline">YouTube</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="text" className="flex items-center gap-2">
+                    <Type className="h-4 w-4" />
+                    <span className="hidden sm:inline">Text</span>
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="file" className="mt-6">
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                      isDragOver 
+                        ? 'border-primary bg-primary/5' 
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="text-lg font-medium mb-2">Drop files here or click to upload</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Supports PDF and Word documents (.pdf, .docx) - max 25MB each
+                    </p>
+                    <Button 
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading || isProcessing}
+                    >
+                      Choose Files
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept=".pdf,.docx"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) {
+                          const file = e.target.files[0];
+                          if (!validateFile(file)) {
+                            return; // Error message already set by validateFile
+                          }
+                          handleFileUpload(e.target.files);
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="youtube" className="mt-6">
+                  <div className="space-y-4">
+                    <div className="text-center">
+                      <Youtube className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <h3 className="text-lg font-medium mb-2">Add YouTube Video</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Enter a YouTube URL to extract and analyze the video transcript
+                      </p>
+                    </div>
+                    <div className="space-y-3">
+                      <Label htmlFor="youtube-url">YouTube Video URL</Label>
+                      <Input
+                        id="youtube-url"
+                        type="url"
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        value={youtubeUrl}
+                        onChange={(e) => setYoutubeUrl(e.target.value)}
+                        disabled={isUploading || isProcessing}
+                      />
+                      <Button 
+                        onClick={handleYouTubeVideoUpload}
+                        disabled={isUploading || isProcessing || !youtubeUrl.trim()}
+                        className="w-full"
+                      >
+                        <Youtube className="h-4 w-4 mr-2" />
+                        Add YouTube Video
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="text" className="mt-6">
+                  <div className="space-y-4">
+                    <div className="text-center">
+                      <Type className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                      <h3 className="text-lg font-medium mb-2">Add Text Content</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Paste or type your content directly for AI analysis
+                      </p>
+                    </div>
+                    <div className="space-y-3">
+                      <Label htmlFor="text-title">Title</Label>
+                      <Input
+                        id="text-title"
+                        type="text"
+                        placeholder="Enter a title for your content..."
+                        value={textTitle}
+                        onChange={(e) => setTextTitle(e.target.value)}
+                        disabled={isUploading || isProcessing}
+                      />
+                      <Label htmlFor="text-content">Content</Label>
+                      <Textarea
+                        id="text-content"
+                        placeholder="Paste or type your content here..."
+                        value={textContent}
+                        onChange={(e) => setTextContent(e.target.value)}
+                        disabled={isUploading || isProcessing}
+                        rows={8}
+                        className="resize-none"
+                      />
+                      <Button 
+                        onClick={handleTextContentUpload}
+                        disabled={isUploading || isProcessing || !textContent.trim() || !textTitle.trim()}
+                        className="w-full"
+                      >
+                        <Type className="h-4 w-4 mr-2" />
+                        Add Text Content
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              {uploadError && (
+                <div className="mt-4 bg-red-500/20 font-medium px-4 py-2 rounded-md text-sm border border-red-200 dark:border-red-800">
+                  <p className="text-red-600">{uploadError}</p>
+                </div>
+              )}
 
               {/* Upload Progress */}
               {isUploading && (
@@ -1636,7 +1918,7 @@ export default function AIDocumentChatPage() {
                   {/* Processing Progress Indicator */}
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
-                      <span>Processing document</span>
+                      <span>Processing content</span>
                       <span className="flex items-center gap-1">
                         <Brain className="h-3 w-3" />
                         AI Analysis
@@ -1673,17 +1955,17 @@ export default function AIDocumentChatPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Your Documents ({documents.length})
+                <Brain className="h-5 w-5" />
+                Your Content ({documents.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
               {documents.length === 0 ? (
                 <div className="text-center py-8">
-                  <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-medium mb-2">No Documents Uploaded</h3>
+                  <Brain className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-medium mb-2">No Content Added</h3>
                   <p className="text-muted-foreground">
-                    Upload your first document to start chatting with AI
+                    Add documents, YouTube videos, or text content to start using AI study tools
                   </p>
                 </div>
               ) : (
@@ -1712,11 +1994,25 @@ export default function AIDocumentChatPage() {
                       >
                         <FileIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary flex-shrink-0 mt-0.5 sm:mt-0" />
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm sm:text-base line-clamp-2 sm:truncate mb-1 sm:mb-0">{doc.name}</h4>
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-medium text-sm sm:text-base line-clamp-2 sm:truncate">{doc.name}</h4>
+                            {doc.source && (
+                              <Badge variant="outline" className="text-xs h-5">
+                                {doc.source === 'youtube' ? 'YouTube' : 
+                                 doc.source === 'text' ? 'Text' : 
+                                 'File'}
+                              </Badge>
+                            )}
+                          </div>
                           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                             <div className="flex items-center gap-3 sm:gap-4">
-                              <span>{formatFileSize(doc.size)}</span>
+                              {doc.source !== 'youtube' && <span>{formatFileSize(doc.size)}</span>}
                               {doc.pageCount && <span>{doc.pageCount} pages</span>}
+                              {doc.source === 'youtube' && doc.originalUrl && (
+                                <span className="text-xs text-blue-600 truncate max-w-40">
+                                  {doc.originalUrl.replace('https://', '').replace('www.', '')}
+                                </span>
+                              )}
                             </div>
                             <span className="hidden sm:inline">{doc.uploadedAt.toLocaleDateString()}</span>
                             <span className="sm:hidden text-xs">{doc.uploadedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
@@ -1768,7 +2064,7 @@ export default function AIDocumentChatPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground mb-4">
-                    {selectedDocuments.length} document{selectedDocuments.length > 1 ? 's' : ''} selected for AI chat
+                    {selectedDocuments.length} item{selectedDocuments.length > 1 ? 's' : ''} selected for AI chat
                   </p>
                   <Button onClick={createNewSession} className="w-full">
                     <MessageSquare className="h-4 w-4 mr-2" />
@@ -1784,7 +2080,7 @@ export default function AIDocumentChatPage() {
                     AI Study Tools
                   </CardTitle>
                   <CardDescription>
-                    Generate study materials from your selected documents
+                    Generate study materials from your selected content
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -1871,11 +2167,11 @@ export default function AIDocumentChatPage() {
                 <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <h3 className="text-lg font-medium mb-2">No Active Chat Session</h3>
                 <p className="text-muted-foreground mb-4">
-                  Select documents and start a new chat session to begin
+                  Add content and start a new chat session to begin
                 </p>
                 <Button onClick={() => setActiveTab("documents")}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Documents
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Content
                 </Button>
               </CardContent>
             </Card>
@@ -1890,7 +2186,7 @@ export default function AIDocumentChatPage() {
                       {currentSession.name}
                     </CardTitle>
                     <CardDescription>
-                      Chatting with {currentSession.documentIds.length} document{currentSession.documentIds.length > 1 ? 's' : ''}
+                      Chatting with {currentSession.documentIds.length} item{currentSession.documentIds.length > 1 ? 's' : ''}
                     </CardDescription>
                   </CardHeader>
                   
@@ -1903,7 +2199,7 @@ export default function AIDocumentChatPage() {
                             <Bot className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                             <h3 className="text-lg font-medium mb-2">Start Your Conversation</h3>
                             <p className="text-muted-foreground">
-                              Ask questions about your documents, request summaries, or get insights
+                              Ask questions about your content, request summaries, or get insights
                             </p>
                           </div>
                         ) : (
@@ -2090,7 +2386,7 @@ export default function AIDocumentChatPage() {
                   <Loader2 className="h-12 w-12 mx-auto mb-4 text-primary animate-spin" />
                   <h3 className="text-lg font-medium mb-2">Generating Flashcards</h3>
                   <p className="text-muted-foreground mb-4">
-                    AI is creating personalized flashcards from your documents...
+                    AI is creating personalized flashcards from your content...
                   </p>
                   <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                     <div className="flex gap-1">
@@ -2106,11 +2402,11 @@ export default function AIDocumentChatPage() {
                   <CreditCard className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="text-lg font-medium mb-2">No Flashcards Generated</h3>
                   <p className="text-muted-foreground mb-4">
-                    Select documents and generate flashcards to start studying
+                    Select content and generate flashcards to start studying
                   </p>
                   <Button onClick={() => setActiveTab("documents")}>
                     <Upload className="h-4 w-4 mr-2" />
-                    Go to Documents
+                    Go to Content
                   </Button>
                 </div>
               ) : (
@@ -2305,7 +2601,7 @@ export default function AIDocumentChatPage() {
                   <Loader2 className="h-12 w-12 mx-auto mb-4 text-primary animate-spin" />
                   <h3 className="text-lg font-medium mb-2">Generating Practice Quiz</h3>
                   <p className="text-muted-foreground mb-4">
-                    AI is creating custom questions to test your knowledge...
+                    AI is creating custom questions from your content...
                   </p>
                   <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                     <div className="flex gap-1">
@@ -2321,11 +2617,11 @@ export default function AIDocumentChatPage() {
                   <HelpCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="text-lg font-medium mb-2">No Quiz Generated</h3>
                   <p className="text-muted-foreground mb-4">
-                    Select documents and generate a quiz to test your knowledge
+                    Select content and generate a quiz to test your knowledge
                   </p>
                   <Button onClick={() => setActiveTab("documents")}>
                     <Upload className="h-4 w-4 mr-2" />
-                    Go to Documents
+                    Go to Content
                   </Button>
                 </div>
               ) : (
@@ -2569,7 +2865,7 @@ export default function AIDocumentChatPage() {
                   <Loader2 className="h-12 w-12 mx-auto mb-4 text-primary animate-spin" />
                   <h3 className="text-lg font-medium mb-2">Generating Study Summary</h3>
                   <p className="text-muted-foreground mb-4">
-                    AI is analyzing your documents to create comprehensive insights...
+                    AI is analyzing your content to create comprehensive insights...
                   </p>
                   <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                     <div className="flex gap-1">
@@ -2585,11 +2881,11 @@ export default function AIDocumentChatPage() {
                   <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="text-lg font-medium mb-2">No Summary Generated</h3>
                   <p className="text-muted-foreground mb-4">
-                    Select documents and generate a summary to see key insights
+                    Select content and generate a summary to see key insights
                   </p>
                   <Button onClick={() => setActiveTab("documents")}>
                     <Upload className="h-4 w-4 mr-2" />
-                    Go to Documents
+                    Go to Content
                   </Button>
                 </div>
               ) : (
@@ -2718,7 +3014,7 @@ export default function AIDocumentChatPage() {
                   <Loader2 className="h-12 w-12 mx-auto mb-4 text-primary animate-spin" />
                   <h3 className="text-lg font-medium mb-2">Generating Study Notes</h3>
                   <p className="text-muted-foreground mb-4">
-                    AI is organizing your documents into structured study notes...
+                    AI is organizing your content into structured study notes...
                   </p>
                   <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                     <div className="flex gap-1">
@@ -2734,11 +3030,11 @@ export default function AIDocumentChatPage() {
                   <BookOpenCheck className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="text-lg font-medium mb-2">No Notes Generated</h3>
                   <p className="text-muted-foreground mb-4">
-                    Select documents and generate notes for structured study material
+                    Select content and generate notes for structured study material
                   </p>
                   <Button onClick={() => setActiveTab("documents")}>
                     <Upload className="h-4 w-4 mr-2" />
-                    Go to Documents
+                    Go to Content
                   </Button>
                 </div>
               ) : (

@@ -1,6 +1,93 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 
+// Helper function to process YouTube videos
+async function processYouTubeVideo(supabase: any, document: any, user: any, session: any) {
+  try {
+    // Create processing job record for YouTube
+    const { data: job, error: jobError } = await supabase
+      .from('document_processing_jobs')
+      .insert({
+        user_id: user.id,
+        document_id: document.id,
+        filename: document.name,
+        file_size: document.size,
+        status: 'pending'
+      })
+      .select()
+      .single();
+
+    if (jobError || !job) {
+      console.error('Failed to create YouTube processing job:', jobError);
+      return NextResponse.json({ error: 'Failed to create processing job' }, { status: 500 });
+    }
+
+    // Trigger Edge Function for YouTube processing
+    const edgeFunctionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/document-processor`;
+    
+    console.log('Triggering YouTube Processor Edge Function with URL:', edgeFunctionUrl);
+    console.log('Job ID:', job.id);
+    console.log('Document ID:', document.id);
+    
+    // Don't await this - let it run in background
+    fetch(edgeFunctionUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        documentId: document.id,
+        userId: user.id,
+        filename: document.name,
+        fileType: document.type,
+        source: 'youtube',
+        originalUrl: document.original_url,
+        jobId: job.id
+      })
+    }).then(response => {
+      console.log('YouTube Processor Edge Function response status:', response.status);
+      if (!response.ok) {
+        console.error('YouTube Edge Function failed with status:', response.status);
+        return response.text().then(text => {
+          console.error('YouTube Edge Function error response:', text);
+          throw new Error(`YouTube Edge Function failed: ${response.status} - ${text}`);
+        });
+      }
+      console.log('YouTube Processor Edge Function triggered successfully');
+    }).catch(error => {
+      console.error('Failed to trigger YouTube Edge Function:', error);
+      // Update job status to failed
+      supabase
+        .from('document_processing_jobs')
+        .update({ 
+          status: 'failed', 
+          error_message: `Failed to start YouTube processing: ${error.message}`,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', job.id)
+        .then(() => {
+          console.log('Updated YouTube job status to failed');
+        });
+    });
+
+    // Return immediately with job ID
+    return NextResponse.json({ 
+      success: true, 
+      jobId: job.id,
+      status: 'pending',
+      message: 'YouTube video processing started. Please check status using the job ID.'
+    });
+
+  } catch (error) {
+    console.error('YouTube processing error:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to process YouTube video' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = createClient();
@@ -42,6 +129,27 @@ export async function POST(request: NextRequest) {
         pageCount: document.page_count,
         textChunks: document.text_chunks
       });
+    }
+
+    // Handle different content sources
+    if (document.source === 'text') {
+      // Text content is already ready, no processing needed
+      return NextResponse.json({ 
+        success: true, 
+        content: document.content,
+        pageCount: 1,
+        textChunks: document.content ? [{ content: document.content, page: 1 }] : []
+      });
+    }
+
+    if (document.source === 'youtube') {
+      // Handle YouTube video processing
+      return await processYouTubeVideo(supabase, document, user, session);
+    }
+
+    // Handle file-based documents (PDFs, DOCX)
+    if (!document.storage_path) {
+      return NextResponse.json({ error: 'Document storage path not found' }, { status: 400 });
     }
 
     // Create processing job record
