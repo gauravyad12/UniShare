@@ -1012,7 +1012,7 @@ export default function SimpleGroupChat({
                       className={`flex gap-2 ${message.sender_id === userId ? 'justify-end' : 'justify-start'}`}
                     >
                   {message.sender_id !== userId && (
-                    <Avatar className="h-8 w-8 avatar">
+                    <Avatar className="h-8 w-8 avatar self-end">
                       {message.avatar_url ? (
                         <AvatarImage
                           src={message.avatar_url}
@@ -1085,7 +1085,7 @@ export default function SimpleGroupChat({
                     )}
                   </div>
                   {message.sender_id === userId && (
-                    <Avatar className="h-8 w-8 avatar">
+                    <Avatar className="h-8 w-8 avatar self-end">
                       {userProfile?.avatar_url ? (
                         <AvatarImage
                           src={userProfile.avatar_url}

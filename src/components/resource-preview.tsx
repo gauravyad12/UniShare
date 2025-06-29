@@ -175,12 +175,13 @@ export default function ResourcePreview({
         <img
           src={previewUrl}
           alt={`Preview of ${title}`}
-          className={`w-full h-full ${fileUrl && fileUrl.toLowerCase().endsWith(".pdf") ? "object-cover scale-100" : "object-cover"}`}
+          className={`w-full h-full ${fileUrl && fileUrl.toLowerCase().endsWith(".pdf") ? "object-cover" : "object-cover"}`}
           loading="lazy"
           style={{
             objectPosition: fileUrl && fileUrl.toLowerCase().endsWith(".pdf")
-              ? (viewportWidth < 768 ? 'center 15%' : 'center 12%')
+              ? (viewportWidth < 768 ? 'center 10%' : 'center 10%')
               : 'center top',
+            transform: fileUrl && fileUrl.toLowerCase().endsWith(".pdf") ? 'scale(1.1)' : 'none',
           }}
           onLoad={() => {
             setImageLoading(false);

@@ -106,7 +106,8 @@ export default function ResourceThumbnail({ resourceId, title, link }: ResourceT
                   // Apply top offset only for non-link resources with different values for mobile/desktop
                   objectPosition: resourceType === 'link'
                     ? '0 0'
-                    : (viewportWidth < 768 ? '0 -40px' : '0 -40px')
+                    : (viewportWidth < 768 ? '0 -30px' : '0 -30px'),
+                  transform: resourceType !== 'link' ? 'scale(1.1)' : 'none',
                 }}
               />
             ) : (
