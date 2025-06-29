@@ -100,7 +100,7 @@ export default function ToolsPage({
       icon: Mic,
       category: "ai",
       path: "/dashboard/tools/ai-lecture-notes",
-      comingSoon: true,
+      comingSoon: false,
     },
   ];
 

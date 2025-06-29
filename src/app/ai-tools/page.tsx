@@ -131,7 +131,7 @@ export default function AIToolsPage() {
             </Card>
 
             {/* AI Lecture Note Taker */}
-            <Card className="border border-border flex flex-col opacity-75">
+            <Card className="border border-border flex flex-col">
               <CardHeader className="pb-2">
                 <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2">
                   <Mic className="h-6 w-6 text-primary" />
@@ -149,7 +149,6 @@ export default function AIToolsPage() {
                 <ul className="list-disc pl-6 text-muted-foreground space-y-1">
                   <li>Real-time lecture recording and transcription</li>
                   <li>Re-listen to recordings with timestamps</li>
-                  <li>Chat with AI about lecture content</li>
                   <li>Automatic summary generation</li>
                   <li>Smart note extraction and formatting</li>
                   <li>Flashcard creation from lectures</li>
@@ -157,8 +156,8 @@ export default function AIToolsPage() {
                 </ul>
               </CardContent>
               <CardFooter>
-                <Button className="w-full" disabled variant="outline">
-                  Coming Soon
+                <Button className="w-full" asChild>
+                  <Link href="/dashboard/tools/ai-lecture-notes">Launch Tool</Link>
                 </Button>
               </CardFooter>
             </Card>

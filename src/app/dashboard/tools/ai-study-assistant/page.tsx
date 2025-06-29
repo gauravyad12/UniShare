@@ -41,7 +41,8 @@ import {
   BookOpenCheck,
   Youtube,
   Type,
-  Plus
+  Plus,
+  Archive
 } from 'lucide-react';
 import DynamicPageTitle from '@/components/dynamic-page-title';
 import { createClient } from '@/utils/supabase/client';
@@ -1640,44 +1641,284 @@ export default function AIStudyAssistantPage() {
 
   const downloadPDF = async (content: any, title: string, type: string) => {
     try {
-      const response = await fetch('/api/documents/download-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content,
-          title,
-          type
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate PDF');
-      }
-
-      const result = await response.json();
+      const pdf = new jsPDF();
+      pdf.setFontSize(20);
+      pdf.text(title, 20, 30);
       
-      // Create a blob from the HTML content and trigger download
-      const blob = new Blob([result.htmlContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = result.filename.replace('.pdf', '.html');
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
+      let yPosition = 50;
+      const pageHeight = pdf.internal.pageSize.height;
+      const margin = 20;
+      const lineHeight = 7;
+      
+      if (type === 'flashcards') {
+        content.forEach((flashcard: any, index: number) => {
+          if (yPosition > pageHeight - 40) {
+            pdf.addPage();
+            yPosition = 30;
+          }
+          
+          pdf.setFontSize(14);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(`Card ${index + 1}`, margin, yPosition);
+          yPosition += lineHeight * 2;
+          
+          pdf.setFont('helvetica', 'bold');
+          pdf.text('Q:', margin, yPosition);
+          pdf.setFont('helvetica', 'normal');
+          const questionLines = pdf.splitTextToSize(flashcard.front || flashcard.question, 170);
+          pdf.text(questionLines, margin + 10, yPosition);
+          yPosition += questionLines.length * lineHeight + 5;
+          
+          pdf.setFont('helvetica', 'bold');
+          pdf.text('A:', margin, yPosition);
+          pdf.setFont('helvetica', 'normal');
+          const answerLines = pdf.splitTextToSize(flashcard.back || flashcard.answer, 170);
+          pdf.text(answerLines, margin + 10, yPosition);
+          yPosition += answerLines.length * lineHeight + 15;
+        });
+      } else if (type === 'summary') {
+        // Add overview section
+        if (content.overview) {
+          pdf.setFontSize(16);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text('Overview', margin, yPosition);
+          yPosition += lineHeight * 2;
+          
+          pdf.setFontSize(12);
+          pdf.setFont('helvetica', 'normal');
+          const overviewLines = pdf.splitTextToSize(content.overview, 170);
+          pdf.text(overviewLines, margin, yPosition);
+          yPosition += overviewLines.length * lineHeight + 15;
+        }
+        
+        // Add key points
+        if (content.keyPoints && content.keyPoints.length > 0) {
+          if (yPosition > pageHeight - 60) {
+            pdf.addPage();
+            yPosition = 30;
+          }
+          
+          pdf.setFontSize(16);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text('Key Points', margin, yPosition);
+          yPosition += lineHeight * 2;
+          
+          pdf.setFontSize(12);
+          pdf.setFont('helvetica', 'normal');
+          content.keyPoints.forEach((point: string) => {
+            if (yPosition > pageHeight - 20) {
+              pdf.addPage();
+              yPosition = 30;
+            }
+            const pointLines = pdf.splitTextToSize(`• ${point}`, 170);
+            pdf.text(pointLines, margin, yPosition);
+            yPosition += pointLines.length * lineHeight + 5;
+          });
+          yPosition += 10;
+        }
+        
+        // Add likely test topics
+        if (content.likelyTestTopics && content.likelyTestTopics.length > 0) {
+          if (yPosition > pageHeight - 60) {
+            pdf.addPage();
+            yPosition = 30;
+          }
+          
+          pdf.setFontSize(16);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text('Likely Test Topics', margin, yPosition);
+          yPosition += lineHeight * 2;
+          
+          pdf.setFontSize(12);
+          pdf.setFont('helvetica', 'normal');
+          content.likelyTestTopics.forEach((topic: string) => {
+            if (yPosition > pageHeight - 20) {
+              pdf.addPage();
+              yPosition = 30;
+            }
+            const topicLines = pdf.splitTextToSize(`• ${topic}`, 170);
+            pdf.text(topicLines, margin, yPosition);
+            yPosition += topicLines.length * lineHeight + 5;
+          });
+        }
+      } else if (type === 'quiz') {
+        if (content.questions && content.questions.length > 0) {
+          content.questions.forEach((question: any, index: number) => {
+            if (yPosition > pageHeight - 60) {
+              pdf.addPage();
+              yPosition = 30;
+            }
+            
+            pdf.setFontSize(14);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(`Question ${index + 1}`, margin, yPosition);
+            yPosition += lineHeight * 2;
+            
+            pdf.setFontSize(12);
+            pdf.setFont('helvetica', 'normal');
+            const questionLines = pdf.splitTextToSize(question.question, 170);
+            pdf.text(questionLines, margin, yPosition);
+            yPosition += questionLines.length * lineHeight + 10;
+            
+            if (question.type === 'multiple-choice' && question.options) {
+              pdf.setFont('helvetica', 'normal');
+              question.options.forEach((option: string, optIndex: number) => {
+                if (yPosition > pageHeight - 15) {
+                  pdf.addPage();
+                  yPosition = 30;
+                }
+                const optionText = `${String.fromCharCode(65 + optIndex)}. ${option.replace(/^[A-D]\.\s*/, '')}`;
+                const optionLines = pdf.splitTextToSize(optionText, 160);
+                pdf.text(optionLines, margin + 10, yPosition);
+                yPosition += optionLines.length * lineHeight + 3;
+              });
+            } else if (question.type === 'true-false') {
+              pdf.text('A. True', margin + 10, yPosition);
+              yPosition += lineHeight + 3;
+              pdf.text('B. False', margin + 10, yPosition);
+              yPosition += lineHeight + 3;
+            } else if (question.type === 'short-answer') {
+              pdf.text('Answer: _________________________________', margin + 10, yPosition);
+              yPosition += lineHeight * 3;
+            }
+            
+            // Add correct answer
+            if (question.correctAnswer) {
+              pdf.setFont('helvetica', 'bold');
+              pdf.text('Correct Answer:', margin, yPosition);
+              pdf.setFont('helvetica', 'normal');
+              const answerLines = pdf.splitTextToSize(question.correctAnswer, 160);
+              pdf.text(answerLines, margin + 35, yPosition);
+              yPosition += answerLines.length * lineHeight + 5;
+            }
+            
+            // Add explanation if available
+            if (question.explanation) {
+              pdf.setFont('helvetica', 'bold');
+              pdf.text('Explanation:', margin, yPosition);
+              yPosition += lineHeight;
+              pdf.setFont('helvetica', 'normal');
+              const explanationLines = pdf.splitTextToSize(question.explanation, 170);
+              pdf.text(explanationLines, margin, yPosition);
+              yPosition += explanationLines.length * lineHeight + 15;
+            } else {
+              yPosition += 10;
+            }
+          });
+        }
+      } else if (type === 'notes') {
+        if (content.sections && content.sections.length > 0) {
+          content.sections.forEach((section: any) => {
+            if (yPosition > pageHeight - 60) {
+              pdf.addPage();
+              yPosition = 30;
+            }
+            
+            pdf.setFontSize(16);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(section.heading, margin, yPosition);
+            yPosition += lineHeight * 2;
+            
+            if (section.content) {
+              pdf.setFontSize(12);
+              pdf.setFont('helvetica', 'normal');
+              const contentLines = pdf.splitTextToSize(section.content, 170);
+              pdf.text(contentLines, margin, yPosition);
+              yPosition += contentLines.length * lineHeight + 10;
+            }
+            
+            if (section.subsections && section.subsections.length > 0) {
+              section.subsections.forEach((subsection: any) => {
+                if (yPosition > pageHeight - 40) {
+                  pdf.addPage();
+                  yPosition = 30;
+                }
+                
+                pdf.setFontSize(14);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text(subsection.subheading, margin + 10, yPosition);
+                yPosition += lineHeight + 5;
+                
+                if (subsection.points && subsection.points.length > 0) {
+                  pdf.setFontSize(12);
+                  pdf.setFont('helvetica', 'normal');
+                  subsection.points.forEach((point: string) => {
+                    if (yPosition > pageHeight - 20) {
+                      pdf.addPage();
+                      yPosition = 30;
+                    }
+                    const pointLines = pdf.splitTextToSize(`• ${point}`, 160);
+                    pdf.text(pointLines, margin + 20, yPosition);
+                    yPosition += pointLines.length * lineHeight + 3;
+                  });
+                  yPosition += 5;
+                }
+              });
+            }
+            yPosition += 10;
+          });
+        }
+        
+        // Add key terms section
+        if (content.keyTerms && content.keyTerms.length > 0) {
+          if (yPosition > pageHeight - 60) {
+            pdf.addPage();
+            yPosition = 30;
+          }
+          
+          pdf.setFontSize(16);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text('Key Terms', margin, yPosition);
+          yPosition += lineHeight * 2;
+          
+          content.keyTerms.forEach((term: any) => {
+            if (yPosition > pageHeight - 30) {
+              pdf.addPage();
+              yPosition = 30;
+            }
+            
+            pdf.setFontSize(12);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(term.term, margin, yPosition);
+            yPosition += lineHeight;
+            
+            pdf.setFont('helvetica', 'normal');
+            const definitionLines = pdf.splitTextToSize(term.definition, 170);
+            pdf.text(definitionLines, margin, yPosition);
+            yPosition += definitionLines.length * lineHeight + 10;
+          });
+        }
+        
+        // Add summary section
+        if (content.summary) {
+          if (yPosition > pageHeight - 60) {
+            pdf.addPage();
+            yPosition = 30;
+          }
+          
+          pdf.setFontSize(16);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text('Summary', margin, yPosition);
+          yPosition += lineHeight * 2;
+          
+          pdf.setFontSize(12);
+          pdf.setFont('helvetica', 'normal');
+          const summaryLines = pdf.splitTextToSize(content.summary, 170);
+          pdf.text(summaryLines, margin, yPosition);
+        }
+      }
+      
+      pdf.save(`${title}.pdf`);
+      
       toast({
-        title: "Download Ready",
-        description: "HTML file downloaded. You can convert it to PDF using your browser's print function.",
+        title: "PDF Downloaded",
+        description: `${title} has been downloaded successfully`,
       });
-
     } catch (error) {
+      console.error('Error generating PDF:', error);
       toast({
-        title: "Download Error",
-        description: "Failed to prepare download",
+        title: "Download Failed",
+        description: "Could not generate PDF",
         variant: "destructive",
       });
     }
@@ -1732,11 +1973,11 @@ export default function AIStudyAssistantPage() {
         <MobileTabs
           tabs={[
             { value: "documents", label: "Content" },
-            { value: "chat", label: "Chat" },
-            { value: "flashcards", label: "Flashcards" },
-            { value: "quiz", label: "Quiz" },
             { value: "summary", label: "Summary" },
             { value: "notes", label: "Notes" },
+            { value: "flashcards", label: "Flashcards" },
+            { value: "quiz", label: "Quiz" },
+            { value: "chat", label: "Chat" },
             { value: "sessions", label: "Sessions" },
           ]}
           activeTab={activeTab}
@@ -1977,7 +2218,7 @@ export default function AIStudyAssistantPage() {
                     return (
                       <div
                         key={doc.id}
-                        className={`flex items-start sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 border rounded-lg cursor-pointer transition-colors ${
+                        className={`flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:p-4 border rounded-lg cursor-pointer transition-colors ${
                           isSelected 
                             ? 'border-primary bg-primary/5' 
                             : 'border-border hover:border-primary/50'
@@ -1992,57 +2233,118 @@ export default function AIStudyAssistantPage() {
                           }
                         }}
                       >
-                        <FileIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary flex-shrink-0 mt-0.5 sm:mt-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-medium text-sm sm:text-base line-clamp-2 sm:truncate">{doc.name}</h4>
-                            {doc.source && (
-                              <Badge variant="outline" className="text-xs h-5">
-                                {doc.source === 'youtube' ? 'YouTube' : 
-                                 doc.source === 'text' ? 'Text' : 
-                                 'File'}
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-                            <div className="flex items-center gap-3 sm:gap-4">
+                        {/* Mobile Layout */}
+                        <div className="flex sm:hidden items-start gap-3 w-full">
+                          <FileIcon className="h-6 w-6 text-primary flex-shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-sm line-clamp-2 mb-1">{doc.name}</h4>
+                                <div className="flex items-center gap-2 mb-1">
+                                  {doc.source && (
+                                    <Badge variant="outline" className="text-xs h-5 px-1.5">
+                                      {doc.source === 'youtube' ? 'YT' : 
+                                       doc.source === 'text' ? 'Text' : 
+                                       'File'}
+                                    </Badge>
+                                  )}
+                                  <Badge 
+                                    variant={
+                                      doc.status === 'ready' ? 'default' : 
+                                      doc.status === 'processing' ? 'secondary' : 
+                                      'destructive'
+                                    }
+                                    className="text-xs h-5 px-1.5"
+                                  >
+                                    {doc.status === 'ready' ? 'Ready' : 
+                                     doc.status === 'processing' ? 'Processing' : 
+                                     'Error'}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 flex-shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDocumentToDelete(doc);
+                                  setShowDeleteDialog(true);
+                                }}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                               {doc.source !== 'youtube' && <span>{formatFileSize(doc.size)}</span>}
                               {doc.pageCount && <span>{doc.pageCount} pages</span>}
+                              <span>•</span>
+                              <span>{doc.uploadedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                               {doc.source === 'youtube' && doc.originalUrl && (
-                                <span className="text-xs text-blue-600 truncate max-w-40">
-                                  {doc.originalUrl.replace('https://', '').replace('www.', '')}
-                                </span>
+                                <>
+                                  <span>•</span>
+                                  <span className="text-blue-600 truncate max-w-32">
+                                    {doc.originalUrl.replace('https://', '').replace('www.', '').replace('youtube.com/watch?v=', 'youtu.be/')}
+                                  </span>
+                                </>
                               )}
                             </div>
-                            <span className="hidden sm:inline">{doc.uploadedAt.toLocaleDateString()}</span>
-                            <span className="sm:hidden text-xs">{doc.uploadedAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                           </div>
                         </div>
-                        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
-                          <Badge 
-                            variant={
-                              doc.status === 'ready' ? 'default' : 
-                              doc.status === 'processing' ? 'secondary' : 
-                              'destructive'
-                            }
-                            className="text-xs"
-                          >
-                            {doc.status === 'ready' ? 'Ready' : 
-                             doc.status === 'processing' ? 'Processing' : 
-                             'Error'}
-                          </Badge>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0 flex-shrink-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDocumentToDelete(doc);
-                              setShowDeleteDialog(true);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+
+                        {/* Desktop Layout */}
+                        <div className="hidden sm:flex items-center gap-4 w-full">
+                          <FileIcon className="h-8 w-8 text-primary flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-medium text-base truncate">{doc.name}</h4>
+                              {doc.source && (
+                                <Badge variant="outline" className="text-xs h-5">
+                                  {doc.source === 'youtube' ? 'YouTube' : 
+                                   doc.source === 'text' ? 'Text' : 
+                                   'File'}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-4">
+                                {doc.source !== 'youtube' && <span>{formatFileSize(doc.size)}</span>}
+                                {doc.pageCount && <span>{doc.pageCount} pages</span>}
+                                {doc.source === 'youtube' && doc.originalUrl && (
+                                  <span className="text-blue-600 truncate max-w-48">
+                                    {doc.originalUrl.replace('https://', '').replace('www.', '')}
+                                  </span>
+                                )}
+                              </div>
+                              <span>{doc.uploadedAt.toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant={
+                                doc.status === 'ready' ? 'default' : 
+                                doc.status === 'processing' ? 'secondary' : 
+                                'destructive'
+                              }
+                              className="text-xs"
+                            >
+                              {doc.status === 'ready' ? 'Ready' : 
+                               doc.status === 'processing' ? 'Processing' : 
+                               'Error'}
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 flex-shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDocumentToDelete(doc);
+                                setShowDeleteDialog(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -2086,70 +2388,122 @@ export default function AIStudyAssistantPage() {
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Button 
-                      onClick={() => generateFlashcards('medium', 10)}
+                      onClick={() => {
+                        if (flashcards.length > 0) {
+                          setActiveTab("flashcards");
+                        } else {
+                          generateFlashcards('medium', 10);
+                        }
+                      }}
                       disabled={isGenerating === 'flashcards'}
-                      className="h-20 flex flex-col gap-2"
+                      className="h-20 flex flex-col gap-2 relative"
                       variant="outline"
                     >
+                      {flashcards.length > 0 && (
+                        <Archive className="h-3 w-3 absolute top-2 right-2 text-muted-foreground" />
+                      )}
                       {isGenerating === 'flashcards' ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                       ) : (
                         <CreditCard className="h-5 w-5" />
                       )}
                       <div className="text-center">
-                        <div className="font-medium">Flashcards</div>
-                        <div className="text-xs text-muted-foreground">Study key concepts</div>
+                        <div className="font-medium">
+                          {flashcards.length > 0 ? "View Flashcards" : "Generate Flashcards"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {flashcards.length > 0 ? `${flashcards.length} cards ready` : "Study key concepts"}
+                        </div>
                       </div>
                     </Button>
 
                     <Button 
-                      onClick={() => generateQuiz(10, ['multiple-choice', 'true-false', 'short-answer'], quizDifficulty)}
+                      onClick={() => {
+                        if (quiz) {
+                          setActiveTab("quiz");
+                        } else {
+                          generateQuiz(10, ['multiple-choice', 'true-false', 'short-answer'], quizDifficulty);
+                        }
+                      }}
                       disabled={isGenerating === 'quiz'}
-                      className="h-20 flex flex-col gap-2"
+                      className="h-20 flex flex-col gap-2 relative"
                       variant="outline"
                     >
+                      {quiz && (
+                        <Archive className="h-3 w-3 absolute top-2 right-2 text-muted-foreground" />
+                      )}
                       {isGenerating === 'quiz' ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                       ) : (
                         <HelpCircle className="h-5 w-5" />
                       )}
                       <div className="text-center">
-                        <div className="font-medium">Practice Quiz</div>
-                        <div className="text-xs text-muted-foreground">Test your knowledge</div>
+                        <div className="font-medium">
+                          {quiz ? "View Quiz" : "Generate Quiz"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {quiz ? `${quiz.questions?.length || 0} questions ready` : "Test your knowledge"}
+                        </div>
                       </div>
                     </Button>
 
                     <Button 
-                      onClick={() => generateSummary()}
+                      onClick={() => {
+                        if (summary) {
+                          setActiveTab("summary");
+                        } else {
+                          generateSummary();
+                        }
+                      }}
                       disabled={isGenerating === 'summary'}
-                      className="h-20 flex flex-col gap-2"
+                      className="h-20 flex flex-col gap-2 relative"
                       variant="outline"
                     >
+                      {summary && (
+                        <Archive className="h-3 w-3 absolute top-2 right-2 text-muted-foreground" />
+                      )}
                       {isGenerating === 'summary' ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                       ) : (
                         <Target className="h-5 w-5" />
                       )}
                       <div className="text-center">
-                        <div className="font-medium">Smart Summary</div>
-                        <div className="text-xs text-muted-foreground">Key points & test topics</div>
+                        <div className="font-medium">
+                          {summary ? "View Summary" : "Generate Summary"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {summary ? "Summary ready" : "Key points & test topics"}
+                        </div>
                       </div>
                     </Button>
 
                     <Button 
-                      onClick={() => generateNotes('structured')}
+                      onClick={() => {
+                        if (notes) {
+                          setActiveTab("notes");
+                        } else {
+                          generateNotes('structured');
+                        }
+                      }}
                       disabled={isGenerating === 'notes'}
-                      className="h-20 flex flex-col gap-2"
+                      className="h-20 flex flex-col gap-2 relative"
                       variant="outline"
                     >
+                      {notes && (
+                        <Archive className="h-3 w-3 absolute top-2 right-2 text-muted-foreground" />
+                      )}
                       {isGenerating === 'notes' ? (
                         <Loader2 className="h-5 w-5 animate-spin" />
                       ) : (
                         <BookOpenCheck className="h-5 w-5" />
                       )}
                       <div className="text-center">
-                        <div className="font-medium">Study Notes</div>
-                        <div className="text-xs text-muted-foreground">Downloadable PDF</div>
+                        <div className="font-medium">
+                          {notes ? "View Notes" : "Generate Notes"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {notes ? "Notes ready" : "Structured study notes"}
+                        </div>
                       </div>
                     </Button>
                   </div>
@@ -2892,14 +3246,15 @@ export default function AIStudyAssistantPage() {
                 <div className="space-y-6">
                   {/* Summary Header */}
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-semibold">{summary.title}</h3>
+                    <h3 className="text-xl font-semibold pr-4">{summary.title}</h3>
                     <Button 
                       onClick={() => downloadPDF(summary, summary.title, 'summary')}
                       variant="outline"
                       size="sm"
+                      className={isMobile ? "px-2" : ""}
                     >
-                      <FileDown className="h-4 w-4 mr-2" />
-                      Download
+                      <FileDown className={`h-4 w-4 ${isMobile ? "" : "mr-2"}`} />
+                      {!isMobile && "Download"}
                     </Button>
                   </div>
 
@@ -3005,7 +3360,7 @@ export default function AIStudyAssistantPage() {
                 Study Notes
               </CardTitle>
               <CardDescription>
-                Comprehensive study notes ready for download
+                Structured study notes
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -3040,16 +3395,16 @@ export default function AIStudyAssistantPage() {
               ) : (
                 <div className="space-y-6">
                   {/* Notes Header */}
-                  <div className="space-y-3">
-                    <h3 className="text-xl font-semibold">{notes.title}</h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-semibold pr-4">{notes.title}</h3>
                     <Button 
                       onClick={() => downloadPDF(notes, notes.title, 'notes')}
                       variant="outline"
                       size="sm"
-                      className="w-fit"
+                      className={isMobile ? "px-2" : ""}
                     >
-                      <FileDown className="h-4 w-4 mr-2" />
-                      Download PDF
+                      <FileDown className={`h-4 w-4 ${isMobile ? "" : "mr-2"}`} />
+                      {!isMobile && "Download PDF"}
                     </Button>
                   </div>
 
@@ -3186,7 +3541,7 @@ export default function AIStudyAssistantPage() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeaderNoBorder>
             <DialogTitle>
-              {documentToDelete ? 'Delete Document' : 'Delete Chat Session'}
+              {documentToDelete ? 'Delete Content' : 'Delete Chat Session'}
             </DialogTitle>
             <DialogDescription>
               {documentToDelete 
