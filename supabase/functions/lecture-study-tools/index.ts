@@ -63,6 +63,34 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Check if user has an active Scholar+ subscription
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("status, current_period_end")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (!subscription) {
+      return new Response(
+        JSON.stringify({ error: 'Scholar+ subscription required' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if subscription is still valid
+    const currentTime = Math.floor(Date.now() / 1000);
+    const isValid = subscription.status === "active" &&
+                    (!subscription.current_period_end ||
+                     subscription.current_period_end > currentTime);
+
+    if (!isValid) {
+      return new Response(
+        JSON.stringify({ error: 'Active Scholar+ subscription required' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const requestData: LectureStudyRequest = await req.json();
     const { operation, jobId, userId, recordingIds } = requestData;
 

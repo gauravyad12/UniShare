@@ -621,12 +621,22 @@ export default function AIEssayWriterPage() {
     let pollCount = 0;
     const maxPolls = 60; // Maximum 5 minutes (5 second intervals)
 
-    // Set initial step
+    // Set initial step and progress
     setAnalysisStep(steps[operationType][0]);
+    setGenerationProgress(5); // Start with 5%
 
     const pollInterval = setInterval(async () => {
       try {
         pollCount++;
+        
+        // Calculate progress (5% to 90% during polling, final 10% on completion)
+        const baseProgress = Math.min(90, 5 + (pollCount / maxPolls) * 85);
+        
+        // Add extra progress when advancing steps (each step adds ~10%)
+        const stepProgress = (stepIndex / (steps[operationType].length - 1)) * 20;
+        const totalProgress = Math.min(90, baseProgress + stepProgress);
+        
+        setGenerationProgress(Math.round(totalProgress));
         
         // Update analysis step for better UX - advance every 2 polls (10 seconds)
         if (stepIndex < steps[operationType].length - 1 && pollCount % 2 === 0) {
@@ -645,6 +655,7 @@ export default function AIEssayWriterPage() {
         if (statusData.status === 'completed' && statusData.result) {
           clearInterval(pollInterval);
           setAnalysisStep('Analysis complete!');
+          setGenerationProgress(100); // Complete the progress bar
           
           // Show completion message briefly before processing result
           setTimeout(async () => {
@@ -692,6 +703,7 @@ export default function AIEssayWriterPage() {
 
         if (statusData.status === 'failed') {
           clearInterval(pollInterval);
+          setGenerationProgress(0); // Reset progress on failure
           
           // Clean up failed job
           try {
@@ -706,6 +718,7 @@ export default function AIEssayWriterPage() {
         // Check for timeout
         if (pollCount >= maxPolls) {
           clearInterval(pollInterval);
+          setGenerationProgress(0); // Reset progress on timeout
           
           // Clean up timed out job
           try {
@@ -720,6 +733,7 @@ export default function AIEssayWriterPage() {
       } catch (error) {
         clearInterval(pollInterval);
         console.error('Polling error:', error);
+        setGenerationProgress(0); // Reset progress on error
         
         toast({
           title: "Analysis Error",
@@ -768,8 +782,8 @@ export default function AIEssayWriterPage() {
         },
         body: JSON.stringify({
           prompt,
-          essayType,
-          wordCount: targetWordCount,
+          essayType: selectedPrompt?.type || essayType,
+          wordCount: selectedPrompt?.wordCount || targetWordCount,
           academicLevel,
           citationStyle,
           requirements: selectedPrompt?.requirements || []
@@ -835,8 +849,8 @@ export default function AIEssayWriterPage() {
         body: JSON.stringify({
           prompt: currentPrompt,
           outline: essayContent,
-          essayType,
-          wordCount: targetWordCount,
+          essayType: selectedPrompt?.type || essayType,
+          wordCount: selectedPrompt?.wordCount || targetWordCount,
           academicLevel,
           citationStyle,
           requirements: selectedPrompt?.requirements || []
@@ -894,8 +908,8 @@ export default function AIEssayWriterPage() {
           prompt: selectedPrompt?.description || customPrompt,
           rubric: selectedPrompt?.rubric,
           customRubric: customRubric.trim() || null,
-          essayType,
-          targetWordCount,
+          essayType: selectedPrompt?.type || essayType,
+          targetWordCount: selectedPrompt?.wordCount || targetWordCount,
           academicLevel
         }),
       });
@@ -1246,10 +1260,10 @@ export default function AIEssayWriterPage() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Word Count: {wordCount}</span>
-                      <span>Target: {targetWordCount}</span>
+                      <span>Target: {selectedPrompt?.wordCount || targetWordCount}</span>
                     </div>
                     <Progress 
-                      value={Math.min(Math.max((wordCount / targetWordCount) * 100, 0), 100)} 
+                      value={Math.min(Math.max((wordCount / (selectedPrompt?.wordCount || targetWordCount)) * 100, 0), 100)} 
                       className="h-2"
                     />
                   </div>
@@ -1383,10 +1397,20 @@ export default function AIEssayWriterPage() {
                           </div>
                         </>
                       ) : (
-                        <p className="text-xs text-muted-foreground">
-                          {customPrompt.substring(0, 150)}
-                          {customPrompt.length > 150 && '...'}
-                        </p>
+                        <>
+                          <p className="text-xs text-muted-foreground">
+                            {customPrompt.substring(0, 150)}
+                            {customPrompt.length > 150 && '...'}
+                          </p>
+                          <div className="flex gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {essayType}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              {targetWordCount} words
+                            </Badge>
+                          </div>
+                        </>
                       )}
                     </div>
                   </CardContent>

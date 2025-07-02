@@ -12,6 +12,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Check if user has an active Scholar+ subscription
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("status, current_period_end")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (!subscription) {
+      return NextResponse.json(
+        { error: 'Scholar+ subscription required' },
+        { status: 403 }
+      );
+    }
+
+    // Check if subscription is still valid
+    const currentTime = Math.floor(Date.now() / 1000);
+    const isValid = subscription.status === "active" &&
+                    (!subscription.current_period_end ||
+                     subscription.current_period_end > currentTime);
+
+    if (!isValid) {
+      return NextResponse.json(
+        { error: 'Active Scholar+ subscription required' },
+        { status: 403 }
+      );
+    }
+
     const { documentNames } = await request.json();
 
     if (!documentNames || !Array.isArray(documentNames) || documentNames.length === 0) {

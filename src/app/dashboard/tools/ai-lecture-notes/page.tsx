@@ -121,6 +121,12 @@ export default function AILectureNotesPage() {
   const isMobile = useMobileDetection();
   const supabase = createClient();
 
+  // Helper function to scroll to top smoothly when switching tabs
+  const scrollToTopAndSetTab = (tabName: string) => {
+    setActiveTab(tabName);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Load saved data on mount
   useEffect(() => {
     loadRecordings();
@@ -974,7 +980,7 @@ export default function AILectureNotesPage() {
         setFlashcards(cachedResult.flashcards || cachedResult);
         setCurrentFlashcardIndex(0);
         setShowFlashcardAnswer(false);
-        setActiveTab("flashcards");
+        scrollToTopAndSetTab("flashcards");
         setIsGenerating(null);
         return;
       }
@@ -1029,7 +1035,7 @@ export default function AILectureNotesPage() {
         setQuiz(cachedResult);
         setQuizAnswers({});
         setQuizSubmitted(false);
-        setActiveTab("quiz");
+        scrollToTopAndSetTab("quiz");
         setIsGenerating(null);
         return;
       }
@@ -1082,7 +1088,7 @@ export default function AILectureNotesPage() {
       const cachedResult = await checkForCachedResult('summary', {});
       if (cachedResult) {
         setSummary(cachedResult);
-        setActiveTab("summary");
+        scrollToTopAndSetTab("summary");
         setIsGenerating(null);
         return;
       }
@@ -1133,7 +1139,7 @@ export default function AILectureNotesPage() {
       const cachedResult = await checkForCachedResult('notes', { style });
       if (cachedResult) {
         setNotes(cachedResult);
-        setActiveTab("notes");
+        scrollToTopAndSetTab("notes");
         setIsGenerating(null);
         return;
       }
@@ -1885,7 +1891,7 @@ export default function AILectureNotesPage() {
                     <Button 
                       onClick={() => {
                         if (flashcards.length > 0) {
-                          setActiveTab("flashcards");
+                          scrollToTopAndSetTab("flashcards");
                         } else {
                           generateFlashcards('medium', 10);
                         }
@@ -1915,7 +1921,7 @@ export default function AILectureNotesPage() {
                     <Button 
                       onClick={() => {
                         if (quiz) {
-                          setActiveTab("quiz");
+                          scrollToTopAndSetTab("quiz");
                         } else {
                           generateQuiz(10, ['multiple-choice', 'true-false', 'short-answer'], quizDifficulty);
                         }
@@ -1945,7 +1951,7 @@ export default function AILectureNotesPage() {
                     <Button 
                       onClick={() => {
                         if (summary) {
-                          setActiveTab("summary");
+                          scrollToTopAndSetTab("summary");
                         } else {
                           generateSummary();
                         }
@@ -1975,7 +1981,7 @@ export default function AILectureNotesPage() {
                     <Button 
                       onClick={() => {
                         if (notes) {
-                          setActiveTab("notes");
+                          scrollToTopAndSetTab("notes");
                         } else {
                           generateNotes('structured');
                         }

@@ -145,6 +145,12 @@ export default function AIStudyAssistantPage() {
   const isMobile = useMobileDetection();
   const supabase = createClient();
 
+  // Helper function to scroll to top smoothly when switching tabs
+  const scrollToTopAndSetTab = (tabName: string) => {
+    setActiveTab(tabName);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Auto-scroll to bottom of messages within the chat container
   useEffect(() => {
     if (messagesContainerRef.current) {
@@ -1432,7 +1438,7 @@ export default function AIStudyAssistantPage() {
         setFlashcards(cachedResult.flashcards);
         setCurrentFlashcardIndex(0);
         setShowFlashcardAnswer(false);
-        setActiveTab("flashcards");
+        scrollToTopAndSetTab("flashcards");
         setIsGenerating(null);
 
         toast({
@@ -1515,7 +1521,7 @@ export default function AIStudyAssistantPage() {
         setQuiz(cachedResult);
         setQuizAnswers({});
         setQuizSubmitted(false);
-        setActiveTab("quiz");
+        scrollToTopAndSetTab("quiz");
         setIsGenerating(null);
 
         // Update difficulty state if quiz has difficulty info (only if user hasn't manually changed it)
@@ -1607,7 +1613,7 @@ export default function AIStudyAssistantPage() {
       const cachedResult = await checkForCachedResult('summary', {});
       if (cachedResult) {
         setSummary(cachedResult);
-        setActiveTab("summary");
+        scrollToTopAndSetTab("summary");
         setIsGenerating(null);
 
         toast({
@@ -1889,7 +1895,7 @@ export default function AIStudyAssistantPage() {
       const cachedResult = await checkForCachedResult('notes', { style });
       if (cachedResult) {
         setNotes(cachedResult);
-        setActiveTab("notes");
+        scrollToTopAndSetTab("notes");
         setIsGenerating(null);
 
         toast({
@@ -2717,7 +2723,7 @@ export default function AIStudyAssistantPage() {
                     <Button 
                       onClick={() => {
                         if (flashcards.length > 0) {
-                          setActiveTab("flashcards");
+                          scrollToTopAndSetTab("flashcards");
                         } else {
                           generateFlashcards('medium', 10);
                         }
@@ -2747,7 +2753,7 @@ export default function AIStudyAssistantPage() {
                     <Button 
                       onClick={() => {
                         if (quiz) {
-                          setActiveTab("quiz");
+                          scrollToTopAndSetTab("quiz");
                         } else {
                           generateQuiz(10, ['multiple-choice', 'true-false', 'short-answer'], quizDifficulty);
                         }
@@ -2777,7 +2783,7 @@ export default function AIStudyAssistantPage() {
                     <Button 
                       onClick={() => {
                         if (summary) {
-                          setActiveTab("summary");
+                          scrollToTopAndSetTab("summary");
                         } else {
                           generateSummary();
                         }
@@ -2807,7 +2813,7 @@ export default function AIStudyAssistantPage() {
                     <Button 
                       onClick={() => {
                         if (notes) {
-                          setActiveTab("notes");
+                          scrollToTopAndSetTab("notes");
                         } else {
                           generateNotes('structured');
                         }

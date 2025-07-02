@@ -40,6 +40,10 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // Declare variables in outer scope for error handling
+  let jobId: string | undefined;
+  let supabase: any;
+
   try {
     // Get OpenAI API key from environment
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -68,7 +72,7 @@ Deno.serve(async (req: Request) => {
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey, {
+    supabase = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: authHeader } }
     });
 
@@ -81,8 +85,37 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Check if user has an active Scholar+ subscription
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("status, current_period_end")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (!subscription) {
+      return new Response(
+        JSON.stringify({ error: 'Scholar+ subscription required' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if subscription is still valid
+    const currentTime = Math.floor(Date.now() / 1000);
+    const isValid = subscription.status === "active" &&
+                    (!subscription.current_period_end ||
+                     subscription.current_period_end > currentTime);
+
+    if (!isValid) {
+      return new Response(
+        JSON.stringify({ error: 'Active Scholar+ subscription required' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     const requestData: EssayRequest = await req.json();
-    const { operation, jobId, userId, prompt, outline, content, title, essayType, wordCount, academicLevel, citationStyle, requirements, rubric, customRubric } = requestData;
+    const { operation, userId, prompt, outline, content, title, essayType, wordCount, academicLevel, citationStyle, requirements, rubric, customRubric } = requestData;
+    jobId = requestData.jobId;
 
     // Update job status to processing if jobId is provided
     if (jobId) {
@@ -104,7 +137,7 @@ Deno.serve(async (req: Request) => {
     let maxTokens = 1500;
     let temperature = 0.7;
 
-    switch (type) {
+    switch (operation) {
       case 'outline':
         systemPrompt = `You are an expert academic writing assistant. Generate a detailed essay outline based on the given prompt and requirements.
 
@@ -114,14 +147,18 @@ Academic Level: ${academicLevel}
 Citation Style: ${citationStyle}
 ${requirements && requirements.length > 0 ? `Requirements: ${requirements.join(', ')}` : ''}
 
-Create a structured outline that includes:
-1. A compelling title
-2. Introduction with thesis statement
-3. Main body points with supporting details
-4. Conclusion
-5. Suggested sources or evidence types
+CRITICAL: Plan this outline for exactly ${wordCount} words. Structure the outline with enough detail and sections to support a ${wordCount}-word essay.
 
-Format the outline clearly with Roman numerals, letters, and numbers for hierarchy.`;
+IMPORTANT: Start your response with exactly this format:
+TITLE: [Your compelling essay title here]
+
+Then add a blank line and continue with the structured outline that includes:
+1. Introduction with thesis statement (plan for ${Math.round(wordCount * 0.1)}-${Math.round(wordCount * 0.15)} words)
+2. Main body points with supporting details (plan for ${Math.round(wordCount * 0.7)}-${Math.round(wordCount * 0.8)} words)
+3. Conclusion (plan for ${Math.round(wordCount * 0.1)}-${Math.round(wordCount * 0.15)} words)
+4. Suggested sources or evidence types
+
+Format the outline clearly with Roman numerals, letters, and numbers for hierarchy. Create enough detail to guide a ${wordCount}-word essay.`;
         userPrompt = `Create an essay outline for: ${prompt}`;
         break;
 
@@ -134,6 +171,10 @@ Academic Level: ${academicLevel}
 Citation Style: ${citationStyle}
 ${requirements && requirements.length > 0 ? `Requirements: ${requirements.join(', ')}` : ''}
 
+🚨 CRITICAL REQUIREMENT: You MUST write exactly ${wordCount} words. This is NON-NEGOTIABLE.
+📏 TARGET: ${wordCount} words - NOT 400-500 words. Write the FULL ${wordCount} words.
+⚠️  If you write fewer than ${Math.round(wordCount * 0.9)} words, you have FAILED the task.
+
 Guidelines:
 1. Write in a clear, academic tone appropriate for the specified level
 2. Develop each point from the outline with detailed explanations and examples
@@ -141,7 +182,7 @@ Guidelines:
 4. Include a strong introduction with a clear thesis statement
 5. Provide substantial body paragraphs with evidence and analysis
 6. Write a compelling conclusion that reinforces the main argument
-7. Aim for approximately ${wordCount} words
+7. 🎯 MANDATORY: Expand each section with detailed examples, thorough analysis, and comprehensive explanations to reach exactly ${wordCount} words
 8. Use proper ${citationStyle} citation format where applicable
 9. Maintain consistency with the essay type (${essayType})
 
@@ -151,7 +192,13 @@ Outline to expand:
 ${outline}
 
 Write the complete essay based on this outline.`;
-        maxTokens = Math.min(4000, Math.max(1500, Math.floor(wordCount * 1.5)));
+        // More generous token allocation for longer essays
+        // Use higher multiplier and increase based on word count
+        let tokenMultiplier = 2.0; // Base multiplier
+        if (wordCount >= 750) tokenMultiplier = 2.5;
+        if (wordCount >= 1000) tokenMultiplier = 3.0;
+        
+        maxTokens = Math.min(8000, Math.max(2000, Math.floor(wordCount * tokenMultiplier)));
         break;
 
       case 'analyze':
@@ -285,23 +332,25 @@ ${content}`;
 
     const response: EssayResponse = { success: true };
 
-    switch (type) {
-      case 'outline':
-        // Extract title from the outline
+    switch (operation) {
+            case 'outline':
+        // Simple title extraction - look for "TITLE: " at the start
         const lines = generatedText.split('\n');
-        const titleLine = lines.find((line: string) => 
-          line.toLowerCase().includes('title:') || 
-          line.toLowerCase().includes('essay title:') ||
-          (lines.indexOf(line) === 0 && line.trim().length > 0)
-        );
-        
         let extractedTitle = 'Generated Essay';
-        if (titleLine) {
-          extractedTitle = titleLine.replace(/^(title:|essay title:)/i, '').trim();
-          extractedTitle = extractedTitle.replace(/^["']|["']$/g, '');
+        let cleanedOutline = generatedText;
+        
+        // Check if first line starts with "TITLE: "
+        if (lines.length > 0 && lines[0].toUpperCase().startsWith('TITLE:')) {
+          extractedTitle = lines[0].substring(6).trim(); // Remove "TITLE: " and trim
+          // Remove the title line and any following empty lines from outline
+          let startIndex = 1;
+          while (startIndex < lines.length && lines[startIndex].trim() === '') {
+            startIndex++;
+          }
+          cleanedOutline = lines.slice(startIndex).join('\n').trim();
         }
 
-        response.outline = generatedText;
+        response.outline = cleanedOutline;
         response.title = extractedTitle;
         break;
 
@@ -350,6 +399,24 @@ ${content}`;
         break;
     }
 
+    // Update job status to completed
+    if (jobId) {
+      try {
+        await supabase
+          .from('essay_analysis_jobs')
+          .update({ 
+            status: 'completed',
+            result: response,
+            completed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', jobId);
+        console.log(`Updated job ${jobId} status to completed`);
+      } catch (error) {
+        console.error('Failed to update job status to completed:', error);
+      }
+    }
+
     return new Response(
       JSON.stringify(response),
       { 
@@ -363,10 +430,30 @@ ${content}`;
 
   } catch (error) {
     console.error('Essay generation error:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+    
+    // Update job status to failed
+    if (jobId) {
+      try {
+        await supabase
+          .from('essay_analysis_jobs')
+          .update({ 
+            status: 'failed',
+            error_message: errorMessage,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', jobId);
+        console.log(`Updated job ${jobId} status to failed`);
+      } catch (cleanupError) {
+        console.error('Failed to update error status:', cleanupError);
+      }
+    }
+    
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error instanceof Error ? error.message : 'Internal server error' 
+        error: errorMessage
       }),
       { 
         status: 500,
