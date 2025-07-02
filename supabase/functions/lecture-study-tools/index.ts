@@ -6,13 +6,12 @@ interface LectureStudyRequest {
   jobId: string;
   userId: string;
   recordingIds: string[];
-  // Flashcards params
+  // Flashcards & Quiz params
   difficulty?: string;
   count?: number;
   // Quiz params
   questionCount?: number;
   questionTypes?: string[];
-  quizDifficulty?: string;
   // Summary params
   summaryType?: string;
   // Notes params
@@ -130,7 +129,7 @@ Deno.serve(async (req: Request) => {
         result = await generateFlashcards(recordingsWithTranscripts, requestData.difficulty || 'medium', requestData.count || 10, openaiApiKey);
         break;
       case 'quiz':
-        result = await generateQuiz(recordingsWithTranscripts, requestData.questionCount || 10, requestData.questionTypes || ['multiple-choice', 'true-false', 'short-answer'], requestData.quizDifficulty || 'medium', openaiApiKey);
+        result = await generateQuiz(recordingsWithTranscripts, requestData.questionCount || 10, requestData.questionTypes || ['multiple-choice', 'true-false', 'short-answer'], requestData.difficulty || 'medium', openaiApiKey);
         break;
       case 'summary':
         result = await generateSummary(recordingsWithTranscripts, requestData.summaryType || 'comprehensive', openaiApiKey);
@@ -306,56 +305,43 @@ async function generateQuiz(recordings: any[], questionCount: number, questionTy
   // Combine all transcripts
   const combinedContent = recordings.map(r => `## ${r.title}\n${r.transcript}`).join('\n\n');
   
-  const prompt = `Based on the following lecture transcripts, create a ${questionCount}-question quiz at ${difficulty} difficulty level.
+  const difficultyInstructions = {
+    easy: 'Create basic questions focusing on simple recall of facts, definitions, and basic concepts. Questions should be straightforward and test fundamental understanding.',
+    medium: 'Create moderate difficulty questions that test comprehension and application of concepts. Include some analysis but keep questions accessible.',
+    hard: 'Create challenging questions that require critical thinking, analysis, synthesis, and evaluation. Test deep understanding and complex relationships between concepts.'
+  };
 
-Content:
-${combinedContent}
+  const systemPrompt = `You are an expert educator creating a practice quiz from lecture transcripts.
 
-Question types to include: ${questionTypes.join(', ')}
+Instructions:
+- Generate exactly ${questionCount} questions
+- Use these question types: ${questionTypes.join(', ')}
+- Distribute questions evenly across the specified types
+- Difficulty level: ${difficulty} - ${difficultyInstructions[difficulty as keyof typeof difficultyInstructions] || difficultyInstructions.medium}
+- Focus on key concepts, facts, and ideas from the lectures
+- For multiple-choice: provide 4 options with one correct answer (do not include letter prefixes like A, B, C, D)
+- For true-false: provide clear statements that can be definitively true or false
+- For short-answer: create questions that require 1-3 sentence responses
+- Include detailed explanations for all correct answers
+- Ensure questions test different levels of understanding (recall, comprehension, application, analysis)
 
-Please create a quiz that:
-- Tests understanding of key concepts from the lectures
-- Is appropriate for ${difficulty} difficulty level
-- Uses the specified question types
-- Has clear, unambiguous questions and correct answers
-
-Return the quiz as a JSON object with this exact format:
+Format as JSON with this structure:
 {
-  "title": "Quiz Title",
-  "description": "Brief description",
-  "difficulty": "${difficulty}",
+  "title": "Practice Quiz",
   "questions": [
     {
       "id": "1",
-      "type": "multiple-choice",
+      "type": "multiple-choice|true-false|short-answer",
       "question": "Question text",
-      "options": ["Option A text", "Option B text", "Option C text", "Option D text"],
-      "correctAnswer": "Option A text",
-      "explanation": "Why this answer is correct"
-    },
-    {
-      "id": "2", 
-      "type": "true-false",
-      "question": "True/false question",
-      "correctAnswer": "True",
-      "explanation": "Explanation"
-    },
-    {
-      "id": "3",
-      "type": "short-answer", 
-      "question": "Short answer question",
-      "correctAnswer": "Expected answer",
-      "explanation": "Explanation"
+      "options": ["Option 1", "Option 2", "Option 3", "Option 4"] (for multiple-choice only),
+      "correctAnswer": "Option 1" (or "True"/"False" or sample answer),
+      "explanation": "Detailed explanation of why this is correct"
     }
   ]
 }
 
-IMPORTANT FORMATTING RULES:
-- For multiple-choice questions: "correctAnswer" must be the EXACT TEXT of the correct option, not an index number
-- For true-false questions: "correctAnswer" must be either "True" or "False" as a string, not a boolean
-- For short-answer questions: "correctAnswer" should be the expected text answer
-- All questions must have unique string IDs
-- All explanations should be clear and educational`;
+Lecture content:
+${combinedContent.slice(0, 15000)}`;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -364,20 +350,15 @@ IMPORTANT FORMATTING RULES:
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [
-        {
-          role: 'system',
-          content: 'You are an expert educator who creates comprehensive quizzes for students. Always respond with valid JSON in the exact format requested. CRITICAL: For multiple-choice questions, the "correctAnswer" field must contain the EXACT TEXT of the correct option, not an index number. For true-false questions, use "True" or "False" as strings, not booleans.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Generate a ${questionCount}-question quiz using the specified question types.` }
       ],
+      max_tokens: 4000,
       temperature: 0.7,
-      max_tokens: 3000,
-    }),
+      response_format: { type: "json_object" }
+    })
   });
 
   if (!response.ok) {
@@ -385,20 +366,18 @@ IMPORTANT FORMATTING RULES:
   }
 
   const data = await response.json();
-  const content = data.choices[0]?.message?.content;
+  const quizData = JSON.parse(data.choices[0].message.content);
   
-  if (!content) {
-    throw new Error('No content generated from OpenAI');
-  }
-
-  try {
-    const result = JSON.parse(content);
-    console.log(`Generated quiz with ${result.questions?.length || 0} questions`);
-    return result;
-  } catch (parseError) {
-    console.error('Failed to parse quiz JSON:', content);
-    throw new Error('Failed to generate valid quiz format');
-  }
+  // Add difficulty metadata to the quiz result - this is the key fix!
+  quizData.difficulty = difficulty;
+  
+  console.log(`Generated quiz with difficulty: ${difficulty}`, {
+    title: quizData.title,
+    questionCount: quizData.questions?.length,
+    difficulty: quizData.difficulty
+  });
+  
+  return quizData;
 }
 
 // Generate summary from lecture transcripts

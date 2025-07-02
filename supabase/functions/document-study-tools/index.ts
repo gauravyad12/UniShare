@@ -347,6 +347,12 @@ ${combinedContent.slice(0, 15000)}`;
   // Add difficulty metadata to the quiz result
   quizData.difficulty = difficulty;
   
+  console.log(`Generated quiz with difficulty: ${difficulty}`, {
+    title: quizData.title,
+    questionCount: quizData.questions?.length,
+    difficulty: quizData.difficulty
+  });
+  
   return quizData;
 }
 

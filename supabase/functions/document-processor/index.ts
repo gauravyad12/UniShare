@@ -165,6 +165,27 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Check file size to prevent memory issues (limit to 50MB)
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+    if (fileSize && fileSize > MAX_FILE_SIZE) {
+      return new Response(
+        JSON.stringify({ 
+          error: `File too large (${Math.round(fileSize / 1024 / 1024)}MB). Maximum supported size is ${MAX_FILE_SIZE / 1024 / 1024}MB. Please try with a smaller file.` 
+        }),
+        { status: 413, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check base64 content size if provided to prevent memory issues
+    if (base64Content && base64Content.length > MAX_FILE_SIZE * 1.5) {
+      return new Response(
+        JSON.stringify({ 
+          error: `Encoded content too large. Please try with a smaller file.` 
+        }),
+        { status: 413, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Update job status to processing if jobId is provided
     if (jobId) {
       try {
@@ -204,33 +225,72 @@ Deno.serve(async (req: Request) => {
       try {
         console.log('Processing PDF with advanced PDF.js library...');
         
-        // Convert base64 to Uint8Array for PDF.js
-        const pdfData = Uint8Array.from(atob(base64Content), c => c.charCodeAt(0));
+        // Validate base64Content
+        if (!base64Content || typeof base64Content !== 'string') {
+          throw new Error('Invalid base64 content provided');
+        }
+        
+        // Convert base64 to Uint8Array for PDF.js with error handling
+        let pdfData: Uint8Array;
+        try {
+          pdfData = Uint8Array.from(atob(base64Content), c => c.charCodeAt(0));
+        } catch (base64Error) {
+          throw new Error('Invalid base64 content - unable to decode PDF data');
+        }
+        
         console.log(`PDF data loaded: ${pdfData.length} bytes`);
         
         // Use PDF.js to properly parse the PDF
         const { getDocument } = await resolvePDFJS();
-        const doc = await getDocument({ data: pdfData, useSystemFonts: true }).promise;
+        if (!getDocument) {
+          throw new Error('PDF.js library not available');
+        }
         
-        pageCount = doc.numPages;
+        const doc = await getDocument({ data: pdfData, useSystemFonts: true }).promise;
+        if (!doc) {
+          throw new Error('Failed to load PDF document');
+        }
+        
+        pageCount = doc.numPages || 0;
         console.log(`PDF loaded successfully: ${pageCount} pages`);
+        
+        if (pageCount === 0) {
+          throw new Error('PDF has no pages');
+        }
         
         const allText: string[] = [];
         
         // Extract text from each page
         for (let i = 1; i <= pageCount; i++) {
           console.log(`Processing page ${i}/${pageCount}...`);
-          const page = await doc.getPage(i);
-          const textContent = await page.getTextContent();
           
-          // Extract text items and join them
-          const pageText = textContent.items
-            .map((item: any) => item.str)
-            .join(' ')
-            .trim();
-          
-          if (pageText) {
-            allText.push(pageText);
+          try {
+            const page = await doc.getPage(i);
+            if (!page) {
+              console.warn(`Page ${i} could not be loaded, skipping...`);
+              continue;
+            }
+            
+            const textContent = await page.getTextContent();
+            if (!textContent || !textContent.items || !Array.isArray(textContent.items)) {
+              console.warn(`No text content found on page ${i}, skipping...`);
+              continue;
+            }
+            
+            // Extract text items and join them with null safety
+            const pageText = textContent.items
+              .filter((item: any) => item && typeof item === 'object' && item.str)
+              .map((item: any) => String(item.str))
+              .join(' ')
+              .trim();
+            
+            if (pageText && pageText.length > 0) {
+              allText.push(pageText);
+            }
+          } catch (pageError) {
+            console.error(`Error processing page ${i}:`, pageError);
+            // Continue with other pages instead of failing completely
+            continue;
           }
         }
         
@@ -385,9 +445,20 @@ Error: ${pdfError instanceof Error ? pdfError.message : 'Unknown PDF parsing err
         }
 
         const openaiResult = await openaiResponse.json();
-        extractedContent = openaiResult.choices[0]?.message?.content || '';
         
-        if (!extractedContent.trim()) {
+        // Safely extract content with null checks
+        if (!openaiResult || !openaiResult.choices || !Array.isArray(openaiResult.choices) || openaiResult.choices.length === 0) {
+          throw new Error('Invalid response from OpenAI API - no choices returned');
+        }
+        
+        const choice = openaiResult.choices[0];
+        if (!choice || !choice.message || typeof choice.message.content !== 'string') {
+          throw new Error('Invalid response from OpenAI API - no message content');
+        }
+        
+        extractedContent = choice.message.content;
+        
+        if (!extractedContent || !extractedContent.trim()) {
           throw new Error('No text content could be extracted from the image');
         }
 

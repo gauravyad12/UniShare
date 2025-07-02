@@ -37,22 +37,11 @@ export async function GET(request: NextRequest) {
 
     // Add operation-specific parameter matching
     if (operationType === 'flashcards') {
-      const difficulty = searchParams.get('difficulty') || 'medium';
-      const count = parseInt(searchParams.get('count') || '10');
-      query = query.eq('difficulty', difficulty).eq('count', count);
+      // For flashcards, don't filter by parameters - any flashcards for the documents are useful
+      // Users can see previously generated flashcards regardless of difficulty/count settings
     } else if (operationType === 'quiz') {
-      const questionCount = parseInt(searchParams.get('question_count') || '10');
-      const difficulty = searchParams.get('difficulty') || 'medium';
-      const questionTypesStr = searchParams.get('question_types');
-      let questionTypes: string[] = ['multiple-choice', 'true-false', 'short-answer'];
-      if (questionTypesStr) {
-        try {
-          questionTypes = JSON.parse(questionTypesStr);
-        } catch {
-          // Use default if parsing fails
-        }
-      }
-      query = query.eq('question_count', questionCount).eq('difficulty', difficulty).contains('question_types', questionTypes);
+      // For quiz, don't filter by parameters - any quiz for the documents is useful
+      // Users can see previously generated quizzes regardless of difficulty/question count/type settings
     } else if (operationType === 'notes') {
       const style = searchParams.get('style') || 'structured';
       query = query.eq('style', style);
@@ -78,9 +67,17 @@ export async function GET(request: NextRequest) {
 
     if (matchingJob && matchingJob.result) {
       console.log(`Found cached result for ${operationType} operation:`, matchingJob.id);
+      
+      // For quiz operations, ensure difficulty is included in the result
+      let result = matchingJob.result;
+      if (operationType === 'quiz' && !result.difficulty && matchingJob.difficulty) {
+        result = { ...result, difficulty: matchingJob.difficulty };
+        console.log(`Added missing difficulty to quiz result: ${matchingJob.difficulty}`);
+      }
+      
       return NextResponse.json({
         cached: true,
-        result: matchingJob.result,
+        result: result,
         jobId: matchingJob.id,
         completedAt: matchingJob.completed_at
       });
@@ -90,6 +87,90 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Cached result check error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = createClient();
+    
+    // Check authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { operationType, documentIds, difficulty, count, questionCount, questionTypes, style } = await request.json();
+    
+    if (!operationType || !documentIds || documentIds.length === 0) {
+      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+    }
+
+    // Build the query conditions for deletion
+    let query = supabase
+      .from('document_study_jobs')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('operation_type', operationType);
+
+    // Add operation-specific parameter matching
+    if (operationType === 'flashcards') {
+      // For flashcards, don't filter by parameters - delete any flashcards for the documents
+    } else if (operationType === 'quiz') {
+      // For quiz, don't filter by parameters - delete any quiz for the documents
+    } else if (operationType === 'notes') {
+      query = query.eq('style', style || 'structured');
+    }
+    // No additional parameters for summary
+
+    const { data: jobs, error: fetchError } = await supabase
+      .from('document_study_jobs')
+      .select('id, document_ids')
+      .eq('user_id', user.id)
+      .eq('operation_type', operationType);
+
+    if (fetchError) {
+      console.error('Error fetching jobs for deletion:', fetchError);
+      return NextResponse.json({ error: 'Failed to fetch cached results' }, { status: 500 });
+    }
+
+    // Find jobs with matching document IDs
+    const sortedDocumentIds = [...documentIds].sort();
+    const jobsToDelete = jobs?.filter((job: any) => {
+      if (!job.document_ids || job.document_ids.length !== documentIds.length) {
+        return false;
+      }
+      const sortedJobDocIds = [...job.document_ids].sort();
+      return JSON.stringify(sortedJobDocIds) === JSON.stringify(sortedDocumentIds);
+    }) || [];
+
+    if (jobsToDelete.length > 0) {
+      const jobIds = jobsToDelete.map((job: any) => job.id);
+      const { error: deleteError } = await supabase
+        .from('document_study_jobs')
+        .delete()
+        .in('id', jobIds);
+
+      if (deleteError) {
+        console.error('Error deleting cached jobs:', deleteError);
+        return NextResponse.json({ error: 'Failed to delete cached results' }, { status: 500 });
+      }
+
+      console.log(`Deleted ${jobsToDelete.length} cached ${operationType} jobs`);
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      deletedCount: jobsToDelete.length,
+      message: `Deleted ${jobsToDelete.length} cached ${operationType} results`
+    });
+
+  } catch (error) {
+    console.error('Cache deletion error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

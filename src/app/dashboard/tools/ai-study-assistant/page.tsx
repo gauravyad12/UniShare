@@ -42,7 +42,9 @@ import {
   Youtube,
   Type,
   Plus,
-  Archive
+  Archive,
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react';
 import DynamicPageTitle from '@/components/dynamic-page-title';
 import { createClient } from '@/utils/supabase/client';
@@ -114,6 +116,7 @@ export default function AIStudyAssistantPage() {
   
   // New input type states
   const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [youtubeValidation, setYoutubeValidation] = useState<{ isValid: boolean; error?: string } | null>(null);
   const [textContent, setTextContent] = useState("");
   const [textTitle, setTextTitle] = useState("");
   
@@ -128,6 +131,10 @@ export default function AIStudyAssistantPage() {
   const [quizAnswers, setQuizAnswers] = useState<{[key: string]: string}>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizDifficulty, setQuizDifficulty] = useState<string>('medium');
+  const [userChangedQuizDifficulty, setUserChangedQuizDifficulty] = useState(false);
+  const [showFlashcardRegenDialog, setShowFlashcardRegenDialog] = useState(false);
+  const [flashcardDifficulty, setFlashcardDifficulty] = useState<string>('medium');
+  const [flashcardCount, setFlashcardCount] = useState<number>(10);
   const [loadingStudyTools, setLoadingStudyTools] = useState<{[key: string]: boolean}>({});
   const [uploadError, setUploadError] = useState<string>('');
   
@@ -165,6 +172,8 @@ export default function AIStudyAssistantPage() {
       setSummary(null);
       setNotes(null);
     }
+    // Reset difficulty change tracking when documents change
+    setUserChangedQuizDifficulty(false);
   }, [selectedDocuments, quizDifficulty]);
 
   // Auto-save messages when they change (with debounce)
@@ -459,9 +468,98 @@ export default function AIStudyAssistantPage() {
     }
   };
 
-  const validateYouTubeUrl = (url: string): boolean => {
-    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
-    return youtubeRegex.test(url);
+  const validateYouTubeUrl = (url: string): { isValid: boolean; error?: string } => {
+    // Remove whitespace
+    const trimmedUrl = url.trim();
+    
+    // Check if URL is empty
+    if (!trimmedUrl) {
+      return { isValid: false, error: 'Please enter a YouTube URL' };
+    }
+    
+    // Comprehensive YouTube URL patterns
+    const youtubePatterns = [
+      // Standard watch URLs
+      /^(https?:\/\/)?(www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})(\&.*)?$/,
+      // Short URLs
+      /^(https?:\/\/)?(www\.)?youtu\.be\/([a-zA-Z0-9_-]{11})(\?.*)?$/,
+      // Embed URLs
+      /^(https?:\/\/)?(www\.)?youtube\.com\/embed\/([a-zA-Z0-9_-]{11})(\?.*)?$/,
+      // YouTube mobile URLs
+      /^(https?:\/\/)?(m\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})(\&.*)?$/,
+      // YouTube with other parameters first
+      /^(https?:\/\/)?(www\.)?youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]{11}).*$/
+    ];
+    
+    // Check if URL matches any YouTube pattern
+    let videoId = null;
+    let isYouTubeUrl = false;
+    
+    for (const pattern of youtubePatterns) {
+      const match = trimmedUrl.match(pattern);
+      if (match) {
+        isYouTubeUrl = true;
+        // Extract video ID from the appropriate capture group
+        videoId = match[3] || match[4]; // Different patterns have video ID in different groups
+        break;
+      }
+    }
+    
+    // Check if it looks like a YouTube URL but doesn't match patterns
+    const looksLikeYoutube = /youtube\.com|youtu\.be/.test(trimmedUrl.toLowerCase());
+    
+    if (looksLikeYoutube && !isYouTubeUrl) {
+      return { 
+        isValid: false, 
+        error: 'Invalid YouTube URL format. Please use a standard YouTube video URL (e.g., https://www.youtube.com/watch?v=VIDEO_ID)' 
+      };
+    }
+    
+    if (!isYouTubeUrl) {
+      return { 
+        isValid: false, 
+        error: 'Please enter a valid YouTube URL (youtube.com or youtu.be)' 
+      };
+    }
+    
+    // Validate video ID format (YouTube video IDs are exactly 11 characters)
+    if (!videoId || videoId.length !== 11) {
+      return { 
+        isValid: false, 
+        error: 'Invalid YouTube video URL. Please make sure the URL contains a valid video ID.' 
+      };
+    }
+    
+    // Additional validation for common mistakes
+    if (trimmedUrl.includes('playlist')) {
+      return { 
+        isValid: false, 
+        error: 'Playlist URLs are not supported. Please use a direct video URL.' 
+      };
+    }
+    
+    if (trimmedUrl.includes('channel/') || trimmedUrl.includes('/c/') || trimmedUrl.includes('/user/')) {
+      return { 
+        isValid: false, 
+        error: 'Channel URLs are not supported. Please use a direct video URL.' 
+      };
+    }
+    
+    return { isValid: true };
+  };
+
+  const handleYoutubeUrlChange = (url: string) => {
+    setYoutubeUrl(url);
+    
+    // Clear validation error when user clears the input
+    if (!url.trim()) {
+      setYoutubeValidation(null);
+      return;
+    }
+    
+    // Validate URL in real-time
+    const validation = validateYouTubeUrl(url);
+    setYoutubeValidation(validation);
   };
 
   const handleYouTubeVideoUpload = async () => {
@@ -470,8 +568,9 @@ export default function AIStudyAssistantPage() {
       return;
     }
 
-    if (!validateYouTubeUrl(youtubeUrl)) {
-      setUploadError('Please enter a valid YouTube URL');
+    const validation = validateYouTubeUrl(youtubeUrl);
+    if (!validation.isValid) {
+      setUploadError(validation.error || 'Invalid YouTube URL');
       return;
     }
 
@@ -523,6 +622,7 @@ export default function AIStudyAssistantPage() {
 
       setDocuments(prev => [newDocument, ...prev]);
       setYoutubeUrl('');
+      setYoutubeValidation(null);
       
       // Start processing
       setIsProcessing(true);
@@ -920,12 +1020,9 @@ export default function AIStudyAssistantPage() {
       
       // Add operation-specific parameters
       if (operationType === 'flashcards') {
-        searchParams.append('difficulty', parameters.difficulty || 'medium');
-        searchParams.append('count', (parameters.count || 10).toString());
+        // No parameters needed for flashcards - any cached flashcards for documents are useful
       } else if (operationType === 'quiz') {
-        searchParams.append('question_count', (parameters.questionCount || 10).toString());
-        searchParams.append('question_types', JSON.stringify((parameters.questionTypes || ['multiple-choice', 'true-false', 'short-answer']).sort()));
-        searchParams.append('difficulty', parameters.difficulty || 'medium');
+        // No parameters needed for quiz - any cached quiz for documents is useful
       } else if (operationType === 'notes') {
         searchParams.append('style', parameters.style || 'structured');
       }
@@ -952,8 +1049,8 @@ export default function AIStudyAssistantPage() {
     try {
       // Load default/most common cached results
       const [cachedFlashcards, cachedQuiz, cachedSummary, cachedNotes] = await Promise.all([
-        checkForCachedResult('flashcards', { difficulty: 'medium', count: 10 }),
-        checkForCachedResult('quiz', { questionCount: 10, questionTypes: ['multiple-choice', 'true-false', 'short-answer'], difficulty: quizDifficulty }),
+        checkForCachedResult('flashcards', {}),
+        checkForCachedResult('quiz', {}),
         checkForCachedResult('summary', {}),
         checkForCachedResult('notes', { style: 'structured' })
       ]);
@@ -968,8 +1065,8 @@ export default function AIStudyAssistantPage() {
         setQuiz(cachedQuiz);
         setQuizAnswers({});
         setQuizSubmitted(false);
-        // Update difficulty state if quiz has difficulty info
-        if (cachedQuiz.difficulty && cachedQuiz.difficulty !== quizDifficulty) {
+        // Update difficulty state if quiz has difficulty info (only if user hasn't manually changed it)
+        if (cachedQuiz.difficulty && cachedQuiz.difficulty !== quizDifficulty && !userChangedQuizDifficulty) {
           setQuizDifficulty(cachedQuiz.difficulty);
         }
       }
@@ -1329,8 +1426,8 @@ export default function AIStudyAssistantPage() {
 
     setIsGenerating('flashcards');
     try {
-      // Check for cached result first
-      const cachedResult = await checkForCachedResult('flashcards', { difficulty, count });
+          // Check for cached result first
+    const cachedResult = await checkForCachedResult('flashcards', {});
       if (cachedResult) {
         setFlashcards(cachedResult.flashcards);
         setCurrentFlashcardIndex(0);
@@ -1413,13 +1510,18 @@ export default function AIStudyAssistantPage() {
     setIsGenerating('quiz');
     try {
       // Check for cached result first
-      const cachedResult = await checkForCachedResult('quiz', { questionCount, questionTypes, difficulty });
+      const cachedResult = await checkForCachedResult('quiz', {});
       if (cachedResult) {
         setQuiz(cachedResult);
         setQuizAnswers({});
         setQuizSubmitted(false);
         setActiveTab("quiz");
         setIsGenerating(null);
+
+        // Update difficulty state if quiz has difficulty info (only if user hasn't manually changed it)
+        if (cachedResult.difficulty && cachedResult.difficulty !== quizDifficulty && !userChangedQuizDifficulty) {
+          setQuizDifficulty(cachedResult.difficulty);
+        }
 
         toast({
           title: "Quiz Loaded",
@@ -1465,6 +1567,11 @@ export default function AIStudyAssistantPage() {
         setQuizAnswers({});
         setQuizSubmitted(false);
         setLoadingStudyTools(prev => ({ ...prev, quiz: false }));
+
+        // Update difficulty state if quiz has difficulty info (only if user hasn't manually changed it)
+        if (result.difficulty && result.difficulty !== quizDifficulty && !userChangedQuizDifficulty) {
+          setQuizDifficulty(result.difficulty);
+        }
 
         toast({
           title: "Quiz Generated",
@@ -1554,6 +1661,211 @@ export default function AIStudyAssistantPage() {
       toast({
         title: "Generation Error",
         description: error instanceof Error ? error.message : "Failed to generate summary",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(null);
+    }
+  };
+
+  const regenerateFlashcards = async (difficulty = flashcardDifficulty, count = flashcardCount) => {
+    if (selectedDocuments.length === 0) {
+      toast({
+        title: "No Documents Selected",
+        description: "Please select documents to regenerate flashcards.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating('flashcards');
+    try {
+      // Clear current flashcards to show loading state
+      setFlashcards([]);
+      setCurrentFlashcardIndex(0);
+      setShowFlashcardAnswer(false);
+      
+      // First, delete any existing cached results for these parameters
+      try {
+        const deleteResponse = await fetch('/api/documents/study-tools/cached', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            operationType: 'flashcards',
+            documentIds: selectedDocuments,
+            difficulty,
+            count
+          }),
+        });
+
+        if (deleteResponse.ok) {
+          const deleteResult = await deleteResponse.json();
+          console.log(`Deleted ${deleteResult.deletedCount} cached flashcard results`);
+        }
+      } catch (deleteError) {
+        console.warn('Failed to delete cached results:', deleteError);
+        // Continue with regeneration even if deletion fails
+      }
+      
+      // Call the API to generate new flashcards
+      const response = await fetch('/api/documents/generate-flashcards', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          documentIds: selectedDocuments,
+          difficulty,
+          count
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to start flashcards generation');
+      }
+
+      const result = await response.json();
+      const jobId = result.jobId;
+
+      // Immediately switch to the tab and show loading state
+      setActiveTab("flashcards");
+      setLoadingStudyTools(prev => ({ ...prev, flashcards: true }));
+
+      toast({
+        title: "Flashcards Regeneration Started",
+        description: "Your new flashcards are being generated...",
+      });
+
+      // Poll for job completion
+      await pollStudyToolsJobStatus(jobId, 'flashcards', (result) => {
+        setFlashcards(result.flashcards);
+        setCurrentFlashcardIndex(0);
+        setShowFlashcardAnswer(false);
+        setLoadingStudyTools(prev => ({ ...prev, flashcards: false }));
+
+        toast({
+          title: "Flashcards Regenerated",
+          description: `Successfully generated ${result.flashcards.length} new flashcards.`,
+        });
+      });
+
+    } catch (error) {
+      setLoadingStudyTools(prev => ({ ...prev, flashcards: false }));
+      toast({
+        title: "Generation Error",
+        description: error instanceof Error ? error.message : "Failed to regenerate flashcards",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(null);
+    }
+  };
+
+  const regenerateQuiz = async (questionCount = 10, questionTypes = ['multiple-choice', 'true-false', 'short-answer'], difficulty = quizDifficulty) => {
+    if (selectedDocuments.length === 0) {
+      toast({
+        title: "No Documents Selected",
+        description: "Please select documents to regenerate quiz.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating('quiz');
+    try {
+      // Clear current quiz to show loading state
+      setQuiz(null);
+      setQuizAnswers({});
+      setQuizSubmitted(false);
+      // Reset difficulty change tracking since we're regenerating with chosen difficulty
+      setUserChangedQuizDifficulty(false);
+      
+      // First, delete any existing cached results
+      try {
+        const deleteResponse = await fetch('/api/documents/study-tools/cached', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            operationType: 'quiz',
+            documentIds: selectedDocuments
+          }),
+        });
+
+        if (deleteResponse.ok) {
+          const deleteResult = await deleteResponse.json();
+          console.log(`Deleted ${deleteResult.deletedCount} cached quiz results for regeneration`);
+          if (deleteResult.deletedCount > 0) {
+            toast({
+              title: "Cache Cleared",
+              description: `Removed ${deleteResult.deletedCount} previous quiz${deleteResult.deletedCount > 1 ? 's' : ''} to generate fresh content.`,
+            });
+          }
+        }
+      } catch (deleteError) {
+        console.error('Error deleting cached quiz results:', deleteError);
+        // Continue with regeneration even if deletion fails
+      }
+
+      // Start the quiz generation job
+      const response = await fetch('/api/documents/generate-quiz', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          documentIds: selectedDocuments,
+          questionCount,
+          questionTypes,
+          difficulty
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to start quiz generation');
+      }
+
+      const result = await response.json();
+      const jobId = result.jobId;
+
+      // Immediately switch to the tab and show loading state
+      setActiveTab("quiz");
+      setLoadingStudyTools(prev => ({ ...prev, quiz: true }));
+
+      toast({
+        title: "Quiz Regeneration Started",
+        description: "Your new quiz is being generated...",
+      });
+
+      // Poll for job completion
+      await pollStudyToolsJobStatus(jobId, 'quiz', (result) => {
+        setQuiz(result);
+        setQuizAnswers({});
+        setQuizSubmitted(false);
+        setLoadingStudyTools(prev => ({ ...prev, quiz: false }));
+
+        // Update difficulty state to match what was actually generated
+        // Since we reset userChangedQuizDifficulty at the start of regeneration, this is safe
+        if (difficulty !== quizDifficulty) {
+          setQuizDifficulty(difficulty);
+        }
+
+        toast({
+          title: "Quiz Regenerated",
+          description: `Successfully generated a new ${result.questions.length}-question quiz.`,
+        });
+      });
+
+    } catch (error) {
+      setLoadingStudyTools(prev => ({ ...prev, quiz: false }));
+      toast({
+        title: "Generation Error",
+        description: error instanceof Error ? error.message : "Failed to regenerate quiz",
         variant: "destructive",
       });
     } finally {
@@ -1965,7 +2277,7 @@ export default function AIStudyAssistantPage() {
             <h1 className="text-3xl font-bold">AI Study Assistant</h1>
           </div>
           <p className="text-muted-foreground">
-            Upload documents, add YouTube videos, or paste text content to generate study materials with AI-powered tools
+            Create study materials from your content with AI
           </p>
         </header>
 
@@ -2066,17 +2378,32 @@ export default function AIStudyAssistantPage() {
                     </div>
                     <div className="space-y-3">
                       <Label htmlFor="youtube-url">YouTube Video URL</Label>
-                      <Input
-                        id="youtube-url"
-                        type="url"
-                        placeholder="https://www.youtube.com/watch?v=..."
-                        value={youtubeUrl}
-                        onChange={(e) => setYoutubeUrl(e.target.value)}
-                        disabled={isUploading || isProcessing}
-                      />
+                      <div className="space-y-2">
+                        <Input
+                          id="youtube-url"
+                          type="url"
+                          placeholder="https://www.youtube.com/watch?v=..."
+                          value={youtubeUrl}
+                          onChange={(e) => handleYoutubeUrlChange(e.target.value)}
+                          disabled={isUploading || isProcessing}
+                          className={youtubeValidation && !youtubeValidation.isValid ? "border-red-500" : ""}
+                        />
+                        {youtubeValidation && !youtubeValidation.isValid && (
+                          <p className="text-sm text-red-600 flex items-center gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            {youtubeValidation.error}
+                          </p>
+                        )}
+                        {youtubeValidation && youtubeValidation.isValid && youtubeUrl.trim() && (
+                          <p className="text-sm text-green-600 flex items-center gap-1">
+                            <CheckCircle className="h-3 w-3" />
+                            Valid YouTube URL
+                          </p>
+                        )}
+                      </div>
                       <Button 
                         onClick={handleYouTubeVideoUpload}
-                        disabled={isUploading || isProcessing || !youtubeUrl.trim()}
+                        disabled={isUploading || isProcessing || !youtubeUrl.trim() || (youtubeValidation ? !youtubeValidation.isValid : false)}
                         className="w-full"
                       >
                         <Youtube className="h-4 w-4 mr-2" />
@@ -2772,12 +3099,25 @@ export default function AIStudyAssistantPage() {
                     </div>
                     <div className="flex gap-2">
                       <Button 
+                        onClick={() => setShowFlashcardRegenDialog(true)}
+                        variant="outline"
+                        size="sm"
+                        disabled={isGenerating === 'flashcards'}
+                      >
+                        {isGenerating === 'flashcards' ? (
+                          <Loader2 className={`h-4 w-4 ${!isMobile ? 'mr-2' : ''} animate-spin`} />
+                        ) : (
+                          <RefreshCw className={`h-4 w-4 ${!isMobile ? 'mr-2' : ''}`} />
+                        )}
+                        {!isMobile && 'Regenerate'}
+                      </Button>
+                      <Button 
                         onClick={() => downloadPDF(flashcards, `Flashcards - ${selectedDocuments.length} documents`, 'flashcards')}
                         variant="outline"
                         size="sm"
                       >
-                        <FileDown className="h-4 w-4 mr-2" />
-                        Download
+                        <FileDown className={`h-4 w-4 ${!isMobile ? 'mr-2' : ''}`} />
+                        {!isMobile && 'Download'}
                       </Button>
                     </div>
                   </div>
@@ -2999,7 +3339,10 @@ export default function AIStudyAssistantPage() {
                         <Label htmlFor="quiz-difficulty" className="text-sm whitespace-nowrap">
                           Difficulty:
                         </Label>
-                        <Select value={quizDifficulty} onValueChange={setQuizDifficulty}>
+                        <Select value={quizDifficulty} onValueChange={(value) => {
+                          setQuizDifficulty(value);
+                          setUserChangedQuizDifficulty(true);
+                        }}>
                           <SelectTrigger className="flex-1 xs:w-[100px] h-9">
                             <SelectValue>
                               {quizDifficulty === 'easy' && 'Easy'}
@@ -3033,7 +3376,7 @@ export default function AIStudyAssistantPage() {
                       {/* Action Buttons */}
                       <div className="flex gap-2 flex-1 xs:flex-none">
                         <Button 
-                          onClick={() => generateQuiz(10, ['multiple-choice', 'true-false', 'short-answer'], quizDifficulty)}
+                          onClick={() => regenerateQuiz(10, ['multiple-choice', 'true-false', 'short-answer'], quizDifficulty)}
                           disabled={isGenerating === 'quiz'}
                           variant="secondary"
                           className="h-9 flex-1 xs:flex-none"
@@ -3580,6 +3923,91 @@ export default function AIStudyAssistantPage() {
               Delete
             </Button>
           </DialogFooterNoBorder>
+        </DialogContent>
+      </Dialog>
+
+      {/* Flashcard Regeneration Dialog */}
+      <Dialog open={showFlashcardRegenDialog} onOpenChange={setShowFlashcardRegenDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Regenerate Flashcards</DialogTitle>
+            <DialogDescription>
+              Choose the difficulty level and number of flashcards to generate from your selected documents.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 px-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="flashcard-difficulty">Difficulty Level</Label>
+              <Select value={flashcardDifficulty} onValueChange={setFlashcardDifficulty}>
+                <SelectTrigger id="flashcard-difficulty">
+                  <SelectValue>
+                    {flashcardDifficulty === 'easy' && 'Easy'}
+                    {flashcardDifficulty === 'medium' && 'Medium'}
+                    {flashcardDifficulty === 'hard' && 'Hard'}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="w-[220px]">
+                  <SelectItem value="easy">
+                    <div className="flex flex-col items-start">
+                      <span>Easy</span>
+                      <span className="text-xs text-muted-foreground">Basic recall & definitions</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="medium">
+                    <div className="flex flex-col items-start">
+                      <span>Medium</span>
+                      <span className="text-xs text-muted-foreground">Analysis & application</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="hard">
+                    <div className="flex flex-col items-start">
+                      <span>Hard</span>
+                      <span className="text-xs text-muted-foreground">Critical thinking & synthesis</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Number of Cards</Label>
+              <Select value={flashcardCount.toString()} onValueChange={(value) => setFlashcardCount(parseInt(value))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5 cards</SelectItem>
+                  <SelectItem value="10">10 cards</SelectItem>
+                  <SelectItem value="15">15 cards</SelectItem>
+                  <SelectItem value="20">20 cards</SelectItem>
+                  <SelectItem value="25">25 cards</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowFlashcardRegenDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                setShowFlashcardRegenDialog(false);
+                regenerateFlashcards(flashcardDifficulty, flashcardCount);
+              }}
+              disabled={isGenerating === 'flashcards'}
+            >
+              {isGenerating === 'flashcards' ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Regenerate
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

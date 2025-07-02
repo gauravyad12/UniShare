@@ -92,6 +92,10 @@ export default function AILectureNotesPage() {
   const [quizAnswers, setQuizAnswers] = useState<{[key: string]: string}>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizDifficulty, setQuizDifficulty] = useState<string>('medium');
+  const [userChangedQuizDifficulty, setUserChangedQuizDifficulty] = useState(false);
+  const [showFlashcardRegenDialog, setShowFlashcardRegenDialog] = useState(false);
+  const [flashcardDifficulty, setFlashcardDifficulty] = useState<string>('medium');
+  const [flashcardCount, setFlashcardCount] = useState<number>(10);
   const [loadingStudyTools, setLoadingStudyTools] = useState<{[key: string]: boolean}>({});
   
   // Audio playback states
@@ -134,6 +138,8 @@ export default function AILectureNotesPage() {
       setSummary(null);
       setNotes(null);
     }
+    // Reset difficulty change tracking when recordings change
+    setUserChangedQuizDifficulty(false);
   }, [selectedRecordings, quizDifficulty]);
 
   // Recording timer effect
@@ -234,10 +240,10 @@ export default function AILectureNotesPage() {
 
   const loadCachedStudyTools = async () => {
     try {
-      // Load default/most common cached results
+      // Load cached results (no parameters for flashcards and quiz - they match any cached result)
       const [cachedFlashcards, cachedQuiz, cachedSummary, cachedNotes] = await Promise.all([
-        checkForCachedResult('flashcards', { difficulty: 'medium', count: 10 }),
-        checkForCachedResult('quiz', { questionCount: 10, questionTypes: ['multiple-choice', 'true-false', 'short-answer'], difficulty: quizDifficulty }),
+        checkForCachedResult('flashcards', {}),
+        checkForCachedResult('quiz', {}),
         checkForCachedResult('summary', {}),
         checkForCachedResult('notes', { style: 'structured' })
       ]);
@@ -252,7 +258,8 @@ export default function AILectureNotesPage() {
         setQuiz(cachedQuiz);
         setQuizAnswers({});
         setQuizSubmitted(false);
-        if (cachedQuiz.difficulty && cachedQuiz.difficulty !== quizDifficulty) {
+        // Update difficulty state if quiz has difficulty info (only if user hasn't manually changed it)
+        if (cachedQuiz.difficulty && cachedQuiz.difficulty !== quizDifficulty && !userChangedQuizDifficulty) {
           setQuizDifficulty(cachedQuiz.difficulty);
         }
       }
@@ -293,14 +300,15 @@ export default function AILectureNotesPage() {
       const queryParams = new URLSearchParams({
         operation_type: operationType,
         recording_ids: JSON.stringify(selectedRecordings),
-        ...Object.entries(parameters).reduce((acc, [key, value]) => {
+        // Only add parameters for operations that still use parameter matching
+        ...(operationType === 'notes' ? Object.entries(parameters).reduce((acc, [key, value]) => {
           if (typeof value === 'object') {
             acc[key] = JSON.stringify(value);
           } else {
             acc[key] = String(value);
           }
           return acc;
-        }, {} as Record<string, string>)
+        }, {} as Record<string, string>) : {})
       });
 
       const response = await fetch(`/api/lectures/study-tools/cached?${queryParams}`);
@@ -356,61 +364,118 @@ export default function AILectureNotesPage() {
 
   const initializeSpeechRecognition = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      console.warn('Speech recognition not supported in this browser');
       toast({
         title: "Speech Recognition Not Supported",
-        description: "Live transcription is not available in this browser",
+        description: "Live transcription is not available in this browser. You can still record audio and manually add transcripts later.",
         variant: "destructive",
       });
       return;
     }
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    speechRecognitionRef.current = new SpeechRecognition();
-    
-    speechRecognitionRef.current.continuous = true;
-    speechRecognitionRef.current.interimResults = true;
-    speechRecognitionRef.current.lang = 'en-US';
-
-    speechRecognitionRef.current.onresult = (event: any) => {
-      let interimTranscript = '';
+    try {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      speechRecognitionRef.current = new SpeechRecognition();
       
-      // Process all results from the last index
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
+      speechRecognitionRef.current.continuous = true;
+      speechRecognitionRef.current.interimResults = true;
+      speechRecognitionRef.current.lang = 'en-US';
+
+      speechRecognitionRef.current.onstart = () => {
+        console.log('Speech recognition started');
+      };
+
+      speechRecognitionRef.current.onresult = (event: any) => {
+        console.log('Speech recognition result:', event.results.length, 'results');
+        let interimTranscript = '';
         
-        if (event.results[i].isFinal) {
-          // Only add final results to avoid repetition
-          finalTranscriptRef.current += transcript + ' ';
-        } else {
-          // Show interim results separately
-          interimTranscript += transcript;
-        }
-      }
-      
-      // Update the live transcript with final + interim
-      setLiveTranscript(finalTranscriptRef.current + interimTranscript);
-    };
-
-    speechRecognitionRef.current.onerror = (event: any) => {
-      console.error('Speech recognition error:', event.error);
-      if (event.error === 'no-speech') {
-        // Restart recognition if no speech detected
-        setTimeout(() => {
-          if (isRecording && speechRecognitionRef.current) {
-            speechRecognitionRef.current.start();
+        // Process all results from the last index
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          const confidence = event.results[i][0].confidence;
+          
+          console.log(`Result ${i}:`, {
+            transcript,
+            confidence,
+            isFinal: event.results[i].isFinal
+          });
+          
+          if (event.results[i].isFinal) {
+            // Only add final results to avoid repetition
+            finalTranscriptRef.current += transcript + ' ';
+            console.log('Added to final transcript. Total length:', finalTranscriptRef.current.length);
+          } else {
+            // Show interim results separately
+            interimTranscript += transcript;
           }
-        }, 1000);
-      }
-    };
+        }
+        
+        // Update the live transcript with final + interim
+        const fullTranscript = finalTranscriptRef.current + interimTranscript;
+        setLiveTranscript(fullTranscript);
+        console.log('Live transcript updated. Length:', fullTranscript.length);
+      };
 
-    speechRecognitionRef.current.onend = () => {
-      // Restart recognition if recording is still active
-      if (isRecording && !isPaused) {
-        speechRecognitionRef.current.start();
-      }
-    };
+      speechRecognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error, event);
+        
+        if (event.error === 'no-speech') {
+          console.log('No speech detected, restarting recognition...');
+          // Restart recognition if no speech detected
+          setTimeout(() => {
+            if (isRecording && speechRecognitionRef.current) {
+              try {
+                speechRecognitionRef.current.start();
+              } catch (err) {
+                console.error('Failed to restart speech recognition:', err);
+              }
+            }
+          }, 1000);
+        } else if (event.error === 'not-allowed') {
+          toast({
+            title: "Microphone Permission Required",
+            description: "Please allow microphone access for speech recognition to work.",
+            variant: "destructive",
+          });
+        } else if (event.error === 'network') {
+          toast({
+            title: "Network Error",
+            description: "Speech recognition requires an internet connection.",
+            variant: "destructive",
+          });
+        }
+      };
 
-    speechRecognitionRef.current.start();
+      speechRecognitionRef.current.onend = () => {
+        console.log('Speech recognition ended. Current recording state:', { isRecording, isPaused });
+        // Restart recognition if recording is still active
+        if (isRecording && !isPaused) {
+          console.log('Restarting speech recognition...');
+          try {
+            speechRecognitionRef.current.start();
+          } catch (err) {
+            console.error('Failed to restart speech recognition:', err);
+          }
+        }
+      };
+
+      console.log('Starting speech recognition...');
+      speechRecognitionRef.current.start();
+      
+      // Show user that speech recognition is active
+      toast({
+        title: "Speech Recognition Active",
+        description: "Speak clearly for live transcription. Your speech will appear below.",
+      });
+      
+    } catch (error) {
+      console.error('Error initializing speech recognition:', error);
+      toast({
+        title: "Transcription Error",
+        description: "Could not start live transcription. You can still record audio.",
+        variant: "destructive",
+      });
+    }
   };
 
   const startRecording = async () => {
@@ -499,6 +564,8 @@ export default function AILectureNotesPage() {
       setLiveTranscript("");
       finalTranscriptRef.current = ""; // Reset the transcript ref for new recording
       
+      console.log('Recording started. Transcript state reset.');
+      
       toast({
         title: "Recording Started",
         description: "Your lecture is being recorded with live transcription",
@@ -545,8 +612,26 @@ export default function AILectureNotesPage() {
       // Store the current recording time before stopping
       finalRecordingDurationRef.current = recordingTime;
       
-      console.log('Stopping recording. Final transcript length:', finalTranscriptRef.current.length);
-      console.log('Final transcript preview:', finalTranscriptRef.current.substring(0, 100));
+      // Capture the current live transcript (includes both final and interim results)
+      const currentTranscript = liveTranscript.trim();
+      
+      console.log('Stopping recording. Transcript sources:', {
+        finalTranscriptRefLength: finalTranscriptRef.current?.length || 0,
+        finalTranscriptRefContent: finalTranscriptRef.current || '[EMPTY]',
+        liveTranscriptLength: currentTranscript.length,
+        liveTranscriptContent: currentTranscript || '[EMPTY]'
+      });
+      
+      // Use the live transcript as the final transcript if it's more complete
+      if (currentTranscript.length > finalTranscriptRef.current.length) {
+        console.log('Using live transcript as final transcript (more complete)');
+        finalTranscriptRef.current = currentTranscript;
+      }
+      
+      console.log('Final transcript to save:', {
+        length: finalTranscriptRef.current.length,
+        preview: finalTranscriptRef.current.substring(0, 100)
+      });
       
       mediaRecorderRef.current.stop();
       if (speechRecognitionRef.current) {
@@ -582,11 +667,22 @@ export default function AILectureNotesPage() {
       console.log('Saving recording with data:', {
         name: recordingName,
         transcriptLength: cleanTranscript.length,
-        transcript: cleanTranscript.substring(0, 100) + (cleanTranscript.length > 100 ? '...' : ''),
+        transcript: cleanTranscript.length > 0 ? cleanTranscript.substring(0, 100) + (cleanTranscript.length > 100 ? '...' : '') : '[NO TRANSCRIPT]',
         duration: recordingDuration,
         passedDuration: duration,
-        currentRecordingTime: recordingTime
+        currentRecordingTime: recordingTime,
+        finalTranscriptRefLength: finalTranscriptRef.current?.length || 0,
+        finalTranscriptRefContent: finalTranscriptRef.current || '[EMPTY]',
+        liveTranscriptLength: liveTranscript.length,
+        liveTranscriptContent: liveTranscript || '[EMPTY]'
       });
+      
+      if (cleanTranscript.length === 0) {
+        console.warn('No transcript captured during recording. Speech recognition may not have detected any speech.');
+        console.warn('Current live transcript state:', liveTranscript);
+      } else {
+        console.log('SUCCESS: Transcript captured and will be sent to API:', cleanTranscript.substring(0, 200));
+      }
       
       // Prepare FormData for audio upload
       const formData = new FormData();
@@ -615,11 +711,23 @@ export default function AILectureNotesPage() {
         formData.append('audioFile', audioBlob, fileName);
       }
 
+      // Log FormData contents before sending
+      console.log('FormData being sent to API:');
+      console.log('name:', formData.get('name'));
+      console.log('transcript:', formData.get('transcript'));
+      console.log('duration:', formData.get('duration'));
+      const audioFile = formData.get('audioFile') as File;
+      if (audioFile) {
+        console.log('audioFile:', { type: audioFile.type, size: audioFile.size, name: audioFile.name });
+      }
+
       // Save to database via API
       const response = await fetch('/api/lectures/upload', {
         method: 'POST',
         body: formData, // Send as FormData instead of JSON
       });
+
+      console.log('API Response Status:', response.status, response.statusText);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -632,6 +740,7 @@ export default function AILectureNotesPage() {
       }
 
       const { recording } = await response.json();
+      console.log('API Response Data:', recording);
       
       // Add to local state
       const newRecording: LectureRecording = {
@@ -655,6 +764,10 @@ export default function AILectureNotesPage() {
       // Reset recording state after successful save
       setCurrentRecordingName("");
       setRecordingTime(0);
+      setLiveTranscript("");
+      finalTranscriptRef.current = "";
+      
+      console.log('Recording state reset after successful save');
       
     } catch (error) {
       console.error('Error saving recording:', error);
@@ -874,7 +987,7 @@ export default function AILectureNotesPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to start flashcards generation');
+        throw new Error(errorData.message || errorData.error || 'Failed to start flashcards generation');
       }
 
       const result = await response.json();
@@ -929,7 +1042,7 @@ export default function AILectureNotesPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to start quiz generation');
+        throw new Error(errorData.message || errorData.error || 'Failed to start quiz generation');
       }
 
       const result = await response.json();
@@ -982,7 +1095,7 @@ export default function AILectureNotesPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to start summary generation');
+        throw new Error(errorData.message || errorData.error || 'Failed to start summary generation');
       }
 
       const result = await response.json();
@@ -1033,7 +1146,7 @@ export default function AILectureNotesPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to start notes generation');
+        throw new Error(errorData.message || errorData.error || 'Failed to start notes generation');
       }
 
       const result = await response.json();
@@ -1070,14 +1183,15 @@ export default function AILectureNotesPage() {
       const queryParams = new URLSearchParams({
         operation_type: operationType,
         recording_ids: JSON.stringify(selectedRecordings),
-        ...Object.entries(parameters).reduce((acc, [key, value]) => {
+        // Only add parameters for operations that still use parameter matching
+        ...(operationType === 'notes' ? Object.entries(parameters).reduce((acc, [key, value]) => {
           if (typeof value === 'object') {
             acc[key] = JSON.stringify(value);
           } else {
             acc[key] = String(value);
           }
           return acc;
-        }, {} as Record<string, string>)
+        }, {} as Record<string, string>) : {})
       });
 
       const response = await fetch(`/api/lectures/study-tools/cached?${queryParams}`, {
@@ -1085,8 +1199,9 @@ export default function AILectureNotesPage() {
       });
       
       if (response.ok) {
-        console.log(`Deleted cached ${operationType} result`);
-        return true;
+        const result = await response.json();
+        console.log(`Deleted ${result.deletedCount || 0} cached ${operationType} result(s)`);
+        return result.deletedCount > 0;
       }
       
       return false;
@@ -1109,15 +1224,22 @@ export default function AILectureNotesPage() {
     setIsGenerating('flashcards');
     
     try {
-      // Delete cached flashcards first and wait for completion
-      console.log('Deleting cached flashcards...');
-      const deleteSuccess = await deleteCachedStudyTool('flashcards', { difficulty, count });
-      console.log('Cache deletion result:', deleteSuccess);
-      
       // Clear current flashcards to show loading state
       setFlashcards([]);
       setCurrentFlashcardIndex(0);
       setShowFlashcardAnswer(false);
+      
+      // Delete cached flashcards first (no parameters - deletes all flashcards for selected recordings)
+      console.log('Deleting cached flashcards...');
+      const deleteSuccess = await deleteCachedStudyTool('flashcards', {});
+      console.log('Cache deletion result:', deleteSuccess);
+      
+      if (deleteSuccess) {
+        toast({
+          title: "Cache Cleared",
+          description: "Removed previous flashcards to generate fresh content.",
+        });
+      }
       
       // Call the API directly instead of generateFlashcards to avoid cache check
       const response = await fetch('/api/lectures/generate-flashcards', {
@@ -1128,7 +1250,7 @@ export default function AILectureNotesPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to start flashcards generation');
+        throw new Error(errorData.message || errorData.error || 'Failed to start flashcards generation');
       }
 
       const result = await response.json();
@@ -1166,15 +1288,24 @@ export default function AILectureNotesPage() {
     setIsGenerating('quiz');
     
     try {
-      // Delete cached quiz first and wait for completion
-      console.log('Deleting cached quiz...');
-      const deleteSuccess = await deleteCachedStudyTool('quiz', { questionCount, questionTypes, difficulty });
-      console.log('Cache deletion result:', deleteSuccess);
-      
       // Clear current quiz to show loading state
       setQuiz(null);
       setQuizAnswers({});
       setQuizSubmitted(false);
+      // Reset difficulty change tracking since we're regenerating with chosen difficulty
+      setUserChangedQuizDifficulty(false);
+      
+      // Delete cached quiz first (no parameters - deletes all quizzes for selected recordings)
+      console.log('Deleting cached quiz...');
+      const deleteSuccess = await deleteCachedStudyTool('quiz', {});
+      console.log('Cache deletion result:', deleteSuccess);
+      
+      if (deleteSuccess) {
+        toast({
+          title: "Cache Cleared",
+          description: "Removed previous quiz to generate fresh content.",
+        });
+      }
       
       // Call the API directly instead of generateQuiz to avoid cache check
       const response = await fetch('/api/lectures/generate-quiz', {
@@ -1185,7 +1316,7 @@ export default function AILectureNotesPage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to start quiz generation');
+        throw new Error(errorData.message || errorData.error || 'Failed to start quiz generation');
       }
 
       const result = await response.json();
@@ -1556,19 +1687,39 @@ export default function AILectureNotesPage() {
                 </div>
 
                 {/* Live Transcription */}
-                {isRecording && liveTranscript && (
+                {isRecording && (
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-sm flex items-center gap-2">
                         <Volume2 className="h-4 w-4" />
                         Live Transcription
+                        {!liveTranscript && (
+                          <div className="flex items-center gap-1 ml-2">
+                            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                            <span className="text-xs text-muted-foreground">Listening...</span>
+                          </div>
+                        )}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <ScrollArea className="h-32 w-full">
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                          {liveTranscript}
-                        </p>
+                        {liveTranscript ? (
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                            {liveTranscript}
+                          </p>
+                        ) : (
+                          <div className="text-center py-4">
+                            <Mic className="h-8 w-8 mx-auto mb-2 text-muted-foreground animate-pulse" />
+                            <p className="text-sm text-muted-foreground">
+                              Speak clearly and your words will appear here...
+                            </p>
+                            {!isMobile && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Make sure your microphone is working and you have a good internet connection
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </ScrollArea>
                     </CardContent>
                   </Card>
@@ -1684,10 +1835,17 @@ export default function AILectureNotesPage() {
                                 </div>
                                 <span>{recording.recordedAt.toLocaleDateString()}</span>
                               </div>
-                              {recording.transcript && (
+                              {recording.transcript ? (
                                 <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                                   {recording.transcript.substring(0, 100)}...
                                 </p>
+                              ) : (
+                                <div className="flex items-center gap-1 mt-1">
+                                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                  <p className="text-xs text-yellow-600">
+                                    No transcript - study tools unavailable
+                                  </p>
+                                </div>
                               )}
                             </div>
                             <Button
@@ -1899,7 +2057,7 @@ export default function AILectureNotesPage() {
                       </div>
                       <div className="flex gap-2">
                         <Button 
-                          onClick={() => regenerateFlashcards('medium', 10)}
+                          onClick={() => setShowFlashcardRegenDialog(true)}
                           variant="outline"
                           size="sm"
                           disabled={isGenerating === 'flashcards'}
@@ -2132,26 +2290,81 @@ export default function AILectureNotesPage() {
                           </div>
                         )}
                       </div>
-                      <div className={`flex items-center gap-3 ${isMobile ? "justify-end" : ""}`}>
+                      <div className={`${isMobile ? "flex flex-col gap-3" : "flex items-center gap-3"}`}>
                         {!isMobile && (
                           <div className="text-sm text-muted-foreground">
                             {quiz.questions?.length || 0} questions
                           </div>
                         )}
-                        <Button 
-                          onClick={() => regenerateQuiz(10, ['multiple-choice', 'true-false', 'short-answer'], quizDifficulty)}
-                          variant="outline"
-                          size="sm"
-                          disabled={isGenerating === 'quiz'}
-                          className={isMobile ? "px-2" : ""}
-                        >
-                          {isGenerating === 'quiz' ? (
-                            <Loader2 className={`h-4 w-4 ${isMobile ? "" : "mr-2"} animate-spin`} />
-                          ) : (
-                            <RefreshCw className={`h-4 w-4 ${isMobile ? "" : "mr-2"}`} />
-                          )}
-                          {!isMobile && "Regenerate"}
-                        </Button>
+                        
+                        {/* Quiz Controls */}
+                        <div className={`flex items-center gap-2 ${isMobile ? "justify-between" : ""}`}>
+                          {/* Difficulty Selector */}
+                          <div className="flex items-center gap-2">
+                            <Label className="text-sm text-muted-foreground">
+                              Difficulty:
+                            </Label>
+                            <Select value={quizDifficulty} onValueChange={(value) => {
+                              setQuizDifficulty(value);
+                              setUserChangedQuizDifficulty(true);
+                            }}>
+                              <SelectTrigger className="flex-1 xs:w-[100px] h-9">
+                                <SelectValue>
+                                  {quizDifficulty === 'easy' && 'Easy'}
+                                  {quizDifficulty === 'medium' && 'Medium'}
+                                  {quizDifficulty === 'hard' && 'Hard'}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent className="w-[220px]">
+                                <SelectItem value="easy">
+                                  <div className="flex flex-col items-start">
+                                    <span>Easy</span>
+                                    <span className="text-xs text-muted-foreground">Basic recall & definitions</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="medium">
+                                  <div className="flex flex-col items-start">
+                                    <span>Medium</span>
+                                    <span className="text-xs text-muted-foreground">Analysis & application</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="hard">
+                                  <div className="flex flex-col items-start">
+                                    <span>Hard</span>
+                                    <span className="text-xs text-muted-foreground">Critical thinking & synthesis</span>
+                                  </div>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          {/* Action Buttons */}
+                          <div className="flex gap-2">
+                            <Button 
+                              onClick={() => regenerateQuiz(10, ['multiple-choice', 'true-false', 'short-answer'], quizDifficulty)}
+                              variant="outline"
+                              size="sm"
+                              disabled={isGenerating === 'quiz'}
+                              className={isMobile ? "px-2" : ""}
+                            >
+                              {isGenerating === 'quiz' ? (
+                                <Loader2 className={`h-4 w-4 ${isMobile ? "" : "mr-2"} animate-spin`} />
+                              ) : (
+                                <RefreshCw className={`h-4 w-4 ${isMobile ? "" : "mr-2"}`} />
+                              )}
+                              {!isMobile && "Regenerate"}
+                            </Button>
+                            <Button 
+                              onClick={() => downloadPDF(quiz, quiz.title, 'quiz')}
+                              variant="outline"
+                              size="sm"
+                              className={isMobile ? "px-2" : ""}
+                            >
+                              <FileDown className={`h-4 w-4 ${isMobile ? "" : "mr-2"}`} />
+                              {!isMobile && "Download"}
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -2555,6 +2768,91 @@ export default function AILectureNotesPage() {
 
 
         </Tabs>
+
+        {/* Flashcard Regeneration Dialog */}
+        <Dialog open={showFlashcardRegenDialog} onOpenChange={setShowFlashcardRegenDialog}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Regenerate Flashcards</DialogTitle>
+              <DialogDescription>
+                Choose the difficulty level and number of flashcards to generate from your selected recordings.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 px-6 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="flashcard-difficulty">Difficulty Level</Label>
+                <Select value={flashcardDifficulty} onValueChange={setFlashcardDifficulty}>
+                  <SelectTrigger id="flashcard-difficulty">
+                    <SelectValue>
+                      {flashcardDifficulty === 'easy' && 'Easy'}
+                      {flashcardDifficulty === 'medium' && 'Medium'}
+                      {flashcardDifficulty === 'hard' && 'Hard'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="w-[220px]">
+                    <SelectItem value="easy">
+                      <div className="flex flex-col items-start">
+                        <span>Easy</span>
+                        <span className="text-xs text-muted-foreground">Basic recall & definitions</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="medium">
+                      <div className="flex flex-col items-start">
+                        <span>Medium</span>
+                        <span className="text-xs text-muted-foreground">Analysis & application</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="hard">
+                      <div className="flex flex-col items-start">
+                        <span>Hard</span>
+                        <span className="text-xs text-muted-foreground">Critical thinking & synthesis</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Number of Cards</Label>
+                <Select value={flashcardCount.toString()} onValueChange={(value) => setFlashcardCount(parseInt(value))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5 cards</SelectItem>
+                    <SelectItem value="10">10 cards</SelectItem>
+                    <SelectItem value="15">15 cards</SelectItem>
+                    <SelectItem value="20">20 cards</SelectItem>
+                    <SelectItem value="25">25 cards</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowFlashcardRegenDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  setShowFlashcardRegenDialog(false);
+                  regenerateFlashcards(flashcardDifficulty, flashcardCount);
+                }}
+                disabled={isGenerating === 'flashcards'}
+              >
+                {isGenerating === 'flashcards' ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Regenerate
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Delete Confirmation Dialog */}
         <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

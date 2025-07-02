@@ -46,8 +46,13 @@ export async function POST(request: NextRequest) {
     // Check if recordings have transcripts
     const recordingsWithTranscripts = recordings.filter((r: any) => r.transcript && r.transcript.trim().length > 0);
     if (recordingsWithTranscripts.length === 0) {
+      const recordingTitles = recordings.map((r: any) => r.title).join(', ');
       return NextResponse.json(
-        { error: 'No recordings with transcripts found. Please ensure your recordings have been transcribed.' },
+        { 
+          error: 'No transcript available', 
+          message: `The recording "${recordingTitles}" doesn't have a transcript. To generate flashcards, please record a new lecture with speech or manually add a transcript to your recording.`,
+          details: 'Flashcards require transcript content to analyze and create study materials from your lecture content.'
+        },
         { status: 400 }
       );
     }
