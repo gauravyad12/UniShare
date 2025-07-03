@@ -1871,7 +1871,7 @@ export default function AILectureNotesPage() {
                               ) : (
                                 <div className="flex items-center gap-1 mt-1">
                                   <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                                  <p className="text-xs text-yellow-600">
+                                  <p className="text-xs text-yellow-600 truncate">
                                     No transcript - study tools unavailable
                                   </p>
                                 </div>
