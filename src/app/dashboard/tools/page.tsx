@@ -107,7 +107,7 @@ export default function ToolsPage({
   // No need for filtering here as it's now handled by the ScholarPlusTabs component
 
   return (
-    <div className="container mx-auto px-4 py-8 pb-20 md:pb-8">
+    <div className="container mx-auto px-4 py-8 pb-15 md:pb-8">
       {/* Set dynamic page title */}
       <DynamicPageTitle title="UniShare | Tools" />
 

@@ -88,6 +88,10 @@ export default function AILectureNotesPage() {
   const [notes, setNotes] = useState<any>(null);
   const [currentFlashcardIndex, setCurrentFlashcardIndex] = useState(0);
   const [showFlashcardAnswer, setShowFlashcardAnswer] = useState(false);
+  const [questionNeedsScroll, setQuestionNeedsScroll] = useState(false);
+  const [answerNeedsScroll, setAnswerNeedsScroll] = useState(false);
+  const questionContentRef = useRef<HTMLDivElement>(null);
+  const answerContentRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState<string | null>(null);
   const [quizAnswers, setQuizAnswers] = useState<{[key: string]: string}>({});
   const [quizSubmitted, setQuizSubmitted] = useState(false);
@@ -167,6 +171,25 @@ export default function AILectureNotesPage() {
       }
     };
   }, [isRecording, isPaused]);
+
+  // Check if flashcard content needs scrolling
+  useEffect(() => {
+    const checkScrollNeed = () => {
+      if (questionContentRef.current) {
+        const needsScroll = questionContentRef.current.scrollHeight > questionContentRef.current.clientHeight;
+        setQuestionNeedsScroll(needsScroll);
+      }
+      if (answerContentRef.current) {
+        const needsScroll = answerContentRef.current.scrollHeight > answerContentRef.current.clientHeight;
+        setAnswerNeedsScroll(needsScroll);
+      }
+    };
+
+    // Check on mount and when flashcard content changes
+    const timer = setTimeout(checkScrollNeed, 100); // Small delay to ensure content is rendered
+    
+    return () => clearTimeout(timer);
+  }, [flashcards, currentFlashcardIndex, showFlashcardAnswer]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -2105,19 +2128,22 @@ export default function AILectureNotesPage() {
                           style={{ backfaceVisibility: 'hidden' }}
                         >
                           <CardContent className="p-4 md:p-8 h-full">
-                            <div className="text-center space-y-4 md:space-y-6 h-full flex flex-col justify-center">
-                              <div className="text-base md:text-lg font-medium text-blue-600">
+                            <div className="text-center space-y-4 md:space-y-6 h-full flex flex-col">
+                              <div className="text-base md:text-lg font-medium text-blue-600 flex-shrink-0">
                                 Question:
                               </div>
-                              <div className="text-lg md:text-xl leading-relaxed flex-1 flex items-center justify-center px-2 md:px-4 overflow-y-auto">
-                                <div className="max-w-full break-words">
+                              <div 
+                                ref={questionContentRef}
+                                className={`flex-1 overflow-y-auto px-2 md:px-4 min-h-0 ${questionNeedsScroll ? '' : 'flex flex-col justify-center'}`}
+                              >
+                                <div className="text-lg md:text-xl leading-relaxed break-words w-full text-center py-4">
                                   {flashcards[currentFlashcardIndex]?.front || flashcards[currentFlashcardIndex]?.question}
                                 </div>
                               </div>
                               <Button 
                                 onClick={() => setShowFlashcardAnswer(true)}
                                 variant="outline"
-                                className="w-fit mx-auto"
+                                className="w-fit mx-auto flex-shrink-0"
                                 size={isMobile ? "sm" : "default"}
                               >
                                 Show Answer
@@ -2135,19 +2161,22 @@ export default function AILectureNotesPage() {
                           }}
                         >
                           <CardContent className="p-4 md:p-8 h-full">
-                            <div className="text-center space-y-4 md:space-y-6 h-full flex flex-col justify-center">
-                              <div className="text-base md:text-lg font-medium text-green-600">
+                            <div className="text-center space-y-4 md:space-y-6 h-full flex flex-col">
+                              <div className="text-base md:text-lg font-medium text-green-600 flex-shrink-0">
                                 Answer:
                               </div>
-                              <div className="text-lg md:text-xl leading-relaxed flex-1 flex items-center justify-center px-2 md:px-4 overflow-y-auto">
-                                <div className="max-w-full break-words">
+                              <div 
+                                ref={answerContentRef}
+                                className={`flex-1 overflow-y-auto px-2 md:px-4 min-h-0 ${answerNeedsScroll ? '' : 'flex flex-col justify-center'}`}
+                              >
+                                <div className="text-lg md:text-xl leading-relaxed break-words w-full text-center py-4">
                                   {flashcards[currentFlashcardIndex]?.back || flashcards[currentFlashcardIndex]?.answer}
                                 </div>
                               </div>
                               <Button 
                                 onClick={() => setShowFlashcardAnswer(false)}
                                 variant="outline"
-                                className="w-fit mx-auto"
+                                className="w-fit mx-auto flex-shrink-0"
                                 size={isMobile ? "sm" : "default"}
                               >
                                 Show Question
