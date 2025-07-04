@@ -152,7 +152,7 @@ export default function PushNotificationsPage() {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">Push Notifications</h1>
         
-        <Card className="max-w-2xl">
+        <Card>
           <CardHeader>
             <CardTitle>Send Push Notification</CardTitle>
             <CardDescription>

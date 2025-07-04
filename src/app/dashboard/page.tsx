@@ -32,6 +32,9 @@ import MobileToolsSection from "@/components/mobile-tools-section";
 import MobileActionPopup from "@/components/mobile-action-popup";
 import TodoList from "@/components/todo-list";
 import { formatLargeNumber } from "@/utils/format-utils";
+import IQPointsDashboard from "@/components/iq-points-dashboard";
+import IQPointsCard from "@/components/iq-points-card";
+import DashboardStatisticsCard from "@/components/dashboard-statistics-card";
 
 export default async function Dashboard() {
   const supabase = await createClient();
@@ -151,14 +154,14 @@ export default async function Dashboard() {
   }
 
   // Split meetings into upcoming and past
-  const upcomingMeetings = allMeetings?.filter(meeting => !meeting.is_past) || [];
-  const pastMeetings = allMeetings?.filter(meeting => meeting.is_past) || [];
+  const upcomingMeetings = allMeetings?.filter((meeting: any) => !meeting.is_past) || [];
+  const pastMeetings = allMeetings?.filter((meeting: any) => meeting.is_past) || [];
 
   // Sort upcoming meetings by start time (ascending)
-  upcomingMeetings.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+  upcomingMeetings.sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
 
   // Sort past meetings by start time (descending - most recent first)
-  pastMeetings.sort((a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
+  pastMeetings.sort((a: any, b: any) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime());
 
   // Get all upcoming meetings for display
   const limitedUpcomingMeetings = upcomingMeetings;
@@ -168,13 +171,13 @@ export default async function Dashboard() {
   // Fetch recent resources for the mobile dashboard
   const { data: recentResources, error: resourcesError } = await supabase
     .from("resources")
-    .select("id, title, description, thumbnail_url, external_link, created_at, course_code")
+    .select("id, title, description, thumbnail_url, external_link, file_url, resource_type, created_at, course_code")
     .eq("university_id", userProfile?.university_id)
     .order("created_at", { ascending: false })
     .limit(5);
 
   // Map the external_link field to is_external_link for compatibility
-  const mappedResources = recentResources?.map(resource => ({
+  const mappedResources = recentResources?.map((resource: any) => ({
     ...resource,
     is_external_link: !!resource.external_link
   }));
@@ -195,33 +198,55 @@ export default async function Dashboard() {
   // Get the university name
   const universityName = userProfile?.university?.name || "your university";
 
-  // Check if user has an active subscription
+  // Check if user has an active subscription (including temporary access)
   let hasScholarPlus = false;
   try {
-    // Check if user has an active subscription
-    const { data: subscriptions } = await supabase
-      .from("subscriptions")
-      .select("status, current_period_end")
-      .eq("user_id", user.id)
-      .order('created_at', { ascending: false });
+    // Use the enhanced stored procedure that checks both regular and temporary access
+    const { data: hasAccess } = await supabase
+      .rpc('has_scholar_plus_access', { p_user_id: user.id });
 
-    // Get the current time
-    const currentTime = Math.floor(Date.now() / 1000);
-
-    // Check if any subscription is active and valid
-    if (subscriptions && subscriptions.length > 0) {
-      // First check the most recent subscription (ordered by created_at desc)
-      const latestSubscription = subscriptions[0];
-
-      // Check if the latest subscription is active and not expired
-      if (latestSubscription.status === "active" &&
-          (!latestSubscription.current_period_end ||
-           latestSubscription.current_period_end > currentTime)) {
-        hasScholarPlus = true;
-      }
-    }
+    hasScholarPlus = hasAccess || false;
   } catch (error) {
     console.error("Error checking subscription:", error);
+    
+    // Fallback to manual check if stored procedure fails
+    try {
+      // Check regular subscription
+      const { data: subscriptions } = await supabase
+        .from("subscriptions")
+        .select("status, current_period_end")
+        .eq("user_id", user.id)
+        .order('created_at', { ascending: false });
+
+      const currentTime = Math.floor(Date.now() / 1000);
+
+      if (subscriptions && subscriptions.length > 0) {
+        const latestSubscription = subscriptions[0];
+        if (latestSubscription.status === "active" &&
+            (!latestSubscription.current_period_end ||
+             latestSubscription.current_period_end > currentTime)) {
+          hasScholarPlus = true;
+        }
+      }
+
+      // Check temporary access if no regular subscription
+      if (!hasScholarPlus) {
+        const { data: temporaryAccess } = await supabase
+          .from("temporary_scholar_access")
+          .select("expires_at")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .gt("expires_at", new Date().toISOString())
+          .limit(1)
+          .maybeSingle();
+
+        if (temporaryAccess) {
+          hasScholarPlus = true;
+        }
+      }
+    } catch (fallbackError) {
+      console.error("Error in fallback subscription check:", fallbackError);
+    }
   }
 
   return (
@@ -348,66 +373,19 @@ export default async function Dashboard() {
         </div>
       </section>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
-              Resources
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{formatLargeNumber(resourceCount || 0)}</p>
-            <p className="text-sm text-muted-foreground">Available resources</p>
-          </CardContent>
-          <CardFooter>
-            <Button asChild variant="outline" size="sm" className="w-full">
-              <Link href="/dashboard/resources">Browse Resources</Link>
-            </Button>
-          </CardFooter>
-        </Card>
+      {/* IQ Points and Statistics */}
+      <section className="mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <IQPointsCard />
+          <DashboardStatisticsCard 
+            resourceCount={resourceCount || 0}
+            studyGroupCount={studyGroupCount || 0}
+            userGroupCount={userGroupCount}
+          />
+        </div>
+      </section>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              Study Groups
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{formatLargeNumber(studyGroupCount || 0)}</p>
-            <p className="text-sm text-muted-foreground">Public study groups</p>
-          </CardContent>
-          <CardFooter>
-            <Button asChild variant="outline" size="sm" className="w-full">
-              <Link href="/dashboard/study-groups?tab=all">Find Groups</Link>
-            </Button>
-          </CardFooter>
-        </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Lightbulb className="h-5 w-5 text-primary" />
-              My Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">{formatLargeNumber(userGroupCount)}</p>
-            <p className="text-sm text-muted-foreground">
-              Study groups you've joined
-            </p>
-          </CardContent>
-          <CardFooter>
-            <Button asChild variant="outline" size="sm" className="w-full">
-              <Link href="/dashboard/study-groups?tab=my-groups">
-                My Groups
-              </Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
 
       {/* User Profile and To-Do List Section */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">

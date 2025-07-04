@@ -210,6 +210,7 @@ export default function UniversityStep({
               setIsStudent(true);
             }
           }}
+          className="max-w-xs"
         />
 
         {/* University cards */}

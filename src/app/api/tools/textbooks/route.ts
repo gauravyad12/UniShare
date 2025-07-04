@@ -1,5 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
+import { hasScholarPlusAccess } from '@/utils/supabase/subscription-check';
 
 export const dynamic = "force-dynamic";
 
@@ -13,15 +14,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user has an active subscription
-    const { data: subscription, error: subscriptionError } = await supabase
-      .from("subscriptions")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .single();
-
-    if (subscriptionError || !subscription) {
+    // Check if user has Scholar+ access (regular or temporary)
+    const hasAccess = await hasScholarPlusAccess(user.id);
+    
+    if (!hasAccess) {
       return NextResponse.json(
         { error: "Scholar+ subscription required" },
         { status: 403 }
@@ -41,26 +37,28 @@ export async function GET(request: NextRequest) {
         `title.ilike.%${query}%,author.ilike.%${query}%,isbn.ilike.%${query}%`
       );
     }
-
+    
     const { data, error, count } = await supabaseQuery
       .order("title")
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error("Error searching textbooks:", error);
+      console.error("Failed to search textbooks:", error);
       return NextResponse.json(
         { error: "Failed to search textbooks" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({
+    const response = {
       textbooks: data,
       total: count,
       page,
       limit,
       totalPages: Math.ceil((count || 0) / limit)
-    });
+    };
+    
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Error in textbooks API:", error);
     return NextResponse.json(

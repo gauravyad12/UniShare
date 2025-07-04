@@ -44,6 +44,7 @@ export async function DashboardNavbarServer() {
     // Check if user has Scholar+ subscription
     let hasScholarPlus = false;
     try {
+      // Check regular subscription first
       const { data: subscription } = await supabase
         .from("subscriptions")
         .select("status, current_period_end")
@@ -56,6 +57,22 @@ export async function DashboardNavbarServer() {
         hasScholarPlus = subscription.status === "active" &&
                         (!subscription.current_period_end ||
                          subscription.current_period_end > currentTime);
+      }
+
+      // Check temporary access if no regular subscription
+      if (!hasScholarPlus) {
+        const { data: temporaryAccess } = await supabase
+          .from("temporary_scholar_access")
+          .select("expires_at")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .gt("expires_at", new Date().toISOString())
+          .limit(1)
+          .maybeSingle();
+
+        if (temporaryAccess) {
+          hasScholarPlus = true;
+        }
       }
     } catch (subscriptionError) {
       console.error("Error checking subscription:", subscriptionError);

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { InfoIcon, Sparkles, BookOpen, MessageSquare, UserPlus, Users, Search } from "lucide-react";
+import { InfoIcon, Sparkles, BookOpen, MessageSquare, UserPlus, Users, Search, Coins, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import MobileNotifications from "./mobile-notifications";
@@ -23,6 +23,17 @@ interface MobileDashboardHeaderProps {
   username?: string;
 }
 
+interface IQPointsData {
+  iq_points: number;
+  subscription_status: 'none' | 'regular' | 'temporary';
+  temporary_access?: {
+    expires_at: string;
+    points_spent: number;
+    access_duration_hours: number;
+    remaining_hours: number;
+  };
+}
+
 function MobileDashboardHeaderComponent({
   userName,
   universityName,
@@ -34,6 +45,8 @@ function MobileDashboardHeaderComponent({
 }: MobileDashboardHeaderProps) {
   const [greeting, setGreeting] = React.useState("Good day");
   const [hasScholarPlus, setHasScholarPlus] = React.useState(false);
+  const [iqPointsData, setIQPointsData] = React.useState<IQPointsData | null>(null);
+  const [iqPointsLoading, setIQPointsLoading] = React.useState(true);
   const supabase = createClient();
 
   React.useEffect(() => {
@@ -44,6 +57,25 @@ function MobileDashboardHeaderComponent({
     else setGreeting("Good evening");
   }, []);
 
+  // Fetch IQ points data
+  React.useEffect(() => {
+    async function fetchIQPoints() {
+      try {
+        const response = await fetch('/api/iq-points/status');
+        const result = await response.json();
+        if (result.success) {
+          setIQPointsData(result);
+        }
+      } catch (error) {
+        console.error('Error fetching IQ points data:', error);
+      } finally {
+        setIQPointsLoading(false);
+      }
+    }
+
+    fetchIQPoints();
+  }, []);
+
   // Check if user has Scholar+ subscription
   React.useEffect(() => {
     async function checkSubscription() {
@@ -52,19 +84,47 @@ function MobileDashboardHeaderComponent({
 
         if (!user) return;
 
-        const { data: subscription } = await supabase
-          .from("subscriptions")
-          .select("status, current_period_end")
-          .eq("user_id", user.id)
-          .eq("status", "active")
-          .maybeSingle();
+        // Use the enhanced stored procedure that checks both regular and temporary access
+        const { data: hasAccess } = await supabase
+          .rpc('has_scholar_plus_access', { p_user_id: user.id });
 
-        if (subscription) {
-          const currentTime = Math.floor(Date.now() / 1000);
-          const isValid = subscription.status === "active" &&
-                        (!subscription.current_period_end ||
-                         subscription.current_period_end > currentTime);
-          setHasScholarPlus(isValid);
+        if (hasAccess) {
+          setHasScholarPlus(true);
+        } else {
+          // Fallback to manual checks
+          const { data: subscription } = await supabase
+            .from("subscriptions")
+            .select("status, current_period_end")
+            .eq("user_id", user.id)
+            .eq("status", "active")
+            .maybeSingle();
+
+          let hasScholarPlus = false;
+
+          if (subscription) {
+            const currentTime = Math.floor(Date.now() / 1000);
+            hasScholarPlus = subscription.status === "active" &&
+                          (!subscription.current_period_end ||
+                           subscription.current_period_end > currentTime);
+          }
+
+          // Check temporary access if no regular subscription
+          if (!hasScholarPlus) {
+            const { data: temporaryAccess } = await supabase
+              .from("temporary_scholar_access")
+              .select("expires_at")
+              .eq("user_id", user.id)
+              .eq("is_active", true)
+              .gt("expires_at", new Date().toISOString())
+              .limit(1)
+              .maybeSingle();
+
+            if (temporaryAccess) {
+              hasScholarPlus = true;
+            }
+          }
+
+          setHasScholarPlus(hasScholarPlus);
         }
       } catch (error) {
         console.error("Error checking subscription:", error);
@@ -128,24 +188,42 @@ function MobileDashboardHeaderComponent({
           </div>
         </div>
 
-        {/* University info */}
-        <div className="bg-background/70 backdrop-blur-md text-xs py-2 px-3 rounded-full text-muted-foreground flex gap-2 items-center mb-5 shadow-sm border border-primary/5 w-fit mx-auto">
-          {universityLogoUrl ? (
-            <img
-              src={universityLogoUrl}
-              alt={`${universityName} logo`}
-              className="h-4 w-4 object-contain"
-            />
-          ) : (
-            <div className="h-4 w-4 bg-primary/10 rounded-full flex items-center justify-center">
-              <span className="text-[10px] text-primary font-medium">
-                {universityName.substring(0, 1)}
+        {/* University info and IQ Points badges */}
+        <div className="flex gap-2 items-center mb-5 justify-start">
+          {/* University badge */}
+          <div className="bg-background/70 backdrop-blur-md text-xs py-2 px-3 rounded-full text-muted-foreground flex gap-2 items-center shadow-sm border border-primary/5 w-fit">
+            {universityLogoUrl ? (
+              <img
+                src={universityLogoUrl}
+                alt={`${universityName} logo`}
+                className="h-4 w-4 object-contain"
+              />
+            ) : (
+              <div className="h-4 w-4 bg-primary/10 rounded-full flex items-center justify-center">
+                <span className="text-[10px] text-primary font-medium">
+                  {universityName.substring(0, 1)}
+                </span>
+              </div>
+            )}
+            <span className="font-medium">
+              {universityName}
+            </span>
+          </div>
+          
+          {/* IQ Points badge */}
+          <Link href="/dashboard/shop" className="w-fit">
+            <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 backdrop-blur-md text-xs py-2 px-3 rounded-full text-primary flex gap-2 items-center shadow-sm border border-primary/20 w-fit hover:from-blue-500/20 hover:to-purple-500/20 transition-all">
+              <Coins className="h-4 w-4" />
+              <span className="font-medium">
+                {iqPointsLoading ? (
+                  <div className="animate-spin rounded-full h-3 w-3 border-b border-primary"></div>
+                ) : (
+                  iqPointsData?.iq_points.toLocaleString() || '0'
+                )}
               </span>
+              <ArrowRight className="h-3 w-3 ml-1" />
             </div>
-          )}
-          <span className="font-medium">
-            {universityName}
-          </span>
+          </Link>
         </div>
 
         {/* Search bar */}

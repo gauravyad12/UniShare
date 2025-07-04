@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { hasScholarPlusAccess } from '@/utils/supabase/subscription-check';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,30 +17,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user has an active Scholar+ subscription
-    const { data: subscription } = await supabase
-      .from("subscriptions")
-      .select("status, current_period_end")
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .maybeSingle();
+    // Check if user has Scholar+ access (regular or temporary)
+    const hasAccess = await hasScholarPlusAccess(user.id);
 
-    if (!subscription) {
+    if (!hasAccess) {
       return NextResponse.json(
         { error: 'Scholar+ subscription required' },
-        { status: 403 }
-      );
-    }
-
-    // Check if subscription is still valid
-    const currentTime = Math.floor(Date.now() / 1000);
-    const isValid = subscription.status === "active" &&
-                    (!subscription.current_period_end ||
-                     subscription.current_period_end > currentTime);
-
-    if (!isValid) {
-      return NextResponse.json(
-        { error: 'Active Scholar+ subscription required' },
         { status: 403 }
       );
     }

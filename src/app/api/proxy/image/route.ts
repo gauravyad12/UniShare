@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { hasScholarPlusAccess } from '@/utils/supabase/subscription-check';
 
 // Force dynamic rendering for this route since it uses request.nextUrl.searchParams
 export const dynamic = "force-dynamic";
@@ -19,26 +20,10 @@ export async function GET(request: NextRequest) {
       return new NextResponse('Authentication required', { status: 401 });
     }
 
-    // Check if user has an active Scholar+ subscription
-    const { data: subscription } = await supabase
-      .from("subscriptions")
-      .select("status, current_period_end")
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .maybeSingle();
-
-    if (!subscription) {
+    // Check if user has Scholar+ access (regular or temporary)
+    const hasAccess = await hasScholarPlusAccess(user.id);
+    if (!hasAccess) {
       return new NextResponse('Scholar+ subscription required', { status: 403 });
-    }
-
-    // Check if subscription is still valid
-    const currentTime = Math.floor(Date.now() / 1000);
-    const isValid = subscription.status === "active" &&
-                    (!subscription.current_period_end ||
-                     subscription.current_period_end > currentTime);
-
-    if (!isValid) {
-      return new NextResponse('Active Scholar+ subscription required', { status: 403 });
     }
 
     // Get the URL from the query parameter

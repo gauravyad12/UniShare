@@ -30,33 +30,54 @@ export async function GET(
       );
     }
 
-    // Try to get subscription data directly
-    const { data, error } = await supabaseAdmin
-      .from("subscriptions")
-      .select("status, current_period_end")
-      .eq("user_id", userId)
-      .eq("status", "active")
-      .maybeSingle();
-    
-    if (error) {
-      console.error("Error querying subscriptions:", error);
-      return NextResponse.json(
-        { error: "Database query error" },
-        { status: 500 }
-      );
-    }
+    // Use the enhanced stored procedure that checks both regular and temporary access
+    const { data: hasAccess, error: procedureError } = await supabaseAdmin
+      .rpc('has_scholar_plus_access', { p_user_id: userId });
 
-    // Check if subscription is valid
-    let hasScholarPlus = false;
-    if (data) {
-      const currentTime = Math.floor(Date.now() / 1000);
-      hasScholarPlus = data.status === "active" &&
-                      (!data.current_period_end ||
-                       data.current_period_end > currentTime);
+    if (procedureError) {
+      console.error("Error calling has_scholar_plus_access:", procedureError);
+      
+      // Fallback to manual checks
+      let hasScholarPlus = false;
+      
+      // Check regular subscription
+      const { data: subscriptionData, error: subscriptionError } = await supabaseAdmin
+        .from("subscriptions")
+        .select("status, current_period_end")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .maybeSingle();
+      
+      if (!subscriptionError && subscriptionData) {
+        const currentTime = Math.floor(Date.now() / 1000);
+        hasScholarPlus = subscriptionData.status === "active" &&
+                        (!subscriptionData.current_period_end ||
+                         subscriptionData.current_period_end > currentTime);
+      }
+
+      // Check temporary access if no regular subscription
+      if (!hasScholarPlus) {
+        const { data: temporaryAccess, error: temporaryError } = await supabaseAdmin
+          .from("temporary_scholar_access")
+          .select("expires_at")
+          .eq("user_id", userId)
+          .eq("is_active", true)
+          .gt("expires_at", new Date().toISOString())
+          .limit(1)
+          .maybeSingle();
+
+        if (!temporaryError && temporaryAccess) {
+          hasScholarPlus = true;
+        }
+      }
+
+      return NextResponse.json({
+        hasScholarPlus
+      });
     }
 
     return NextResponse.json({
-      hasScholarPlus
+      hasScholarPlus: hasAccess || false
     });
   } catch (error) {
     console.error("Error in subscription status API:", error);

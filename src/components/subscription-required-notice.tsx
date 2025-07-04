@@ -29,30 +29,42 @@ export function SubscriptionRequiredNotice() {
         }
 
         try {
-          // Check if user has an active subscription
-          const { data: subscriptions } = await supabase
+          // Check regular subscription first
+          const { data: subscription } = await supabase
             .from("subscriptions")
             .select("status, current_period_end")
             .eq("user_id", user.id)
             .eq("status", "active")
             .maybeSingle();
 
-          // Get the current time
           const currentTime = Math.floor(Date.now() / 1000);
 
-          // Check if subscription is active and valid
-          if (subscriptions) {
-            // Check if the subscription is active and not expired
-            if (subscriptions.status === "active" &&
-                (!subscriptions.current_period_end ||
-                 subscriptions.current_period_end > currentTime)) {
+          if (subscription) {
+            if (subscription.status === "active" &&
+                (!subscription.current_period_end ||
+                 subscription.current_period_end > currentTime)) {
               userHasSubscription = true;
             }
-            // If the subscription is expired but still marked as active, log a warning
-            else if (subscriptions.status === "active" &&
-                     subscriptions.current_period_end &&
-                     subscriptions.current_period_end <= currentTime) {
+            else if (subscription.status === "active" &&
+                     subscription.current_period_end &&
+                     subscription.current_period_end <= currentTime) {
               console.warn("Subscription is marked as active but has expired");
+            }
+          }
+
+          // Check temporary access if no regular subscription
+          if (!userHasSubscription) {
+            const { data: temporaryAccess } = await supabase
+              .from("temporary_scholar_access")
+              .select("expires_at")
+              .eq("user_id", user.id)
+              .eq("is_active", true)
+              .gt("expires_at", new Date().toISOString())
+              .limit(1)
+              .maybeSingle();
+
+            if (temporaryAccess) {
+              userHasSubscription = true;
             }
           }
         } catch (error) {

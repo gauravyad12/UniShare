@@ -63,7 +63,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Check if user has an active Scholar+ subscription
+    // Check if user has Scholar+ access (regular or temporary)
+    let hasAccess = false;
+    
+    // Check regular subscription first
     const { data: subscription } = await supabase
       .from("subscriptions")
       .select("status, current_period_end")
@@ -71,22 +74,30 @@ Deno.serve(async (req: Request) => {
       .eq("status", "active")
       .maybeSingle();
 
-    if (!subscription) {
-      return new Response(
-        JSON.stringify({ error: 'Scholar+ subscription required' }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
-      );
+    if (subscription) {
+      const currentTime = Math.floor(Date.now() / 1000);
+      hasAccess = subscription.status === "active" &&
+                  (!subscription.current_period_end ||
+                   subscription.current_period_end > currentTime);
     }
 
-    // Check if subscription is still valid
-    const currentTime = Math.floor(Date.now() / 1000);
-    const isValid = subscription.status === "active" &&
-                    (!subscription.current_period_end ||
-                     subscription.current_period_end > currentTime);
+    // Check temporary access if no regular subscription
+    if (!hasAccess) {
+      const { data: temporaryAccess } = await supabase
+        .from("temporary_scholar_access")
+        .select("expires_at")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .gt("expires_at", new Date().toISOString())
+        .limit(1)
+        .maybeSingle();
 
-    if (!isValid) {
+      hasAccess = !!temporaryAccess;
+    }
+
+    if (!hasAccess) {
       return new Response(
-        JSON.stringify({ error: 'Active Scholar+ subscription required' }),
+        JSON.stringify({ error: 'Scholar+ subscription required' }),
         { status: 403, headers: { 'Content-Type': 'application/json' } }
       );
     }

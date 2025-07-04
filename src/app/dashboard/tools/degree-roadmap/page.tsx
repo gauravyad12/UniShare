@@ -3082,6 +3082,7 @@ export default function DegreeRoadmapPage() {
                           placeholder="University"
                           icon={GraduationCap}
                           iconSize="h-4 w-4"
+                          className="max-w-[192px]"
                         />
                       </div>
                     </div>

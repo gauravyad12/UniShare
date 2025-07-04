@@ -355,9 +355,10 @@ export default function CreateRoadmapDialog({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>University</Label>
-                  <div className="[&_input]:h-9 [&_input]:text-sm [&_input]:py-1">
+                  <div className="[&_input]:h-9 [&_input]:text-sm [&_input]:py-1 w-full">
                     <UniversitySearch
                       onSelect={(id, name) => handleInputChange("university_id", id)}
+                      className="w-full"
                     />
                   </div>
                 </div>

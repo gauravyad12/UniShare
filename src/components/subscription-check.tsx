@@ -1,5 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { ClientSubscriptionWrapper } from "./client-subscription-wrapper";
+import { checkScholarPlusAccessStoredProc } from "@/utils/supabase/subscription-check";
 
 interface SubscriptionCheckProps {
   children: React.ReactNode;
@@ -29,31 +30,8 @@ export async function SubscriptionCheck({
   }
 
   try {
-    // Check if user has an active subscription
-    const { data: subscriptionData } = await supabase
-      .from("subscriptions")
-      .select("status, current_period_end")
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .maybeSingle();
-
-    // If we have subscription data and it's active, check if it's still valid
-    if (subscriptionData) {
-      // Check if the subscription is still valid
-      const currentTime = Math.floor(Date.now() / 1000);
-      const isValid = subscriptionData.status === "active" &&
-                      (!subscriptionData.current_period_end ||
-                       subscriptionData.current_period_end > currentTime);
-
-      hasSubscription = isValid;
-
-      // If subscription is expired but still marked as active, log a warning
-      if (subscriptionData.status === "active" &&
-          subscriptionData.current_period_end &&
-          subscriptionData.current_period_end <= currentTime) {
-        console.warn("Subscription is marked as active but has expired");
-      }
-    }
+    // Use the enhanced subscription check that includes temporary access
+    hasSubscription = await checkScholarPlusAccessStoredProc(user.id);
   } catch (error) {
     console.error("Error checking subscription:", error);
   }

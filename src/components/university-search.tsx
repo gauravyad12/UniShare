@@ -16,13 +16,15 @@ type UniversitySearchProps = {
   placeholder?: string;
   icon?: React.ComponentType<{ className?: string }>;
   iconSize?: string;
+  className?: string;
 };
 
 export default function UniversitySearch({ 
   onSelect, 
   placeholder = "Search for your university...", 
   icon: Icon = Search,
-  iconSize = "h-5 w-5"
+  iconSize = "h-5 w-5",
+  className = ""
 }: UniversitySearchProps) {
   const [query, setQuery] = useState("");
   const [universities, setUniversities] = useState<University[]>([]);
@@ -86,7 +88,7 @@ export default function UniversitySearch({
   };
 
   return (
-    <div className="w-full max-w-xs relative" ref={containerRef}>
+    <div className={`w-full relative ${className}`} ref={containerRef}>
       {/* Search input with icon */}
       <div className="relative">
         <input

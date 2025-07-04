@@ -1,6 +1,6 @@
 "use client";
 
-import { UserCircle, LogOut, Settings, Users, Bell, Mail, Database, ShieldAlert } from "lucide-react";
+import { UserCircle, LogOut, Settings, Users, Bell, Mail, Database, ShieldAlert, Coins } from "lucide-react";
 import { Button } from "../ui/button";
 import {
   DropdownMenu,
@@ -131,6 +131,12 @@ export function DashboardNavbarClient({ isLoading, userData, error }: DashboardN
               <Link href="/dashboard/admin/migrations" className="flex items-center">
                 <Database className="h-4 w-4 mr-2" />
                 Database Migrations
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/admin/iq-points" className="flex items-center">
+                <Coins className="h-4 w-4 mr-2" />
+                IQ Points Config
               </Link>
             </DropdownMenuItem>
           </>

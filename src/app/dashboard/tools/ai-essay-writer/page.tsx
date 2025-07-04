@@ -1130,7 +1130,13 @@ export default function AIEssayWriterPage() {
 
               <div className="flex gap-2">
                 <Button 
-                  onClick={() => setActiveTab("write")}
+                  onClick={() => {
+                    setActiveTab("write");
+                    // Smooth scroll to top after tab change is complete
+                    setTimeout(() => {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }, 100);
+                  }}
                   disabled={!selectedPrompt && !customPrompt.trim()}
                 >
                   Start Writing

@@ -152,7 +152,10 @@ export default function AIStudyAssistantPage() {
   // Helper function to scroll to top smoothly when switching tabs
   const scrollToTopAndSetTab = (tabName: string) => {
     setActiveTab(tabName);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Smooth scroll to top after tab change is complete
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
   };
 
   // Auto-scroll to bottom of messages within the chat container
@@ -2745,66 +2748,6 @@ export default function AIStudyAssistantPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Button 
                       onClick={() => {
-                        if (flashcards.length > 0) {
-                          scrollToTopAndSetTab("flashcards");
-                        } else {
-                          generateFlashcards('medium', 10);
-                        }
-                      }}
-                      disabled={isGenerating === 'flashcards'}
-                      className="h-20 flex flex-col gap-2 relative"
-                      variant="outline"
-                    >
-                      {flashcards.length > 0 && (
-                        <Archive className="h-3 w-3 absolute top-2 right-2 text-muted-foreground" />
-                      )}
-                      {isGenerating === 'flashcards' ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <CreditCard className="h-5 w-5" />
-                      )}
-                      <div className="text-center">
-                        <div className="font-medium">
-                          {flashcards.length > 0 ? "View Flashcards" : "Generate Flashcards"}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {flashcards.length > 0 ? `${flashcards.length} cards ready` : "Study key concepts"}
-                        </div>
-                      </div>
-                    </Button>
-
-                    <Button 
-                      onClick={() => {
-                        if (quiz) {
-                          scrollToTopAndSetTab("quiz");
-                        } else {
-                          generateQuiz(10, ['multiple-choice', 'true-false', 'short-answer'], quizDifficulty);
-                        }
-                      }}
-                      disabled={isGenerating === 'quiz'}
-                      className="h-20 flex flex-col gap-2 relative"
-                      variant="outline"
-                    >
-                      {quiz && (
-                        <Archive className="h-3 w-3 absolute top-2 right-2 text-muted-foreground" />
-                      )}
-                      {isGenerating === 'quiz' ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <HelpCircle className="h-5 w-5" />
-                      )}
-                      <div className="text-center">
-                        <div className="font-medium">
-                          {quiz ? "View Quiz" : "Generate Quiz"}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {quiz ? `${quiz.questions?.length || 0} questions ready` : "Test your knowledge"}
-                        </div>
-                      </div>
-                    </Button>
-
-                    <Button 
-                      onClick={() => {
                         if (summary) {
                           scrollToTopAndSetTab("summary");
                         } else {
@@ -2859,6 +2802,66 @@ export default function AIStudyAssistantPage() {
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {notes ? "Notes ready" : "Structured study notes"}
+                        </div>
+                      </div>
+                    </Button>
+
+                    <Button 
+                      onClick={() => {
+                        if (flashcards.length > 0) {
+                          scrollToTopAndSetTab("flashcards");
+                        } else {
+                          generateFlashcards('medium', 10);
+                        }
+                      }}
+                      disabled={isGenerating === 'flashcards'}
+                      className="h-20 flex flex-col gap-2 relative"
+                      variant="outline"
+                    >
+                      {flashcards.length > 0 && (
+                        <Archive className="h-3 w-3 absolute top-2 right-2 text-muted-foreground" />
+                      )}
+                      {isGenerating === 'flashcards' ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <CreditCard className="h-5 w-5" />
+                      )}
+                      <div className="text-center">
+                        <div className="font-medium">
+                          {flashcards.length > 0 ? "View Flashcards" : "Generate Flashcards"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {flashcards.length > 0 ? `${flashcards.length} cards ready` : "Study key concepts"}
+                        </div>
+                      </div>
+                    </Button>
+
+                    <Button 
+                      onClick={() => {
+                        if (quiz) {
+                          scrollToTopAndSetTab("quiz");
+                        } else {
+                          generateQuiz(10, ['multiple-choice', 'true-false', 'short-answer'], quizDifficulty);
+                        }
+                      }}
+                      disabled={isGenerating === 'quiz'}
+                      className="h-20 flex flex-col gap-2 relative"
+                      variant="outline"
+                    >
+                      {quiz && (
+                        <Archive className="h-3 w-3 absolute top-2 right-2 text-muted-foreground" />
+                      )}
+                      {isGenerating === 'quiz' ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <HelpCircle className="h-5 w-5" />
+                      )}
+                      <div className="text-center">
+                        <div className="font-medium">
+                          {quiz ? "View Quiz" : "Generate Quiz"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {quiz ? `${quiz.questions?.length || 0} questions ready` : "Test your knowledge"}
                         </div>
                       </div>
                     </Button>

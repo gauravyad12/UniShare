@@ -12,6 +12,8 @@ interface Resource {
   description?: string;
   thumbnail_url?: string;
   is_external_link: boolean;
+  file_url?: string;
+  resource_type?: string;
   created_at: string;
   course_code?: string;
 }
@@ -70,9 +72,10 @@ export default function MobileResourcesSection({
                         alt={resource.title}
                         className="w-full h-full object-cover"
                         style={{
-                          objectPosition: resource.is_external_link
-                            ? 'center top'
-                            : (viewportWidth < 768 ? 'center 18%' : 'center 10%')
+                          objectPosition: resource.file_url && resource.file_url.toLowerCase().endsWith(".pdf")
+                            ? (viewportWidth < 768 ? 'center 10%' : 'center 10%')
+                            : 'center top',
+                          transform: resource.file_url && resource.file_url.toLowerCase().endsWith(".pdf") ? 'scale(1.1)' : 'none',
                         }}
                       />
                     ) : (

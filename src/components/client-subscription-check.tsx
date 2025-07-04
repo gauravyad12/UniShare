@@ -35,41 +35,52 @@ export function ClientSubscriptionCheck({
         }
 
         try {
-          // Check if user has an active subscription
-          const { data: subscriptions } = await supabase
-            .from("subscriptions")
-            .select("status, current_period_end")
-            .eq("user_id", user.id)
-            .order('created_at', { ascending: false });
+          // Use the enhanced subscription check that includes temporary access
+          const { data: hasAccess } = await supabase
+            .rpc('has_scholar_plus_access', { p_user_id: user.id });
 
-          // Get the current time
-          const currentTime = Math.floor(Date.now() / 1000);
-
-          // Check if any subscription is active and valid
-          if (subscriptions && subscriptions.length > 0) {
-            // First check the most recent subscription (ordered by created_at desc)
-            const latestSubscription = subscriptions[0];
-
-            // Check if the latest subscription is active and not expired
-            if (latestSubscription.status === "active" &&
-                (!latestSubscription.current_period_end ||
-                 latestSubscription.current_period_end > currentTime)) {
-              userHasSubscription = true;
-            }
-            // If the latest subscription is not active or is expired, log it
-            else if (latestSubscription.status === "active" &&
-                     latestSubscription.current_period_end &&
-                     latestSubscription.current_period_end <= currentTime) {
-              console.warn("Latest subscription is marked as active but has expired");
-            }
-
-            // Log the number of subscription records found
-            if (subscriptions.length > 1) {
-              console.info(`User has ${subscriptions.length} subscription records. Using the most recent one.`);
-            }
-          }
+          userHasSubscription = hasAccess || false;
         } catch (error) {
           console.error("Error checking subscription:", error);
+          
+          // Fallback to manual check if stored procedure fails
+          try {
+            // Check regular subscription
+            const { data: subscriptions } = await supabase
+              .from("subscriptions")
+              .select("status, current_period_end")
+              .eq("user_id", user.id)
+              .order('created_at', { ascending: false });
+
+            const currentTime = Math.floor(Date.now() / 1000);
+
+            if (subscriptions && subscriptions.length > 0) {
+              const latestSubscription = subscriptions[0];
+              if (latestSubscription.status === "active" &&
+                  (!latestSubscription.current_period_end ||
+                   latestSubscription.current_period_end > currentTime)) {
+                userHasSubscription = true;
+              }
+            }
+
+            // Check temporary access if no regular subscription
+            if (!userHasSubscription) {
+              const { data: temporaryAccess } = await supabase
+                .from("temporary_scholar_access")
+                .select("expires_at")
+                .eq("user_id", user.id)
+                .eq("is_active", true)
+                .gt("expires_at", new Date().toISOString())
+                .limit(1)
+                .maybeSingle();
+
+              if (temporaryAccess) {
+                userHasSubscription = true;
+              }
+            }
+          } catch (fallbackError) {
+            console.error("Error in fallback subscription check:", fallbackError);
+          }
         }
 
         setHasSubscription(userHasSubscription);

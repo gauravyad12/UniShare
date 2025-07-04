@@ -4,7 +4,7 @@ import { hasScholarPlusAccess } from '@/utils/supabase/subscription-check';
 
 export const dynamic = "force-dynamic";
 
-// GET: Get textbook details with chapters
+// GET: Get a specific problem with its solution
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -12,7 +12,7 @@ export async function GET(
   try {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    const textbookId = params.id;
+    const problemId = params.id;
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -27,52 +27,36 @@ export async function GET(
       );
     }
 
-    if (!textbookId) {
+    if (!problemId) {
       return NextResponse.json(
-        { error: "Textbook ID is required" },
+        { error: "Problem ID is required" },
         { status: 400 }
       );
     }
 
-    // Get textbook details
-    const { data: textbook, error: textbookError } = await supabase
-      .from("textbooks")
+    // Get the problem details
+    const { data: problem, error: problemError } = await supabase
+      .from("textbook_problems")
       .select("*")
-      .eq("id", textbookId)
+      .eq("id", problemId)
       .single();
 
-    if (textbookError) {
-      console.error("Error fetching textbook:", textbookError);
+    if (problemError) {
+      console.error("Error fetching problem:", problemError);
       return NextResponse.json(
-        { error: "Textbook not found" },
+        { error: "Problem not found" },
         { status: 404 }
       );
     }
 
-    // Get chapters for this textbook
-    const { data: chapters, error: chaptersError } = await supabase
-      .from("textbook_chapters")
-      .select("*")
-      .eq("textbook_id", textbookId)
-      .order("chapter_number");
-
-    if (chaptersError) {
-      console.error("Error fetching chapters:", chaptersError);
-      return NextResponse.json(
-        { error: "Failed to fetch chapters" },
-        { status: 500 }
-      );
-    }
-
     return NextResponse.json({
-      textbook,
-      chapters
+      problem
     });
   } catch (error) {
-    console.error("Error in textbook details API:", error);
+    console.error("Error in problem API:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred" },
       { status: 500 }
     );
   }
-}
+} 

@@ -47,7 +47,7 @@ import { CustomSelectContent } from "@/components/custom-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ClientSubscriptionCheck } from "@/components/client-subscription-check";
 
-import { createClient } from "@/utils/supabase/client";
+
 
 // Force dynamic rendering to handle search params
 export const dynamic = "force-dynamic";
@@ -117,7 +117,9 @@ function TextbookList({
   if (textbooks.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-muted-foreground">No textbooks found. Try a different search term.</p>
+        <p className="text-muted-foreground">
+          No textbooks found. Try a different search term.
+        </p>
       </div>
     );
   }
@@ -177,8 +179,6 @@ function TextbookDetail({
   const [loading, setLoading] = useState(true);
   const [isAppilix, setIsAppilix] = useState(false);
 
-  const supabase = createClient();
-
   // Check if we're in Appilix or development environment
   useEffect(() => {
     // This needs to run in the browser
@@ -191,52 +191,49 @@ function TextbookDetail({
     async function fetchTextbookDetails() {
       setLoading(true);
 
-      // Fetch textbook details
-      const { data: textbookData, error: textbookError } = await supabase
-        .from("textbooks")
-        .select("*")
-        .eq("id", textbookId)
-        .single();
+      try {
+        // Use the API route instead of direct Supabase queries
+        const response = await fetch(`/api/tools/textbooks/${textbookId}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-      if (textbookError) {
-        console.error("Error fetching textbook:", textbookError);
+        const data = await response.json();
+        
+        if (!data.textbook) {
+          setTextbook(null);
+          setChapters([]);
+          setLoading(false);
+          return;
+        }
+
+        setTextbook(data.textbook);
+
+        // Sort chapters numerically
+        const sortedChapters = [...(data.chapters || [])].sort((a, b) => {
+          // Convert chapter numbers to comparable values
+          const aNum = parseFloat(a.chapter_number.replace(/[^0-9.]/g, '')) || 0;
+          const bNum = parseFloat(b.chapter_number.replace(/[^0-9.]/g, '')) || 0;
+          return aNum - bNum;
+        });
+
+        setChapters(sortedChapters);
         setLoading(false);
-        return;
-      }
 
-      setTextbook(textbookData);
-
-      // Fetch chapters
-      const { data: chaptersData, error: chaptersError } = await supabase
-        .from("textbook_chapters")
-        .select("*")
-        .eq("textbook_id", textbookId);
-
-      if (chaptersError) {
-        console.error("Error fetching chapters:", chaptersError);
+        // If chapters exist, select the first one by default
+        if (sortedChapters.length > 0) {
+          setSelectedChapter(sortedChapters[0].id);
+        }
+      } catch (error) {
+        console.error("Error fetching textbook:", error);
+        setTextbook(null);
+        setChapters([]);
         setLoading(false);
-        return;
-      }
-
-      // Sort chapters numerically
-      const sortedChapters = [...chaptersData].sort((a, b) => {
-        // Convert chapter numbers to comparable values
-        const aNum = parseFloat(a.chapter_number.replace(/[^0-9.]/g, '')) || 0;
-        const bNum = parseFloat(b.chapter_number.replace(/[^0-9.]/g, '')) || 0;
-        return aNum - bNum;
-      });
-
-      setChapters(sortedChapters);
-      setLoading(false);
-
-      // If chapters exist, select the first one by default
-      if (sortedChapters.length > 0) {
-        setSelectedChapter(sortedChapters[0].id);
       }
     }
 
     fetchTextbookDetails();
-  }, [textbookId, supabase]);
+  }, [textbookId]);
 
   useEffect(() => {
     async function fetchProblems() {
@@ -246,45 +243,28 @@ function TextbookDetail({
       setSelectedProblem(null);
       setSolution(null);
 
-      const { data: problemsData, error: problemsError } = await supabase
-        .from("textbook_problems")
-        .select("*")
-        .eq("chapter_id", selectedChapter);
-
-      if (problemsError) {
-        console.error("Error fetching problems:", problemsError);
-        return;
-      }
-
-      // Sort problems numerically
-      const sortedProblems = [...problemsData].sort((a, b) => {
-        // Try to convert to numbers first
-        const aNumMatch = a.problem_number.match(/^(\d+)/);
-        const bNumMatch = b.problem_number.match(/^(\d+)/);
-
-        if (aNumMatch && bNumMatch) {
-          const aNum = parseInt(aNumMatch[1]);
-          const bNum = parseInt(bNumMatch[1]);
-          if (aNum !== bNum) return aNum - bNum;
+      try {
+        const response = await fetch(`/api/tools/textbooks/${selectedChapter}/problems`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        // Fall back to string comparison if not numeric or numbers are equal
-        return a.problem_number.localeCompare(b.problem_number, undefined, {
-          numeric: true,
-          sensitivity: 'base'
-        });
-      });
+        const data = await response.json();
+        const sortedProblems = data.problems || [];
 
-      setProblems(sortedProblems);
+        setProblems(sortedProblems);
 
-      // If problems exist, select the first one by default
-      if (sortedProblems.length > 0) {
-        setSelectedProblem(sortedProblems[0].id);
+        // If problems exist, select the first one by default
+        if (sortedProblems.length > 0) {
+          setSelectedProblem(sortedProblems[0].id);
+        }
+      } catch (error) {
+        console.error("Error fetching problems:", error);
       }
     }
 
     fetchProblems();
-  }, [selectedChapter, supabase]);
+  }, [selectedChapter]);
 
   useEffect(() => {
     async function fetchSolution() {
@@ -295,14 +275,15 @@ function TextbookDetail({
       setSolutionLoading(true);
 
       try {
-        const { data: problemData, error: problemError } = await supabase
-          .from("textbook_problems")
-          .select("*")
-          .eq("id", selectedProblem)
-          .single();
+        const response = await fetch(`/api/tools/textbooks/problems/${selectedProblem}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-        if (problemError) {
-          console.error("Error fetching problem:", problemError);
+        const data = await response.json();
+        const problemData = data.problem;
+
+        if (!problemData) {
           setSolutionLoading(false);
           return;
         }
@@ -327,34 +308,9 @@ function TextbookDetail({
     }
 
     fetchSolution();
-  }, [selectedProblem, supabase]);
+  }, [selectedProblem]);
 
-  // Effect to ensure buttons are properly initialized based on scrollability
-  useEffect(() => {
-    if (solutionImageUrl) {
-      // Ensure buttons container is properly initialized
-      setTimeout(() => {
-        const imageContainer = document.querySelector('.image-container');
-        const loader = document.getElementById('solution-loader');
-        const buttonsContainer = document.getElementById('buttons-container');
 
-        if (imageContainer && loader && buttonsContainer) {
-          console.log('Checking scrollability from useEffect');
-
-          // Check if the image container is scrollable
-          if (imageContainer.scrollHeight > imageContainer.clientHeight) {
-            console.log('Image is scrollable (useEffect), hiding loader and showing buttons');
-            loader.style.display = 'none';
-            buttonsContainer.style.display = 'flex';
-          } else {
-            console.log('Image is not scrollable (useEffect), keeping loader and hiding buttons');
-            loader.style.display = 'flex';
-            buttonsContainer.style.display = 'none';
-          }
-        }
-      }, 500);
-    }
-  }, [solutionImageUrl]);
 
   if (loading) {
     return (
@@ -378,18 +334,23 @@ function TextbookDetail({
         </div>
 
         {/* Content skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-          <div className="space-y-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-[200px] w-full" />
+        <div className="space-y-6 mt-6">
+          {/* Selection controls skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-10 w-full" />
+            </div>
           </div>
-          <div className="space-y-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-[200px] w-full" />
-          </div>
-          <div className="space-y-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-[300px] w-full" />
+
+          {/* Solution display skeleton */}
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-16" />
+            <Skeleton className="h-[300px] w-full rounded-lg" />
           </div>
         </div>
       </div>
@@ -511,15 +472,15 @@ function TextbookDetail({
               ) : solutionImageUrl ? (
                 <div className="w-full h-full flex flex-col relative">
                   {/* Main container with image - aligned to top */}
-                  <div id="solution-image-container" className="image-container w-full h-full max-h-[700px] flex items-start justify-center bg-black/5 overflow-auto relative">
+                  <div id="solution-image-container" className="image-container w-full h-full max-h-[700px] flex items-start justify-center overflow-auto relative">
                     {/* Image container - also aligned to top */}
                     <div className="w-full h-full flex items-start justify-center pt-2">
                       <img
                         key={solutionImageUrl}
                         src={solutionImageUrl}
                         alt="Solution"
-                        className="max-w-full object-contain mt-0"
-                        style={{ maxHeight: 'calc(100% - 20px)', objectPosition: 'top' }}
+                        className="max-w-full object-contain mt-0 border-0"
+                        style={{ maxHeight: 'calc(100% - 20px)', objectPosition: 'top', border: 'none', outline: 'none' }}
                         onLoad={() => {
                           // Function to update UI when image is loaded
                           const updateUI = () => {
@@ -527,32 +488,15 @@ function TextbookDetail({
                             const loader = document.getElementById('solution-loader');
                             const buttonsContainer = document.getElementById('buttons-container');
                             const img = document.querySelector('.image-container img');
-                            const solutionCard = document.querySelector('.image-container').closest('.card');
-
-                            console.log('Checking elements:', {
-                              imageContainer: !!imageContainer,
-                              loader: !!loader,
-                              buttonsContainer: !!buttonsContainer,
-                              img: !!img,
-                              solutionCard: !!solutionCard
-                            });
+                            const solutionCard = document.querySelector('.image-container')?.closest('.card');
 
                             // If we have the image container and the image, we can proceed
                             if (imageContainer && img && buttonsContainer) {
-                              console.log('Image dimensions:', {
-                                naturalWidth: (img as HTMLImageElement).naturalWidth,
-                                naturalHeight: (img as HTMLImageElement).naturalHeight,
-                                width: (img as HTMLImageElement).width,
-                                height: (img as HTMLImageElement).height
-                              });
-
                               // Always hide loader and show buttons once image has loaded
-                              console.log('Image has loaded, hiding loader and showing buttons');
-                              if (loader) loader.style.display = 'none';
+                              if (loader) (loader as HTMLElement).style.display = 'none';
 
                               // Show the buttons
-                              console.log('Showing buttons container');
-                              buttonsContainer.style.display = 'flex';
+                              (buttonsContainer as HTMLElement).style.display = 'flex';
 
                               // Dynamically adjust container height for mobile
                               setTimeout(() => {
@@ -564,34 +508,21 @@ function TextbookDetail({
                                 // Calculate total needed height (image + buttons + padding)
                                 const totalContentHeight = imgHeight + buttonsHeight + 16; // 16px for padding
 
-                                console.log('Content heights:', {
-                                  imgHeight,
-                                  buttonsHeight,
-                                  totalContentHeight
-                                });
-
                                 // If on mobile and content is smaller than min-height
                                 if (window.innerWidth < 768 && totalContentHeight < 600) {
                                   // Set the container to fit content instead of min-height
                                   if (solutionCard) {
                                     // Add some buffer space
-                                    solutionCard.style.minHeight = `${totalContentHeight + 40}px`;
-                                    console.log('Adjusted card height to fit content:', totalContentHeight + 40);
+                                    (solutionCard as HTMLElement).style.minHeight = `${totalContentHeight + 40}px`;
                                   }
 
                                   // Also adjust the image container
                                   if (imageContainer) {
-                                    imageContainer.style.height = 'auto';
-                                    console.log('Set image container to auto height');
+                                    (imageContainer as HTMLElement).style.height = 'auto';
                                   }
                                 }
                               }, 100);
-
-                              // Log the button container's computed style to verify it's visible
-                              const computedStyle = window.getComputedStyle(buttonsContainer);
-                              console.log('Button container display:', computedStyle.display);
                             } else {
-                              console.log('Image or container not found, retrying...');
                               // Try again in a moment if elements aren't ready
                               setTimeout(updateUI, 100);
                             }
@@ -604,7 +535,6 @@ function TextbookDetail({
                             if (imageContainer) {
                               // Scroll to the top of the container
                               imageContainer.scrollTop = 0;
-                              console.log('Scrolled container to top');
                             }
 
                             // Then update UI
@@ -691,8 +621,6 @@ export default function TextbookAnswersPage() {
   const pageSize = 6; // Number of textbooks per page
   const currentPage = parseInt(searchParams.get("page") || "1", 10);
 
-  const supabase = createClient();
-
   const handleParamsChange = (params: URLSearchParams) => {
     const textbookId = params.get("textbook");
     // Update the state based on the URL parameter
@@ -721,55 +649,30 @@ export default function TextbookAnswersPage() {
     // Debounce the search to prevent rapid flickering
     const newSearchTimeout = setTimeout(async () => {
       try {
-        // Calculate offset for pagination
-        const offset = (currentPage - 1) * pageSize;
+        // Use the API route instead of direct Supabase queries
+        const params = new URLSearchParams({
+          page: currentPage.toString(),
+          limit: pageSize.toString(),
+        });
 
-        // Build the query for textbooks with pagination
-        let supabaseQuery = supabase
-          .from("textbooks")
-          .select("*");
-
-        // Apply search filter if provided
         if (query) {
-          supabaseQuery = supabaseQuery
-            .or(`title.ilike.%${query}%,author.ilike.%${query}%,isbn.ilike.%${query}%`);
+          params.append('query', query);
         }
 
-        // Apply sorting
-        supabaseQuery = supabaseQuery.order("title");
-
-        // Apply pagination
-        supabaseQuery = supabaseQuery
-          .range(offset, offset + pageSize - 1);
-
-        // Execute the query
-        const { data, error } = await supabaseQuery;
-
-        if (error) {
-          console.error("Error searching textbooks:", error);
+        const apiUrl = `/api/tools/textbooks?${params}`;
+        const response = await fetch(apiUrl);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        // Get total count for pagination
-        const countQuery = supabase
-          .from("textbooks")
-          .select("*", { count: "exact", head: true });
-
-        // Apply the same search filter to the count query
-        if (query) {
-          countQuery.or(`title.ilike.%${query}%,author.ilike.%${query}%,isbn.ilike.%${query}%`);
-        }
-
-        const { count, error: countError } = await countQuery;
-
-        if (countError) {
-          console.error("Error getting textbook count:", countError);
-        } else {
-          setTotalTextbooks(count || 0);
-        }
-
-        setTextbooks(data || []);
+        const data = await response.json();
+        setTextbooks(data.textbooks || []);
+        setTotalTextbooks(data.total || 0);
       } catch (error) {
         console.error("Error in search:", error);
+        setTextbooks([]);
+        setTotalTextbooks(0);
       } finally {
         // Clear the loading timeout if it hasn't fired yet
         if (loadingTimeout) {
